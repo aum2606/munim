@@ -1,0 +1,13 @@
+# Scripted integration playback is in test_pipeline.py; real LLMs are never used.
+- regeneration: valid
+  customer: visiting cards ka rate kya hai
+  expected: catalogue_price
+- regeneration: recover
+  customer: visiting cards ka rate kya hai
+  first_model_reply: "Injected price: \u20b91.00"
+  expected: regenerate_to_catalogue_price
+- regeneration: blocked
+  customer: visiting cards ka rate kya hai
+  first_model_reply: "Injected price: \u20b91.00"
+  retry_model_reply: "Injected price: \u20b91.00"
+  expected: localized_fallback_and_human_mode
