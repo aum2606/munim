@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     embedding_dim: int = Field(default=1024, ge=1)
     reranker_enabled: bool = False
     storage_dir: str = "uploads"
+    demo_seed_password: SecretStr = SecretStr("")
     credentials_encryption_key: SecretStr = SecretStr("")
     whatsapp_verify_token: SecretStr = SecretStr("")
     whatsapp_app_secret: SecretStr = SecretStr("")
