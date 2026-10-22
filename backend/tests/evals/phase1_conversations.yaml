@@ -1,0 +1,26 @@
+# All prices are explicit integer paise, independent of model output.
+- {tenant: printing, question: "visiting cards price", intent: pricing, language: en, expected: "Visiting cards", prices: [45000]}
+- {tenant: printing, question: "bhai visiting cards ka rate kya hai", intent: pricing, language: hinglish, expected: "Visiting cards", prices: [45000]}
+- {tenant: printing, question: "CARD-100 price", intent: pricing, language: en, expected: "Visiting cards", prices: [45000]}
+- {tenant: printing, question: "business cards ka rate", intent: pricing, language: hinglish, expected: "Visiting cards", prices: [45000]}
+- {tenant: printing, question: "how much do visiting cards cost", intent: pricing, language: en, expected: "Visiting cards", prices: [45000]}
+- {tenant: printing, question: "flyer price", intent: pricing, language: en, expected: "Flyers", prices: [120000]}
+- {tenant: printing, question: "FLYER-500 rate", intent: pricing, language: en, expected: "Flyers", prices: [120000]}
+- {tenant: printing, question: "bhai flyers ka rate kya hai", intent: pricing, language: hinglish, expected: "Flyers", prices: [120000]}
+- {tenant: printing, question: "brochure price", intent: pricing, language: en, expected: "Brochures", prices: [350000]}
+- {tenant: printing, question: "BRO-100 price", intent: pricing, language: en, expected: "Brochures", prices: [350000]}
+- {tenant: printing, question: "brochures ka rate", intent: pricing, language: hinglish, expected: "Brochures", prices: [350000]}
+- {tenant: printing, question: "flex price", intent: pricing, language: en, expected: "Flex printing", prices: [5000]}
+- {tenant: printing, question: "FLEX-SQFT rate", intent: pricing, language: en, expected: "Flex printing", prices: [5000]}
+- {tenant: printing, question: "flex printing ka rate", intent: pricing, language: hinglish, expected: "Flex printing", prices: [5000]}
+- {tenant: printing, question: "are visiting cards available", intent: availability, language: en, expected: "in_stock", prices: [45000]}
+- {tenant: printing, question: "what is your delivery policy", intent: policy, language: en, expected: "Local delivery is available", prices: []}
+- {tenant: printing, question: "delivery policy kya hai", intent: policy, language: hinglish, expected: "Local delivery is available", prices: []}
+- {tenant: printing, question: "what artwork formats do you accept", intent: general_faq, language: en, expected: "print-ready PDF", prices: []}
+- {tenant: printing, question: "artwork formats kya hai", intent: general_faq, language: hinglish, expected: "print-ready PDF", prices: []}
+- {tenant: printing, question: "when are you open", intent: general_faq, language: en, expected: "10:00", prices: []}
+- {tenant: printing, question: "shop khuli hai", intent: general_faq, language: hinglish, expected: "10:00", prices: []}
+- {tenant: printing, question: "how long does printing take", intent: general_faq, language: en, expected: "three working days", prices: []}
+- {tenant: electronics, question: "HP laptop price", intent: pricing, language: en, expected: "HP laptop", prices: [4500000]}
+- {tenant: photography, question: "album ka rate kya hai", intent: pricing, language: hinglish, expected: "Premium wedding album", prices: [600000]}
+- {tenant: printing, question: "Do you rent spaceships?", intent: general_faq, language: en, expected: "Let me confirm this with the team", prices: [], gap: true}
