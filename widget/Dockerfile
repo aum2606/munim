@@ -7,4 +7,5 @@ COPY widget/package.json widget/package.json
 RUN pnpm install --frozen-lockfile
 COPY widget/ widget/
 WORKDIR /workspace/widget
-CMD ["pnpm", "dev"]
+RUN pnpm build
+CMD ["pnpm", "exec", "vite", "preview", "--host", "0.0.0.0", "--port", "5174"]

@@ -40,6 +40,9 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: uv run --directory backend uvicorn app.main:create_app --factory --host 0.0.0.0 --port 18000 > /tmp/munim-api.log 2>&1 &
       - run: curl --fail --retry 30 --retry-connrefused --retry-delay 1 http://localhost:18000/ready
+      - run: uv run --directory backend arq app.workers.settings.WorkerSettings > /tmp/munim-worker.log 2>&1 &
+      - run: pnpm --filter @munim/widget exec vite preview --host 0.0.0.0 --port 5174 > /tmp/munim-widget.log 2>&1 &
+      - run: curl --silent --fail --output /dev/null --retry 30 --retry-connrefused --retry-delay 1 http://localhost:5174/widget.js
       - run: make e2e
       - uses: actions/upload-artifact@v4
         if: failure()

@@ -1,0 +1,15 @@
+export const en = {
+  launcher: "Chat with us",
+  close: "Close chat",
+  message: "Message",
+  send: "Send",
+  sending: "Sending...",
+  connecting: "Connecting...",
+  welcome: "Ask us about products, services or policies.",
+  error: "Unable to connect. Please try again.",
+  retry: "Reconnect",
+  title: (business: string) => `Chat with ${business}`,
+  preview: "Widget preview",
+  key: "Business widget key",
+  open: "Open preview",
+};

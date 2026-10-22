@@ -58,3 +58,6 @@
 
 - Knowledge gaps are persisted for unsupported or blocked answers. Guardrail exhaustion/explicit human requests switch the conversation to human mode and stop later AI replies. The full Handoff agent, handoffs table, owner reply actions and notifications remain in Phase 3.
 - Each inbound message receives a durable queue job ID; jobs defer by DEBOUNCE_SECONDS, serialize under a tenant/conversation Redis lock, and batch pending messages. Database processed markers and a unique outbound in_reply_to_id protect retries. Busy locks requeue with bounded retries; no model determines dispatch.
+
+- Public widget credential discovery is the second explicit pre-tenant auth exception: resolve a tenant only by its public widget key or an unexpired hashed random bearer token. All subsequent message/stream queries use TenantContext and the bound conversation. Tokens never appear in URLs.
+- Only widget paths permit wildcard CORS, with bearer headers and no cookie credentials. Owner routes retain configured origins. Redis atomically rate-limits IP/tenant requests. Streams rotate after a bounded interval so expiry is rechecked; one-shot SSE supports deterministic snapshots/reconnection.
