@@ -33,6 +33,7 @@ services:
     build: ./backend
     env_file: .env
     environment: *backend_environment
+    volumes: ["uploads:/app/uploads"]
     ports: ["18000:8000"]
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -54,6 +55,7 @@ services:
     build: ./backend
     env_file: .env
     environment: *backend_environment
+    volumes: ["uploads:/app/uploads"]
     command: ["uv", "run", "arq", "app.workers.settings.WorkerSettings"]
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -74,3 +76,4 @@ services:
     ports: ["5174:5174"]
 volumes:
   postgres_data:
+  uploads:
