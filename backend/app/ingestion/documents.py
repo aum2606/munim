@@ -3,6 +3,8 @@ from pathlib import Path
 from uuid import UUID, uuid4
 from zipfile import BadZipFile
 
+import httpx
+from docx.opc.exceptions import PackageNotFoundError
 from pypdf.errors import PdfReadError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -87,7 +89,17 @@ class DocumentService:
             vectors = await embedder.embed([chunk.content for chunk in chunks])
             await self.documents.replace_chunks(document_id, chunks, vectors)
             await self.session.commit()
-        except (DomainError, ValueError, OSError, BadZipFile, PdfReadError) as error:
+        except (
+            DomainError,
+            ValueError,
+            OSError,
+            BadZipFile,
+            PdfReadError,
+            httpx.HTTPError,
+            KeyError,
+            SyntaxError,
+            PackageNotFoundError,
+        ) as error:
             await self.session.rollback()
             failed = await self.documents.get(document_id)
             failed.status = DocumentStatus.FAILED

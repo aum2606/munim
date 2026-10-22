@@ -88,3 +88,31 @@ async def test_queued_documents_ingestion_retries_faq_and_isolation(client, sess
         )
     failed = (await client.get("/api/v1/documents/" + broken.json()["id"], headers=a)).json()
     assert failed["status"] == "failed" and "No readable text" in failed["error"]
+
+
+async def test_embedding_provider_failure_is_visible_and_retryable(client, sessions, tmp_path):
+    import httpx
+
+    headers, ctx = await owner(client)
+    queue = FakeQueue()
+    settings = Settings(
+        database_url=client._transport.app.state.settings.database_url,
+        storage_dir=str(tmp_path),
+        secret_key="test-only-key-with-at-least-32-characters",
+    )
+
+    class UnavailableEmbedder:
+        dimension = 1024
+
+        async def embed(self, texts: list[str]) -> list[list[float]]:
+            raise httpx.ReadTimeout("private provider details")
+
+    async with sessions() as session:
+        service = DocumentService(session, ctx, settings, queue)
+        uploaded = await service.upload("policy.txt", b"Local delivery is available.")
+        await service.ingest(uploaded.id, UnavailableEmbedder())
+        document = await DocumentRepository(session, ctx).get(uploaded.id)
+        assert document.status == "failed" and "private" not in document.error
+        await service.retry(uploaded.id)
+        await service.ingest(uploaded.id, FakeEmbedder())
+        assert (await DocumentRepository(session, ctx).get(uploaded.id)).status == "ready"
