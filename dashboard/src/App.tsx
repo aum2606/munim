@@ -11,6 +11,10 @@ import {
 import { api, hasSession, setTokens, setSessionLost } from "./api/client";
 import { Button } from "./components/ui/button";
 import { en } from "./i18n/en";
+import { knowledge as kt } from "./i18n/knowledge";
+import { KnowledgePage } from "./pages/Knowledge";
+import { PlaygroundPage } from "./pages/Playground";
+import { InboxPage } from "./pages/Inbox";
 
 function AuthPage({ register = false }: { register?: boolean }) {
   const navigate = useNavigate();
@@ -130,6 +134,9 @@ function ProtectedLayout() {
       </header>
       <nav>
         <Link to="/">{en.home}</Link>
+        <Link to="/knowledge">{kt.title}</Link>
+        <Link to="/playground">{kt.playground}</Link>
+        <Link to="/inbox">{kt.inbox}</Link>
       </nav>
       <main>
         <Outlet />
@@ -156,6 +163,9 @@ export function App() {
       <Route path="/register" element={<AuthPage register />} />
       <Route element={<ProtectedLayout />}>
         <Route path="/" element={<Overview />} />
+        <Route path="/knowledge" element={<KnowledgePage />} />
+        <Route path="/playground" element={<PlaygroundPage />} />
+        <Route path="/inbox" element={<InboxPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

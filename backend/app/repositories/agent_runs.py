@@ -14,10 +14,13 @@ class AgentRunRepository:
     def __init__(self, session: AsyncSession, ctx: TenantContext) -> None:
         self.session, self.ctx = session, ctx
 
-    async def list(self) -> list[AgentRun]:
+    async def list(self, message_id: UUID | None = None) -> list[AgentRun]:
+        statement = select(AgentRun).where(AgentRun.tenant_id == self.ctx.tenant_id)
+        if message_id is not None:
+            statement = statement.where(AgentRun.message_id == message_id)
         return list(
             await self.session.scalars(
-                select(AgentRun).where(AgentRun.tenant_id == self.ctx.tenant_id)
+                statement.order_by(AgentRun.created_at.desc(), AgentRun.id.desc()).limit(100)
             )
         )
 

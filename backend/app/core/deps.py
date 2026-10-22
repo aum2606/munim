@@ -53,3 +53,12 @@ def require_owner(ctx: Context) -> TenantContext:
 
 
 Owner = Annotated[TenantContext, Depends(require_owner)]
+
+
+def require_trace_reader(ctx: Context) -> TenantContext:
+    if ctx.role not in {"owner", "admin"}:
+        raise DomainError("Owner or admin role required", 403)
+    return ctx
+
+
+TraceReader = Annotated[TenantContext, Depends(require_trace_reader)]

@@ -33,11 +33,14 @@ async function request<T>(
   path: string,
   init: RequestInit = {},
   retry = true,
+  format: "json" | "blob" = "json",
 ): Promise<T> {
   const response = await fetch(`/api/v1${path}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(init.body instanceof FormData
+        ? {}
+        : { "Content-Type": "application/json" }),
       ...(tokens ? { Authorization: `Bearer ${tokens.access_token}` } : {}),
       ...init.headers,
     },
@@ -67,10 +70,11 @@ async function request<T>(
           refreshing = null;
         });
     await refreshing;
-    return request<T>(path, init, false);
+    return request<T>(path, init, false, format);
   }
   if (!response.ok) throw new Error(`Request failed: ${response.status}`);
   if (response.status === 204) return undefined as T;
+  if (format === "blob") return (await response.blob()) as T;
   return response.json() as Promise<T>;
 }
 export const api = {
@@ -97,3 +101,13 @@ export const api = {
     }
   },
 };
+
+export function authenticatedRequest<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<T> {
+  return request<T>(path, init);
+}
+export function authenticatedDownload(path: string): Promise<Blob> {
+  return request<Blob>(path, {}, true, "blob");
+}

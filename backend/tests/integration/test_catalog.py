@@ -47,7 +47,7 @@ async def test_import_preview_mapping_commit_and_isolation(client: httpx.AsyncCl
     catalog = (await client.get("/api/v1/catalog/items", headers=a)).json()[0]
     item_path = "/api/v1/catalog/items/" + catalog["id"]
     assert (await client.get(item_path, headers=b)).status_code == 404
-    changed = {key: value for key, value in catalog.items() if key != "id"}
+    changed = {key: value for key, value in catalog.items() if key not in {"id", "display_price"}}
     changed["name"] = "Changed"
     assert (await client.put(item_path, headers=b, json=changed)).status_code == 404
     assert (await client.put(item_path, headers=a, json=changed)).status_code == 200

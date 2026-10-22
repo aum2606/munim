@@ -12,7 +12,7 @@ from app.workers.queue import ArqJobQueue
 
 async def ingest_document(ctx: dict[str, Any], tenant_id: str, document_id: str) -> None:
     settings = Settings()
-    engine = create_async_engine(settings.database_url)
+    engine = create_async_engine(settings.database_url, hide_parameters=True)
     try:
         async with async_sessionmaker(engine, expire_on_commit=False)() as session:
             await DocumentService(
@@ -37,7 +37,7 @@ async def process_message(ctx: dict[str, Any], tenant_id: str, message_id: str) 
     from app.repositories.scoped import ScopedRepository
 
     settings = Settings()
-    engine = create_async_engine(settings.database_url)
+    engine = create_async_engine(settings.database_url, hide_parameters=True)
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     tenant = TenantContext(UUID(tenant_id))
     try:
