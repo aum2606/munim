@@ -1,0 +1,24 @@
+{
+  "name": "@munim/widget",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "lint": "eslint . && tsc --noEmit"
+  },
+  "dependencies": {
+    "preact": "^10.26.0"
+  },
+  "devDependencies": {
+    "vite": "^6.2.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0",
+    "jsdom": "^26.0.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/preact": "^3.2.0",
+    "@preact/preset-vite": "^2.10.0"
+  }
+}
