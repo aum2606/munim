@@ -1,8 +1,10 @@
 from collections.abc import Callable
 
 from app.core.config import Settings
-from app.llm import FakeEmbedder, FakeLLM, LLMClient, OpenAICompatibleLLM
+from app.db.models.knowledge import EMBEDDING_DIMENSION
+from app.llm import Embedder, FakeEmbedder, FakeLLM, LLMClient, OpenAICompatibleLLM
 from app.llm.client import RunRecorder
+from app.llm.embedder import OpenAICompatibleEmbedder
 from app.llm.types import LLMRequest, LLMResponse
 from app.schemas.catalog import ColumnBinding, MappingOutput
 
@@ -42,7 +44,11 @@ def make_llm(
     return OpenAICompatibleLLM(recorder, settings)
 
 
-def make_embedder(settings: Settings) -> FakeEmbedder:
-    if settings.embedding_provider != "fake":
-        raise ValueError("Configure a supported embedding provider")
-    return FakeEmbedder(settings.embedding_dim)
+def make_embedder(settings: Settings) -> Embedder:
+    if settings.embedding_dim != EMBEDDING_DIMENSION:
+        raise ValueError("Embedding dimension must match the migrated 1024-dimensional schema")
+    if settings.embedding_provider == "fake":
+        return FakeEmbedder(settings.embedding_dim)
+    if settings.embedding_provider == "openai_compatible":
+        return OpenAICompatibleEmbedder(settings)
+    raise ValueError("Configure a supported embedding provider")

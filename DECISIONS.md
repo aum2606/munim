@@ -43,3 +43,9 @@
 
 - Catalogue XLSX numeric values are read as raw XML text, preventing automatic float conversion of money. openpyxl generates the text-valued template; formulas are rejected. CSV/XLSX imports have bounded upload/expanded sizes and rows.
 - The fake LLM accepts an explicit offline demo response factory in addition to hashed scripts. Tests can continue using strict scripts; no fallback calls a real provider. Custom-header mapping uses structured bindings, never edits cell values, and always requires owner commit.
+
+- Document uploads persist before queueing; a queue outage leaves a visible pending document with an explicit retry endpoint. The worker writes failure status and a safe reason, and reprocessing replaces chunks atomically.
+- Chunk size is 500 whitespace-delimited tokens with 75-token overlap, retaining page and heading metadata. This is a deterministic approximation until a model-specific tokenizer is selected. Each bounded FAQ is one chunk.
+- API/worker share an uploads volume. PDF/DOCX/TXT parsing is offline and runs in a thread. Uploaded URLs and OCR remain outside Phase 1. Parser references: https://pypdf.readthedocs.io/en/stable/user/extract-text.html and https://python-docx.readthedocs.io/en/latest/ .
+
+- One full local regression run failed during Postgres testcontainer startup with a Docker 500 before any DB tests ran. Docker health recovered; the unchanged full suite passed on rerun. No tests were skipped.
