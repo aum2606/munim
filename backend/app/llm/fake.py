@@ -1,7 +1,7 @@
 import hashlib
 import json
 from collections import deque
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from app.llm.client import LLMClient, RunRecorder
 from app.llm.types import LLMRequest, LLMResponse
@@ -19,14 +19,18 @@ class FakeLLM(LLMClient):
         self,
         recorder: RunRecorder,
         scripts: dict[tuple[str, str], Sequence[LLMResponse | Exception]],
+        fallback: Callable[[LLMRequest], LLMResponse] | None = None,
     ) -> None:
         super().__init__(recorder)
         self.scripts = {key: deque(responses) for key, responses in scripts.items()}
         self.calls: list[LLMRequest] = []
+        self.fallback = fallback
 
     async def _generate(self, request: LLMRequest) -> LLMResponse:
         self.calls.append(request)
         script = self.scripts.get((request.agent, input_hash(request)))
+        if not script and self.fallback is not None:
+            return self.fallback(request)
         if not script:
             raise AssertionError("No scripted FakeLLM response for agent and input hash")
         response = script.popleft()
