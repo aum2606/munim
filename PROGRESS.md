@@ -1,6 +1,6 @@
 # Progress
 
-Current phase: Phase 0 - implementation and local validation complete. Hosted CI awaits a remote push. Phase 1 has not started.
+Current phase: Phase 1 - knowledge and web chat. Phase 0 CI is green: https://github.com/aum2606/munim/actions/runs/39803825505 .
 
 ### Phase 0 — Foundations (week 1)
 
@@ -31,7 +31,7 @@ Current phase: Phase 0 - implementation and local validation complete. Hosted CI
 
 ### Phase 1 — Knowledge base + web chat (weeks 2–3)
 
-- [ ] Models: `documents`, `chunks`, `catalog_items`, `pricing_rules`, `customers`, `conversations`, `messages`.
+- [x] Models: `documents`, `chunks`, `catalog_items`, `pricing_rules`, `customers`, `conversations`, `messages`. Built: migration ca741ed81029, support tables, composite tenant foreign keys and isolation coverage. `make test` (18 backend + 5 frontend), `make lint`, `make migrate` and fresh DB downgrade/upgrade pass.
 - [ ] Catalog XLSX template, import with LLM column mapping + preview + commit; INR price parser (handles `1,20,000`, `1.2L`, `₹450/-`, `45k`).
 - [ ] Document upload → parse → chunk → embed (worker job); FAQ form.
 - [ ] Hybrid search tool + catalog lookup tool (with `pg_trgm`).
