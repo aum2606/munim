@@ -17,6 +17,7 @@ from app.api.v1.catalog import router as catalog_router
 from app.api.v1.documents import router as documents_router
 from app.api.v1.tenant import router as tenant_router
 from app.api.v1.widget import router as widget_router
+from app.api.v1.workspace import router as workspace_router
 from app.channels.web import WidgetCORSMiddleware
 from app.core.config import Settings
 from app.core.deps import Session
@@ -29,7 +30,7 @@ from app.workers.queue import ArqJobQueue
 def create_app(settings: Settings | None = None) -> FastAPI:
     config = settings or Settings()
     configure_logging()
-    engine = create_async_engine(config.database_url, pool_pre_ping=True)
+    engine = create_async_engine(config.database_url, pool_pre_ping=True, hide_parameters=True)
     redis = Redis.from_url(config.redis_url)
 
     @asynccontextmanager
@@ -87,4 +88,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(documents_router, prefix="/api/v1")
     app.include_router(widget_router, prefix="/api/v1")
     app.include_router(tenant_router, prefix="/api/v1")
+    app.include_router(workspace_router, prefix="/api/v1")
     return app

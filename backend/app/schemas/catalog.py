@@ -1,9 +1,10 @@
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
 from app.db.models.knowledge import StockStatus
+from app.pricing.inr import format_inr
 
 
 class CatalogInput(BaseModel):
@@ -33,6 +34,11 @@ class CatalogView(CatalogInput):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
 
+    @computed_field  # type: ignore[prop-decorator]  # Pydantic property wrapper.
+    @property
+    def display_price(self) -> str:
+        return format_inr(self.base_price_paise)
+
 
 class ColumnBinding(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -57,6 +63,11 @@ class ImportRow(BaseModel):
     number: int
     catalog: CatalogInput | None
     errors: list[str]
+
+    @computed_field  # type: ignore[prop-decorator]  # Pydantic property wrapper.
+    @property
+    def display_price(self) -> str | None:
+        return format_inr(self.catalog.base_price_paise) if self.catalog is not None else None
 
 
 class ImportView(BaseModel):

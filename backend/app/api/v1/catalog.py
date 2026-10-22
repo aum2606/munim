@@ -95,3 +95,15 @@ async def delete_item(catalog_id: UUID, ctx: Owner, session: Session) -> Respons
     catalog.is_active = False
     await session.commit()
     return Response(status_code=204)
+
+
+@router.post("/import/{import_id}/preview", response_model=ImportView)
+async def remap_import(
+    import_id: UUID,
+    body: ImportCommit,
+    request: Request,
+    session: Session,
+    ctx: Owner,
+    config: Config,
+) -> ImportView:
+    return await service(request, session, ctx, config).remap(import_id, body.mapping)

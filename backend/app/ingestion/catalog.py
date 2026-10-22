@@ -104,6 +104,15 @@ class CatalogImportService:
             committed=imported.committed,
         )
 
+    async def remap(self, import_id: UUID, mapping: dict[str, str]) -> ImportView:
+        imported = await self.imports.get(import_id, for_update=True)
+        if imported.committed:
+            raise DomainError("Import has already been committed", 409)
+        preview = self.preview(imported, mapping)
+        imported.mapping = mapping
+        await self.session.commit()
+        return preview
+
     async def get(self, import_id: UUID) -> ImportView:
         imported = await self.imports.get(import_id)
         return self.preview(imported, imported.mapping)
@@ -113,6 +122,8 @@ class CatalogImportService:
         if imported.committed:
             raise DomainError("Import has already been committed", 409)
         preview = self.preview(imported, mapping)
+        if mapping != imported.mapping:
+            raise DomainError("Refresh the preview before confirming a changed mapping", 409)
         if not preview.rows or any(row.errors for row in preview.rows):
             raise DomainError("Resolve all preview errors before committing")
         catalogs = [row.catalog for row in preview.rows if row.catalog is not None]
