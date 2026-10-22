@@ -3,6 +3,11 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ToolCall(BaseModel):
+    name: str
+    arguments: dict[str, Any]
+
+
 class LLMRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     agent: str
@@ -11,11 +16,7 @@ class LLMRequest(BaseModel):
     content: BaseModel
     output_schema: dict[str, Any]
     allowed_tools: tuple[str, ...] = ()
-
-
-class ToolCall(BaseModel):
-    name: str
-    arguments: dict[str, Any]
+    tools_used: list[ToolCall] = Field(default_factory=list)
 
 
 class LLMResponse(BaseModel):

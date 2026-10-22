@@ -31,7 +31,9 @@ def demo_response(request: LLMRequest) -> LLMResponse:
             if header.lower().strip() in aliases
         ]
         return LLMResponse(output=MappingOutput(bindings=bindings).model_dump())
-    raise ValueError("No offline demo fixture for this agent")
+    from app.llm.offline import agent_response
+
+    return agent_response(request)
 
 
 def make_llm(
