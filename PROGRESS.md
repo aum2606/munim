@@ -1,17 +1,33 @@
 # Progress
 
-Current phase: Phase 0 ? Foundations. Implementation in progress.
+Current phase: Phase 0 - implementation and local validation complete. Hosted CI awaits a remote push. Phase 1 has not started.
 
 ### Phase 0 — Foundations (week 1)
 
-- [ ] Repo scaffold per §13, `uv` project, Docker Compose (api, worker, postgres+pgvector, redis), Makefile, CI (lint + test).
-- [ ] Config, structured logging, error handling, health/ready endpoints.
-- [ ] Models + Alembic migration for `tenants`, `tenant_settings`, `users`.
-- [ ] Auth (register tenant+owner, login, refresh, roles), `TenantContext` dependency.
-- [ ] `LLMClient` interface + OpenAI-compatible provider + `FakeLLM`; `Embedder` + `FakeEmbedder`; `agent_runs` model + recording decorator.
-- [ ] Dashboard scaffold: login, layout shell, protected routes.
+- [x] Repo scaffold per §13, `uv` project, Docker Compose (api, worker, postgres+pgvector, redis), Makefile, CI (lint + test). Built: Locked uv/pnpm projects, all six runtime services plus one-shot migrations, root Make targets and GitHub CI.
+- [x] Config, structured logging, error handling, health/ready endpoints. Built: Env-only settings, nested PII redaction, centralized domain/validation errors and dependency-aware readiness.
+- [x] Models + Alembic migration for `tenants`, `tenant_settings`, `users`. Built: Reviewed migration includes tenant settings, user roles, refresh sessions, audited runs, extensions and reversible enum cleanup.
+- [x] Auth (register tenant+owner, login, refresh, roles), `TenantContext` dependency. Built: Argon2, JWT claims, atomic refresh rotation, logout revocation, owner guards and tenant-scoped repositories.
+- [x] `LLMClient` interface + OpenAI-compatible provider + `FakeLLM`; `Embedder` + `FakeEmbedder`; `agent_runs` model + recording decorator. Built: Provider schema requests, deterministic fakes, one validation retry, tool allow-lists and redacted per-attempt DB traces.
+- [x] Dashboard scaffold: login, layout shell, protected routes. Built: React/Tailwind/shadcn shell, TanStack Query, typed client, registration/login, protected routes and mobile browser tests.
 
 **Acceptance:** `docker compose up` works; register/login from dashboard; CI green; tenant-isolation test for users passes.
+
+
+#### Phase 0 verification - 2026-10-22
+
+- PASS: `docker compose up -d --build`; API, Postgres and Redis healthy; dashboard/widget reachable; worker running; one-shot migration exits successfully.
+- PASS: `docker compose exec worker uv run arq --check app.workers.settings.WorkerSettings`.
+- PASS: `make lint` (Ruff, formatting, strict mypy on all 43 app files, ESLint, Prettier and strict TypeScript).
+- PASS: `make test` (17 backend tests, including real Postgres testcontainers tenant isolation; 4 dashboard tests and 1 widget scaffold test). External sockets are blocked; providers use MockTransport.
+- PASS: `make build` (dashboard and single-file widget builds).
+- PASS: `make migrate` and `uv run --directory backend alembic check`; fresh testcontainer upgrade, downgrade to base and upgrade to head pass.
+- PASS: `make seed` (explicit Phase 0 scope message) and `make eval` (offline embedding contract; full golden conversation harness is Phase 6).
+- PASS: `make e2e` (real register/logout/login/protected-route flow on 375px mobile and desktop, no horizontal overflow).
+- Unicode embedding fixtures rechecked after correcting Windows shell encoding; settings/readiness tests rechecked after root .env resolution change.
+- GNU Make was run from `.cache/make/bin/make.exe` with a workspace-owned uv cache. No generated files or environment files are committed.
+- GitHub CI has the same checks plus migration drift and browser tests. Hosted CI status is not available: this new local repository has no configured remote and has not been pushed. This external acceptance check remains pending; Phase 1 is not started.
+- Local conventional commits separate plan/tracking, infrastructure, backend foundations and dashboard; final tracking records these results.
 
 ### Phase 1 — Knowledge base + web chat (weeks 2–3)
 
