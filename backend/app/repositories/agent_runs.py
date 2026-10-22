@@ -21,6 +21,15 @@ class AgentRunRepository:
             )
         )
 
+    async def latest_id(self, message_id: UUID) -> UUID | None:
+        result = await self.session.scalars(
+            select(AgentRun.id)
+            .where(AgentRun.tenant_id == self.ctx.tenant_id, AgentRun.message_id == message_id)
+            .order_by(AgentRun.created_at.desc(), AgentRun.id.desc())
+            .limit(1)
+        )
+        return result.one_or_none()
+
 
 class DatabaseRunRecorder:
     """Independent transaction preserves failure traces if the caller rolls back."""

@@ -20,7 +20,9 @@ class ScopedRepository[T: TenantRecord]:
         )
         if for_update:
             statement = statement.with_for_update()
-        result = (await self.session.scalars(statement)).one_or_none()
+        result = (
+            await self.session.scalars(statement.execution_options(populate_existing=True))
+        ).one_or_none()
         if result is None:
             raise NotFound()
         return result

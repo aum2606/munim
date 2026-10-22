@@ -4,7 +4,7 @@ from typing import Any, ClassVar
 from arq.connections import RedisSettings
 
 from app.core.config import Settings
-from app.workers.tasks import ingest_document
+from app.workers.tasks import ingest_document, process_message
 
 
 async def heartbeat(ctx: dict[str, Any]) -> str:
@@ -13,5 +13,12 @@ async def heartbeat(ctx: dict[str, Any]) -> str:
 
 
 class WorkerSettings:
-    functions: ClassVar[list[Callable[..., Awaitable[Any]]]] = [heartbeat, ingest_document]
+    functions: ClassVar[list[Callable[..., Awaitable[Any]]]] = [
+        heartbeat,
+        ingest_document,
+        process_message,
+    ]
     redis_settings = RedisSettings.from_dsn(Settings().redis_url)
+
+    max_tries = 100
+    job_timeout = Settings().llm_timeout_s * 10 + 120
