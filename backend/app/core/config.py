@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://munim:munim@localhost:57432/munim"
     redis_url: str = "redis://localhost:56379/0"
     cors_origins: str = "http://localhost:5173"
+    widget_script_url: str = "http://localhost:5174/widget.js"
+    public_api_url: str = "http://localhost:18000"
+    widget_session_hours: int = Field(default=24, ge=1, le=168)
+    widget_rate_per_minute: int = Field(default=60, ge=1)
+    widget_stream_seconds: int = Field(default=60, ge=1, le=300)
     access_token_minutes: int = Field(default=15, ge=1)
     refresh_token_days: int = Field(default=7, ge=1)
     llm_provider: Literal["fake", "openai_compatible"] = "fake"

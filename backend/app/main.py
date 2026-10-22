@@ -15,6 +15,9 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.api.v1.auth import router
 from app.api.v1.catalog import router as catalog_router
 from app.api.v1.documents import router as documents_router
+from app.api.v1.tenant import router as tenant_router
+from app.api.v1.widget import router as widget_router
+from app.channels.web import WidgetCORSMiddleware
 from app.core.config import Settings
 from app.core.deps import Session
 from app.core.errors import DomainError
@@ -36,6 +39,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         await engine.dispose()
 
     app = FastAPI(title="Munim", lifespan=lifespan)
+    app.state.redis = redis
     app.state.settings = config
     app.state.jobs = ArqJobQueue(config.redis_url, config.debounce_seconds)
     app.state.sessions = async_sessionmaker(engine, expire_on_commit=False)
@@ -45,6 +49,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
         allow_headers=["Authorization", "Content-Type"],
     )
+
+    app.add_middleware(WidgetCORSMiddleware)
 
     @app.exception_handler(DomainError)
     async def domain_error(request: Request, error: DomainError) -> JSONResponse:
@@ -79,4 +85,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(router, prefix="/api/v1")
     app.include_router(catalog_router, prefix="/api/v1")
     app.include_router(documents_router, prefix="/api/v1")
+    app.include_router(widget_router, prefix="/api/v1")
+    app.include_router(tenant_router, prefix="/api/v1")
     return app
