@@ -6,5 +6,6 @@ COPY dashboard/package.json dashboard/package.json
 COPY widget/package.json widget/package.json
 RUN pnpm install --frozen-lockfile
 COPY dashboard/ dashboard/
+COPY widget/src/client.ts widget/src/client.ts
 WORKDIR /workspace/dashboard
 CMD ["pnpm", "dev"]

@@ -14,7 +14,7 @@ export const en = {
   home: "Overview",
   loading: "Loading...",
   foundation:
-    "Your workspace is ready. Catalogue, conversations and quotations arrive in the next phases.",
+    "Add your catalogue and FAQs, then test a customer conversation in the Playground.",
   error: "Unable to sign in. Check your details and try again.",
   registerError:
     "Unable to create your account. Check your details and try again.",
