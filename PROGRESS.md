@@ -1,6 +1,6 @@
 # Progress
 
-Current phase: Phase 1 - knowledge and web chat. Phase 0 CI is green: https://github.com/aum2606/munim/actions/runs/39803825505 .
+Current phase: Phase 1 - implementation and local acceptance complete; final hosted CI verification pending. Phase 2 is not started.
 
 ### Phase 0 — Foundations (week 1)
 
@@ -26,7 +26,7 @@ Current phase: Phase 1 - knowledge and web chat. Phase 0 CI is green: https://gi
 - PASS: `make e2e` (real register/logout/login/protected-route flow on 375px mobile and desktop, no horizontal overflow).
 - Unicode embedding fixtures rechecked after correcting Windows shell encoding; settings/readiness tests rechecked after root .env resolution change.
 - GNU Make was run from `.cache/make/bin/make.exe` with a workspace-owned uv cache. No generated files or environment files are committed.
-- GitHub CI has the same checks plus migration drift and browser tests. Hosted CI status is not available: this new local repository has no configured remote and has not been pushed. This external acceptance check remains pending; Phase 1 is not started.
+- RESOLVED: origin configured and Phase 0 CI passed at https://github.com/aum2606/munim/actions/runs/39803825505 before Phase 1 started.
 - Local conventional commits separate plan/tracking, infrastructure, backend foundations and dashboard; final tracking records these results.
 
 ### Phase 1 — Knowledge base + web chat (weeks 2–3)
@@ -39,9 +39,22 @@ Current phase: Phase 1 - knowledge and web chat. Phase 0 CI is green: https://gi
 - [x] Orchestrator v1 (lock + debounce + dispatch) for Knowledge path; knowledge gap logging. Built: Redis locks/debounce, deterministic routing, durable batching, one regeneration then handoff, scoped gaps and idempotent replies. `make test` (76 backend + 5 frontend), `make lint`; real Redis concurrency and scripted multi-turn components verified.
 - [x] Web widget + `/widget/*` endpoints with SSE streaming. Built: hashed expiring sessions, IP/tenant limits, scoped streams, isolated Shadow DOM widget and single script (19.4 kB). `make test` (78 backend + 7 frontend), `make lint`, `make e2e` (4 mobile/desktop flows), Compose build pass.
 - [x] Dashboard: Knowledge pages, Playground with trace panel, basic Inbox (read-only). Built: typed TanStack Query pages, mapping confirmation, FAQ/status handling, gap answers, server-formatted prices and scoped trace/history APIs. `make test` (79 backend + 11 frontend), `make lint`, `make e2e` (6 mobile/desktop flows) pass.
-- [ ] Seed script: 3 demo tenants with realistic catalogues and FAQs (electronics shop, wedding photographer, printing press).
+- [x] Seed script: 3 demo tenants with realistic catalogues and FAQs (electronics shop, wedding photographer, printing press). Built: idempotent scoped synthetic catalogues/FAQs, env-supplied owner passwords and 25 seeded golden conversations. All demo owner logins verified.
 
 **Acceptance:** On a seeded tenant, the widget correctly answers ≥ 20 scripted questions (English + Hinglish) with zero hallucinated prices; unanswerable questions create knowledge gaps; guardrail test proves an injected wrong price is blocked.
+
+#### Phase 1 verification - 2026-10-22
+
+- PASS: `make test`: 83 backend tests against real isolated PostgreSQL/Redis and 11 frontend tests; pricing line and branch coverage 100% (enforced by Make target).
+- PASS: `make lint`: Ruff, formatting, strict mypy (89 application files), ESLint, Prettier and TypeScript.
+- PASS: `make build`: dashboard and single-file widget (19.40 kB, 8.17 kB gzip).
+- PASS: `make migrate` and `uv run --directory backend alembic check`; no drift. Integration fixtures exercise fresh upgrade/downgrade/upgrade.
+- PASS: `make seed` twice without duplicates; electronics, photography and printing owner logins succeed using the local env password.
+- PASS: `make eval`: three eval tests, including 25 seeded widget/API/SSE conversations with scripted FakeLLM, real repositories and orchestrator; 22 supported English/Hinglish questions on printing, electronics and photography examples, and one unsupported question that creates a gap. Every price is checked against explicit expected paise values. Guardrail tests block injected wrong prices and exercise regeneration/handoff.
+- PASS: `docker compose up -d --build` and worker health check; API/Postgres/Redis healthy, dashboard/widget serving and migration exits successfully.
+- PASS: `make e2e`: six Chromium flows on desktop and 375px mobile, covering auth, catalogue import, FAQ, playground/traces, inbox and a cross-origin embedded widget reply.
+- These acceptance runs use fakes, not real model calls. Fake embedding quality is not a claim about production semantic retrieval. The conservative trusted-fact response policy is recorded in DECISIONS.md.
+- Prior dashboard commit hosted CI passed: https://github.com/aum2606/munim/actions/runs/39825091906 . Final seed commit hosted CI pending.
 
 ### Phase 2 — Requirements & Quotations (weeks 3–5)
 

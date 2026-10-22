@@ -72,3 +72,8 @@
 - Corrected the owner browser test to wait for the Inbox heading before checking read-only controls. Its prior immediate count could inspect the previous Playground DOM during navigation; the no-textbox assertion remains unchanged in meaning and now uses Playwright retrying assertions.
 
 - Boundary review found that Decimal's default precision could round an unusually long fractional amount before the integer-paise check. Parsing now bounds input length and uses enough local precision to reject fractional paise exactly. Whitespace-only FAQs/gap answers are rejected, and make test-be now enforces pricing branch coverage >=100%.
+
+- Demo seeds use fixed tenant/document IDs and catalogue upserts, preserve existing owner passwords, and require DEMO_SEED_PASSWORD from env for new owners. All demo names, emails, catalogue amounts and policies are synthetic; no real customer data or credentials are embedded.
+- Demo FAQ chunks are inserted ready by the seeder through repositories, using the configured Embedder; production uploads continue through the worker pipeline. Golden widget tests use scripted FakeLLM responses keyed by actual agent/input hashes, FakeEmbedder, and real Postgres/Redis.
+
+- Provider HTTP failures and malformed document package/XML errors now become visible failed ingestion states, allowing the existing explicit retry flow instead of leaving a document processing indefinitely. A fake timeout test proves failure details are redacted and retry succeeds.
