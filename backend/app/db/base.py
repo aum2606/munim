@@ -19,3 +19,7 @@ class IdentityMixin:
 
 class TenantMixin(IdentityMixin):
     tenant_id: Mapped[UUID] = mapped_column(ForeignKey("tenants.id"), nullable=False)
+
+
+class TenantRecord(TenantMixin, Base):
+    __abstract__ = True

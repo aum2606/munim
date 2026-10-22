@@ -30,3 +30,13 @@
 ## 2026-10-22 - Validation and delivery
 - All Phase 0 implementation and local acceptance checks pass. Hosted GitHub CI cannot be observed without a remote/push; it is recorded as pending rather than claimed green. Phase 1 is not started.
 - Docker build contexts exclude local environment files; Compose injects runtime configuration.
+
+## 2026-10-22 - Phase 1 scope and schema
+- Phase 0 is pushed to origin/master. All validation steps in https://github.com/aum2606/munim/actions/runs/39802295368 passed; only setup-uv post-job cache saving remains. Treat completed validation checks as the phase gate and continue while infrastructure cleanup finishes; record the final run conclusion when available.
+- NEEDS REVIEW: Phase 1 adds `catalog_imports` for persisted preview/mapping/commit and `widget_sessions` for expiring hashed bearer sessions. Add `knowledge_gaps` now because the Phase 1 acceptance criterion requires it. Parent links use composite tenant foreign keys.
+- NEEDS REVIEW: Messages gain `processed_at` and `in_reply_to_id` for durable batching, retries and outbound idempotency. Channel external IDs are scoped to the conversation in the web-only phase. Agent-run message links become composite foreign keys when messages exist.
+- Embedding storage is VECTOR(1024), matching the default config. Runtime configuration must match the migrated dimension. Changing dimensions requires an explicit migration and re-embedding.
+- Retrieval follows pgvector SQLAlchemy cosine/HNSW and Postgres full-text docs: https://github.com/pgvector/pgvector-python and https://www.postgresql.org/docs/16/textsearch-controls.html . Queued tasks follow https://arq-docs.helpmanual.io/ .
+
+- Phase 0 final CI: initial run failed only in setup-uv cache saving after 5 minutes; disabled optional uv cache saving. Corrected run 39803825505 is successful.
+- Migration ca741ed81029 reviewed by hand: name the audit unique constraint, install cyclic message/audit foreign keys only after both tables exist, remove them before downgrade. Fresh upgrade/drift check/downgrade/upgrade pass.

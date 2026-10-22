@@ -1,7 +1,14 @@
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import BigInteger, CheckConstraint, Enum, Index
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    Enum,
+    ForeignKeyConstraint,
+    Index,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -12,6 +19,13 @@ from app.db.base import Base, TenantMixin
 class AgentRun(TenantMixin, Base):
     __tablename__ = "agent_runs"
     __table_args__ = (
+        UniqueConstraint("tenant_id", "id", name="uq_agent_runs_tenant_id_id"),
+        ForeignKeyConstraint(
+            ["tenant_id", "message_id"],
+            ["messages.tenant_id", "messages.id"],
+            name="fk_run_message",
+            use_alter=True,
+        ),
         Index("ix_agent_runs_tenant_id_message_id", "tenant_id", "message_id"),
         CheckConstraint("status IN ('success', 'error', 'invalid')", name="agent_run_status"),
     )
