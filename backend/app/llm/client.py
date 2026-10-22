@@ -50,6 +50,8 @@ def recorded_call(
         response: LLMResponse | None = None
         status, error_name = AgentRunStatus.ERROR, None
         try:
+            if any(call.name not in request.allowed_tools for call in request.tools_used):
+                raise PermissionError("Tool is not allowed for this agent")
             response = await method(self, ctx, request, message_id)
             if any(call.name not in request.allowed_tools for call in response.tool_calls):
                 raise PermissionError("Tool is not allowed for this agent")
@@ -72,7 +74,8 @@ def recorded_call(
                 model=response.model if response else request.model_slot,
                 request=request.model_dump(mode="json"),
                 output=response.output if response else {},
-                tool_calls=[c.model_dump() for c in response.tool_calls] if response else [],
+                tool_calls=[c.model_dump() for c in request.tools_used]
+                + ([c.model_dump() for c in response.tool_calls] if response else []),
                 latency_ms=(time.perf_counter_ns() - started) // 1_000_000,
                 prompt_tokens=response.prompt_tokens if response else 0,
                 completion_tokens=response.completion_tokens if response else 0,
