@@ -13,6 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.api.v1.auth import router
+from app.api.v1.catalog import router as catalog_router
 from app.core.config import Settings
 from app.core.deps import Session
 from app.core.errors import DomainError
@@ -73,4 +74,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return JSONResponse({"status": "ready"})
 
     app.include_router(router, prefix="/api/v1")
+    app.include_router(catalog_router, prefix="/api/v1")
     return app
