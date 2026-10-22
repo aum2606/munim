@@ -12,7 +12,7 @@ seed:
 	uv run --directory backend python -m seeds
 test: test-be test-fe
 test-be:
-	uv run --directory backend pytest
+	uv run --directory backend pytest --cov=app.pricing --cov-branch --cov-fail-under=100
 test-fe:
 	pnpm test
 e2e:
