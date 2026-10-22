@@ -1,10 +1,11 @@
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import BigInteger, CheckConstraint, Index
+from sqlalchemy import BigInteger, CheckConstraint, Enum, Index
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.enums import AgentRunStatus
 from app.db.base import Base, TenantMixin
 
 
@@ -24,5 +25,12 @@ class AgentRun(TenantMixin, Base):
     prompt_tokens: Mapped[int] = mapped_column(default=0)
     completion_tokens: Mapped[int] = mapped_column(default=0)
     cost_usd_micros: Mapped[int] = mapped_column(BigInteger, default=0)
-    status: Mapped[str]
+    status: Mapped[AgentRunStatus] = mapped_column(
+        Enum(
+            AgentRunStatus,
+            native_enum=False,
+            length=None,
+            values_callable=lambda statuses: [status.value for status in statuses],
+        )
+    )
     error: Mapped[str | None]
