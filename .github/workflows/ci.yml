@@ -1,0 +1,46 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: munim
+          POSTGRES_USER: munim
+          POSTGRES_PASSWORD: munim
+        ports: [5432:5432]
+        options: --health-cmd "pg_isready -U munim" --health-interval 3s --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports: [6379:6379]
+    env:
+      SECRET_KEY: ci-only-signing-key-not-for-production-123456
+      DATABASE_URL: postgresql+asyncpg://munim:munim@localhost:5432/munim
+      REDIS_URL: redis://localhost:6379/0
+      APP_ENV: test
+      LLM_PROVIDER: fake
+      EMBEDDING_PROVIDER: fake
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { version: "0.11.6", python-version: "3.12" }
+      - uses: pnpm/action-setup@v4
+        with: { version: "10.33.2" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: pnpm }
+      - run: make setup
+      - run: make lint
+      - run: make migrate
+      - run: uv run --directory backend alembic check
+      - run: make test
+      - run: make build
+      - run: make eval
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: uv run --directory backend uvicorn app.main:create_app --factory --host 0.0.0.0 --port 18000 > /tmp/munim-api.log 2>&1 &
+      - run: curl --fail --retry 30 --retry-connrefused --retry-delay 1 http://localhost:18000/ready
+      - run: make e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-report, path: playwright-report/ }
