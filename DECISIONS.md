@@ -40,3 +40,6 @@
 
 - Phase 0 final CI: initial run failed only in setup-uv cache saving after 5 minutes; disabled optional uv cache saving. Corrected run 39803825505 is successful.
 - Migration ca741ed81029 reviewed by hand: name the audit unique constraint, install cyclic message/audit foreign keys only after both tables exist, remove them before downgrade. Fresh upgrade/drift check/downgrade/upgrade pass.
+
+- Catalogue XLSX numeric values are read as raw XML text, preventing automatic float conversion of money. openpyxl generates the text-valued template; formulas are rejected. CSV/XLSX imports have bounded upload/expanded sizes and rows.
+- The fake LLM accepts an explicit offline demo response factory in addition to hashed scripts. Tests can continue using strict scripts; no fallback calls a real provider. Custom-header mapping uses structured bindings, never edits cell values, and always requires owner commit.
