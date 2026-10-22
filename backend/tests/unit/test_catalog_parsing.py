@@ -93,3 +93,22 @@ def test_structured_catalog_price():
     )
     price = catalog_price(catalog)
     assert price.paise == 45000 and price.formatted == "\u20b9450.00"
+
+
+def test_money_parser_never_rounds_subpaise_input_due_to_decimal_context():
+    for amount in ["1.0000000000000000000000000000001", "1" * 65]:
+        with pytest.raises(DomainError):
+            parse_inr(amount)
+    assert parse_inr("92233720368547758.07") == 9223372036854775807
+
+
+def test_blank_faq_and_gap_answers_are_invalid():
+    from pydantic import ValidationError
+
+    from app.schemas.documents import FAQInput
+    from app.schemas.workspace import GapAnswer
+
+    with pytest.raises(ValidationError):
+        FAQInput(question=" ", answer="An answer")
+    with pytest.raises(ValidationError):
+        GapAnswer(answer=" ")
