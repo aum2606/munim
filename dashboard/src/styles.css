@@ -1,0 +1,124 @@
+@import "tailwindcss";
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color: #16332f;
+  background: #f6f7f3;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+a {
+  color: #196a59;
+}
+h1 {
+  font-size: 1.8rem;
+  line-height: 1.2;
+  font-weight: 650;
+  margin: 1.5rem 0 1rem;
+}
+p {
+  line-height: 1.65;
+}
+button,
+input {
+  font: inherit;
+}
+input {
+  display: block;
+  width: 100%;
+  border: 1px solid #b8c6be;
+  background: white;
+  border-radius: 8px;
+  padding: 0.8rem;
+  margin-top: 0.4rem;
+}
+label {
+  display: block;
+  margin: 1rem 0;
+}
+button {
+  border: 0;
+  border-radius: 8px;
+  background: #196a59;
+  color: white;
+  padding: 0.85rem 1.1rem;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.6;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #d99325;
+  outline-offset: 3px;
+}
+form button {
+  width: 100%;
+  margin: 1.2rem 0;
+}
+small {
+  color: #536b62;
+}
+.auth {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+.card {
+  width: 100%;
+  max-width: 460px;
+  background: white;
+  border: 1px solid #dbe3dc;
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+.brand {
+  font-size: 1.7rem;
+  font-weight: 750;
+  text-decoration: none;
+  margin: 0;
+}
+.workspace header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid #dbe3dc;
+}
+.workspace nav {
+  padding: 1rem;
+}
+.workspace main {
+  padding: 1rem;
+}
+.workspace .card {
+  max-width: 760px;
+}
+.secondary {
+  background: transparent;
+  color: #196a59;
+  border: 1px solid #b8c6be;
+}
+.eyebrow {
+  color: #536b62;
+}
+[role="alert"] {
+  color: #a12828;
+}
+@media (min-width: 700px) {
+  .card {
+    padding: 2rem;
+  }
+  .workspace main,
+  .workspace nav {
+    padding: 1.5rem 2rem;
+  }
+  .workspace header {
+    padding: 1.2rem 2rem;
+  }
+}
