@@ -14,11 +14,13 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.api.v1.auth import router
 from app.api.v1.catalog import router as catalog_router
+from app.api.v1.documents import router as documents_router
 from app.core.config import Settings
 from app.core.deps import Session
 from app.core.errors import DomainError
 from app.core.logging import configure_logging
 from app.repositories.health import check_database
+from app.workers.queue import ArqJobQueue
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -35,6 +37,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="Munim", lifespan=lifespan)
     app.state.settings = config
+    app.state.jobs = ArqJobQueue(config.redis_url)
     app.state.sessions = async_sessionmaker(engine, expire_on_commit=False)
     app.add_middleware(
         CORSMiddleware,
@@ -75,4 +78,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(router, prefix="/api/v1")
     app.include_router(catalog_router, prefix="/api/v1")
+    app.include_router(documents_router, prefix="/api/v1")
     return app
