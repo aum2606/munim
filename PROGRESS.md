@@ -1,6 +1,6 @@
 # Progress
 
-Current phase: Phase 1 - implementation and local acceptance complete; final hosted CI verification pending. Phase 2 is not started.
+Current phase: Phase 1 complete. All acceptance checks pass locally and on GitHub CI. Next unchecked task: Phase 2 requirement schemas; Phase 2 is not started.
 
 ### Phase 0 — Foundations (week 1)
 
@@ -54,7 +54,7 @@ Current phase: Phase 1 - implementation and local acceptance complete; final hos
 - PASS: `docker compose up -d --build` and worker health check; API/Postgres/Redis healthy, dashboard/widget serving and migration exits successfully.
 - PASS: `make e2e`: six Chromium flows on desktop and 375px mobile, covering auth, catalogue import, FAQ, playground/traces, inbox and a cross-origin embedded widget reply.
 - These acceptance runs use fakes, not real model calls. Fake embedding quality is not a claim about production semantic retrieval. The conservative trusted-fact response policy is recorded in DECISIONS.md.
-- Prior dashboard commit hosted CI passed: https://github.com/aum2606/munim/actions/runs/39825091906 . Final seed commit hosted CI pending.
+- PASS: final implementation commit 1e1365d hosted CI (lint, migrations/drift, 83 backend + 11 frontend tests, build, offline evals, and all six browser flows): https://github.com/aum2606/munim/actions/runs/39827395473 . Phase 1 acceptance is complete; final tracking-only commit records this result.
 
 ### Phase 2 — Requirements & Quotations (weeks 3–5)
 
