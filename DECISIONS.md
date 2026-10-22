@@ -49,3 +49,5 @@
 - API/worker share an uploads volume. PDF/DOCX/TXT parsing is offline and runs in a thread. Uploaded URLs and OCR remain outside Phase 1. Parser references: https://pypdf.readthedocs.io/en/stable/user/extract-text.html and https://python-docx.readthedocs.io/en/latest/ .
 
 - One full local regression run failed during Postgres testcontainer startup with a Docker 500 before any DB tests ran. Docker health recovered; the unchanged full suite passed on rerun. No tests were skipped.
+
+- Search merges full-text and cosine candidates via reciprocal-rank fusion, requiring cosine distance <= 0.45 for semantic-only candidates. Fake embeddings are a deterministic development aid, not semantic-quality evidence. Catalogue lookup prioritizes SKU and aliases before trigram/hybrid. Currency-bearing chunks are excluded so vector text cannot authorize money.
