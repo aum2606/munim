@@ -15,7 +15,10 @@ from app.main import create_app
 
 @pytest.fixture(scope="session")
 def database_url() -> Iterator[str]:
-    with PostgresContainer("pgvector/pgvector:pg16", driver="psycopg") as postgres:
+    # This Testcontainers version forwards size as raw Docker mount options.
+    with PostgresContainer("pgvector/pgvector:pg16", driver="psycopg").with_tmpfs_mount(
+        "/var/lib/postgresql/data", size="size=512m"
+    ) as postgres:
         url = postgres.get_connection_url().replace("postgresql+psycopg", "postgresql+asyncpg")
         previous = os.environ.get("DATABASE_URL")
         os.environ["DATABASE_URL"] = url

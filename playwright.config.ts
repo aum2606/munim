@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "dashboard/e2e",
+  workers: 2,
   use: { baseURL: "http://localhost:5173" },
   projects: [
     {
