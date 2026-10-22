@@ -61,3 +61,12 @@
 
 - Public widget credential discovery is the second explicit pre-tenant auth exception: resolve a tenant only by its public widget key or an unexpired hashed random bearer token. All subsequent message/stream queries use TenantContext and the bound conversation. Tokens never appear in URLs.
 - Only widget paths permit wildcard CORS, with bearer headers and no cookie credentials. Owner routes retain configured origins. Redis atomically rate-limits IP/tenant requests. Streams rotate after a bounded interval so expiry is rechecked; one-shot SSE supports deterministic snapshots/reconnection.
+
+- Catalogue API views add server-formatted display_price strings; dashboard code performs no money arithmetic. The two Pydantic computed_field/property decorators require narrowly scoped mypy prop-decorator ignores (all other strict checks remain enabled). Tests exclude this read-only property when constructing a PUT request.
+
+- Dashboard Playground and the embedded widget share the typed streaming client from widget/src/client.ts; the dashboard Docker build copies that source. All dashboard server state uses TanStack Query. Read-only Inbox deliberately exposes no staff sending/takeover actions before Phase 3.
+- Mapping changes must be saved through preview before commit; UI blocks stale or invalid previews. SQLAlchemy runtime engines hide SQL parameter values from exception logs.
+
+- Repeated local Postgres readiness and browser request timeouts occurred when fresh database containers and six browsers ran concurrently. Validation is now sequential with two Playwright workers. Ephemeral test Postgres uses a bounded 512 MB tmpfs data directory to avoid host-filesystem startup variability; it remains real Postgres with unchanged migration, isolation and application assertions.
+
+- Corrected the owner browser test to wait for the Inbox heading before checking read-only controls. Its prior immediate count could inspect the previous Playground DOM during navigation; the no-textbox assertion remains unchanged in meaning and now uses Playwright retrying assertions.
