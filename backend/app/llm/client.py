@@ -8,6 +8,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ValidationError
 
+from app.core.enums import AgentRunStatus
 from app.core.tenant import TenantContext
 from app.llm.types import LLMRequest, LLMResponse
 
@@ -47,18 +48,20 @@ def recorded_call(
     ) -> LLMResponse:
         started = time.perf_counter_ns()
         response: LLMResponse | None = None
-        status, error_name = "error", None
+        status, error_name = AgentRunStatus.ERROR, None
         try:
             response = await method(self, ctx, request, message_id)
             if any(call.name not in request.allowed_tools for call in response.tool_calls):
                 raise PermissionError("Tool is not allowed for this agent")
             if output_type is not None:
                 output_type.model_validate(response.output)
-            status = "success"
+            status = AgentRunStatus.SUCCESS
             return response
         except Exception as error:
             status = (
-                "invalid" if isinstance(error, (ValidationError, json.JSONDecodeError)) else "error"
+                AgentRunStatus.INVALID
+                if isinstance(error, (ValidationError, json.JSONDecodeError))
+                else AgentRunStatus.ERROR
             )
             error_name = type(error).__name__
             raise
