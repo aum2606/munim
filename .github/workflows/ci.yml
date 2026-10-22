@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-        with: { version: "0.11.6", python-version: "3.12" }
+        with: { version: "0.11.6", python-version: "3.12", enable-cache: false }
       - uses: pnpm/action-setup@v4
         with: { version: "10.33.2" }
       - uses: actions/setup-node@v4
