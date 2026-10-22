@@ -37,7 +37,7 @@ Current phase: Phase 1 - knowledge and web chat. Phase 0 CI is green: https://gi
 - [x] Hybrid search tool + catalog lookup tool (with `pg_trgm`). Built: tenant-scoped vector/full-text RRF, SKU/alias/trigram lookup, active-item filtering and pricing-only PriceRef tools. Currency-bearing chunks excluded. `make test` (54 backend + 5 frontend), `make lint`, pricing branch coverage 100%.
 - [x] Router Agent, Knowledge Agent, Responder, Guardrails (price check first). Built: typed agents/templates, explicit tool gates and trace recording, validated citations, exact trusted responses and multi-format price/policy checks. `make test` (70 backend + 5 frontend), `make lint` pass; golden router contracts added.
 - [x] Orchestrator v1 (lock + debounce + dispatch) for Knowledge path; knowledge gap logging. Built: Redis locks/debounce, deterministic routing, durable batching, one regeneration then handoff, scoped gaps and idempotent replies. `make test` (76 backend + 5 frontend), `make lint`; real Redis concurrency and scripted multi-turn components verified.
-- [ ] Web widget + `/widget/*` endpoints with SSE streaming.
+- [x] Web widget + `/widget/*` endpoints with SSE streaming. Built: hashed expiring sessions, IP/tenant limits, scoped streams, isolated Shadow DOM widget and single script (19.4 kB). `make test` (78 backend + 7 frontend), `make lint`, `make e2e` (4 mobile/desktop flows), Compose build pass.
 - [ ] Dashboard: Knowledge pages, Playground with trace panel, basic Inbox (read-only).
 - [ ] Seed script: 3 demo tenants with realistic catalogues and FAQs (electronics shop, wedding photographer, printing press).
 
