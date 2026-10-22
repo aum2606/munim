@@ -37,7 +37,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="Munim", lifespan=lifespan)
     app.state.settings = config
-    app.state.jobs = ArqJobQueue(config.redis_url)
+    app.state.jobs = ArqJobQueue(config.redis_url, config.debounce_seconds)
     app.state.sessions = async_sessionmaker(engine, expire_on_commit=False)
     app.add_middleware(
         CORSMiddleware,

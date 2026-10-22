@@ -12,8 +12,9 @@ class JobQueue(Protocol):
 
 
 class ArqJobQueue:
-    def __init__(self, redis_url: str) -> None:
+    def __init__(self, redis_url: str, debounce_seconds: float = 2.5) -> None:
         self.redis_url = redis_url
+        self.debounce_seconds = debounce_seconds
 
     async def enqueue(self, task: str, tenant_id: UUID, resource_id: UUID) -> None:
         try:
@@ -24,6 +25,7 @@ class ArqJobQueue:
                     str(tenant_id),
                     str(resource_id),
                     _job_id=f"{task}:{tenant_id}:{resource_id}",
+                    _defer_by=self.debounce_seconds if task == "process_message" else None,
                 )
             finally:
                 await pool.aclose()

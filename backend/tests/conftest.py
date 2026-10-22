@@ -49,3 +49,11 @@ async def client(database_url: str) -> AsyncIterator[httpx.AsyncClient]:
             transport=httpx.ASGITransport(app=app), base_url="http://test"
         ) as client:
             yield client
+
+
+@pytest.fixture(scope="session")
+def redis_url() -> Iterator[str]:
+    from testcontainers.community.redis import RedisContainer
+
+    with RedisContainer("redis:7-alpine") as redis:
+        yield f"redis://{redis.get_container_host_ip()}:{redis.get_exposed_port(6379)}/0"

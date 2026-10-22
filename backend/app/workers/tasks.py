@@ -20,3 +20,44 @@ async def ingest_document(ctx: dict[str, Any], tenant_id: str, document_id: str)
             ).ingest(UUID(document_id), make_embedder(settings))
     finally:
         await engine.dispose()
+
+
+async def process_message(ctx: dict[str, Any], tenant_id: str, message_id: str) -> None:
+    from typing import cast
+
+    from arq import Retry
+    from arq.connections import ArqRedis
+
+    from app.core.errors import DomainError
+    from app.db.models import Message
+    from app.llm.factory import make_llm
+    from app.orchestrator.locks import RedisConversationLock
+    from app.orchestrator.pipeline import ConversationOrchestrator
+    from app.repositories.agent_runs import DatabaseRunRecorder
+    from app.repositories.scoped import ScopedRepository
+
+    settings = Settings()
+    engine = create_async_engine(settings.database_url)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    tenant = TenantContext(UUID(tenant_id))
+    try:
+        async with sessions() as session:
+            message = await ScopedRepository(session, tenant, Message).get(UUID(message_id))
+            orchestrator = ConversationOrchestrator(
+                session,
+                tenant,
+                make_llm(settings, DatabaseRunRecorder(sessions)),
+                make_embedder(settings),
+                RedisConversationLock(
+                    cast(ArqRedis, ctx["redis"]), settings.llm_timeout_s * 8 + 60
+                ),
+                settings,
+            )
+            try:
+                await orchestrator.process(message.conversation_id)
+            except DomainError as error:
+                if error.status_code == 409:
+                    raise Retry(defer=5) from error
+                raise
+    finally:
+        await engine.dispose()
