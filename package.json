@@ -1,0 +1,21 @@
+{
+  "name": "munim",
+  "private": true,
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint && prettier --check dashboard widget package.json pnpm-workspace.yaml .github docker-compose.yml eslint.config.js playwright.config.ts",
+    "fmt": "prettier --write dashboard widget package.json pnpm-workspace.yaml .github docker-compose.yml eslint.config.js playwright.config.ts",
+    "build": "pnpm -r build",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "prettier": "^3.5.0",
+    "eslint": "^9.22.0",
+    "@eslint/js": "^9.22.0",
+    "typescript-eslint": "^8.26.0",
+    "globals": "^16.0.0",
+    "@types/node": "^22.0.0"
+  }
+}
