@@ -51,3 +51,7 @@
 - One full local regression run failed during Postgres testcontainer startup with a Docker 500 before any DB tests ran. Docker health recovered; the unchanged full suite passed on rerun. No tests were skipped.
 
 - Search merges full-text and cosine candidates via reciprocal-rank fusion, requiring cosine distance <= 0.45 for semantic-only candidates. Fake embeddings are a deterministic development aid, not semantic-quality evidence. Catalogue lookup prioritizes SKU and aliases before trigram/hybrid. Currency-bearing chunks are excluded so vector text cannot authorize money.
+
+- NEEDS REVIEW: Router entities use a typed product/quantity/date object instead of arbitrary dict keys, so strict JSON-schema providers can require `additionalProperties=false`. The intended information is unchanged.
+- Phase 1 responder output must exactly match a deterministic message assembled from cited tool facts (with a localized prefix). This conservative restriction prevents uncited prose/promises from reaching customers; one retry then handoff handles violations. Knowledge answer_points are trace-only, never evidence. Broader grounded paraphrasing can be evaluated in later phases.
+- Agents explicitly gate tool execution; actual Python tool invocations are recorded in agent_runs. The offline demo factory provides deterministic agent responses only when LLM_PROVIDER=fake; golden tests use hash-scripted FakeLLM outputs.

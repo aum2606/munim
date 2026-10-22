@@ -35,7 +35,7 @@ Current phase: Phase 1 - knowledge and web chat. Phase 0 CI is green: https://gi
 - [x] Catalog XLSX template, import with LLM column mapping + preview + commit; INR price parser (handles `1,20,000`, `1.2L`, `₹450/-`, `45k`). Built: bounded CSV/XLSX, structured mapping, all-or-nothing commit, exact paise parser and owner catalogue edits. `make test` (47 backend + 5 frontend), `make lint`; pricing branch coverage 100%.
 - [x] Document upload → parse → chunk → embed (worker job); FAQ form. Built: queued PDF/DOCX/TXT parsing, atomic chunk replacement, FAQ form, failure/retry status and shared storage. `make test` (51 backend + 5 frontend) and `make lint` pass.
 - [x] Hybrid search tool + catalog lookup tool (with `pg_trgm`). Built: tenant-scoped vector/full-text RRF, SKU/alias/trigram lookup, active-item filtering and pricing-only PriceRef tools. Currency-bearing chunks excluded. `make test` (54 backend + 5 frontend), `make lint`, pricing branch coverage 100%.
-- [ ] Router Agent, Knowledge Agent, Responder, Guardrails (price check first).
+- [x] Router Agent, Knowledge Agent, Responder, Guardrails (price check first). Built: typed agents/templates, explicit tool gates and trace recording, validated citations, exact trusted responses and multi-format price/policy checks. `make test` (70 backend + 5 frontend), `make lint` pass; golden router contracts added.
 - [ ] Orchestrator v1 (lock + debounce + dispatch) for Knowledge path; knowledge gap logging.
 - [ ] Web widget + `/widget/*` endpoints with SSE streaming.
 - [ ] Dashboard: Knowledge pages, Playground with trace panel, basic Inbox (read-only).
