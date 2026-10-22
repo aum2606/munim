@@ -80,3 +80,16 @@ def test_invalid_catalogue_files() -> None:
     ]:
         with pytest.raises(DomainError):
             read_table(filename, content)
+
+
+def test_structured_catalog_price():
+    from uuid import uuid4
+
+    from app.db.models import CatalogItem
+    from app.pricing.catalog import catalog_price
+
+    catalog = CatalogItem(
+        id=uuid4(), tenant_id=uuid4(), sku="CARD", name="Cards", base_price_paise=45000
+    )
+    price = catalog_price(catalog)
+    assert price.paise == 45000 and price.formatted == "\u20b9450.00"
