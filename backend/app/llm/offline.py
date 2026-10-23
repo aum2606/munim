@@ -69,6 +69,52 @@ def agent_response(request: LLMRequest) -> LLMResponse:
                 updates=[SlotUpdate(key=key, value=value) for key, value in values.items()]
             ).model_dump()
         )
+    if request.agent == "quotation":
+        from decimal import Decimal
+
+        from app.schemas.quotes import ProposedLine, QuotationOutput
+
+        requirements = {entry["key"]: entry["value"] for entry in body["requirements"]}
+        text = " ".join(
+            requirements.get(key, "") for key in ("item", "product", "event_type", "deliverables")
+        ).lower()
+        tokens = set(re.findall(r"[a-z]+", text))
+        candidates = body["candidates"]
+        ranked = sorted(
+            candidates,
+            key=lambda candidate: len(
+                tokens
+                & set(
+                    re.findall(
+                        r"[a-z]+", " ".join([candidate["name"], *candidate["aliases"]]).lower()
+                    )
+                )
+            ),
+            reverse=True,
+        )
+        selected = (
+            ranked[0]
+            if ranked
+            and tokens
+            & set(
+                re.findall(r"[a-z]+", " ".join([ranked[0]["name"], *ranked[0]["aliases"]]).lower())
+            )
+            else None
+        )
+        if selected is None:
+            return LLMResponse(
+                output=QuotationOutput(lines=[], unmapped_requirements=["product"]).model_dump()
+            )
+        attributes = {entry["key"]: entry["value"] for entry in selected["attributes"]}
+        qty = Decimal(requirements.get("quantity", requirements.get("days", "1"))) / Decimal(
+            attributes.get("pack_size", "1")
+        )
+        return LLMResponse(
+            output=QuotationOutput(
+                lines=[ProposedLine(sku=selected["sku"], qty=format(qty, "f"), options=[])],
+                unmapped_requirements=[],
+            ).model_dump()
+        )
     if request.agent == "knowledge":
         facts = [Fact.model_validate(fact) for fact in body["facts"]]
         return LLMResponse(
