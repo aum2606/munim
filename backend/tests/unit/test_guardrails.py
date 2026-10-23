@@ -39,3 +39,13 @@ def test_unsupported_promises_discounts_and_leakage_blocked():
     with pytest.raises(GuardrailViolation):
         check_reply("", set(), [""])
     check_reply("5% discount", set(), ["5% discount"], Decimal(5))
+
+
+def test_amount_in_words_must_match_tool_values_and_cannot_hide_numeric_prices():
+    check_prices("Rupees Three Thousand Two Hundred Forty Five Only", {324500})
+    with pytest.raises(GuardrailViolation):
+        check_prices("Rupees Three Thousand Two Hundred Forty Five Only", {324501})
+    with pytest.raises(GuardrailViolation):
+        check_prices("Rupees One Only and INR 2", {100})
+    with pytest.raises(GuardrailViolation):
+        check_prices("Rupees Unknown Only", {100})
