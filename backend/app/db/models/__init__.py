@@ -1,5 +1,6 @@
 from app.db.models.agent_run import AgentRun
 from app.db.models.lead import Lead
+from app.db.models.quote import Quote, QuoteItem, QuoteSequence
 from app.db.models.requirements import RequirementSchema
 from app.db.models.tenant import Tenant, TenantSettings
 from app.db.models.user import RefreshSession, Role, User
@@ -26,3 +27,5 @@ __all__ += [
 __all__ += ["RequirementSchema"]
 
 __all__ += ["Lead"]
+
+__all__ += ["Quote", "QuoteItem", "QuoteSequence"]

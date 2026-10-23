@@ -30,7 +30,29 @@ def demo_businesses() -> tuple[DemoBusiness, ...]:
     ) -> CatalogInput:
         from app.db.models.knowledge import StockStatus
 
+        attributes: dict[str, str] = {}
+        packs = {"CARD-100": "100", "FLYER-500": "500", "BRO-100": "100"}
+        if sku in packs:
+            attributes = {
+                "pack_size": packs[sku],
+                "default_size": "standard",
+                "default_material": "standard",
+                "default_sides": "single-sided",
+                "default_colour": "colour",
+                "default_finishing": "none",
+            }
+        if sku in {"PHOTO-DAY", "VIDEO-DAY"}:
+            attributes = {
+                "default_hours": "8",
+                "default_crew_size": "2",
+                "default_event_type": "wedding",
+                "default_deliverables": "photo+video|photos and video"
+                if sku == "VIDEO-DAY"
+                else "photos|photo",
+            }
         return CatalogInput(
+            attributes=attributes,
+            hsn_sac="998383" if sku in {"PHOTO-DAY", "VIDEO-DAY"} else "",
             sku=sku,
             name=name,
             base_price_paise=paise,
@@ -211,6 +233,36 @@ async def seed_demo(
             )
             for catalog, vector in zip(business.catalog, vectors, strict=True):
                 await CatalogRepository(session, ctx).upsert(catalog, vector)
+            from app.repositories.pricing_rules import PricingRuleRepository
+            from app.repositories.requirements import RequirementRepository
+            from app.schemas.pricing import PricingRuleInput
+
+            await RequirementRepository(session, ctx).ensure_defaults()
+            rules = PricingRuleRepository(session, ctx)
+            if business.slug == "printing":
+                card = await CatalogRepository(session, ctx).by_sku("CARD-100")
+                assert card is not None
+                existing = await rules.applicable(card)
+                if not any(
+                    rule.rule_type == "addon"
+                    and rule.option == "sides"
+                    and rule.value == "double-sided"
+                    for rule in existing
+                ):
+                    await rules.add(
+                        PricingRuleInput.model_validate(
+                            {
+                                "catalog_item_id": str(card.id),
+                                "rule": {
+                                    "rule_type": "addon",
+                                    "option": "sides",
+                                    "value": "double-sided",
+                                    "amount_paise": 10000,
+                                    "per_unit": True,
+                                },
+                            }
+                        )
+                    )
             documents = DocumentRepository(session, ctx)
             for question, answer in business.faqs:
                 document_id = uuid5(ctx.tenant_id, "faq:" + question)
