@@ -1,0 +1,9 @@
+﻿- question: 'quantity=500; sides=double-sided'
+  awaiting: []
+  expected: {quantity: '500', sides: double-sided}
+- question: 'unknown; standard'
+  awaiting: [size, material]
+  expected: {size: unknown, material: standard}
+- question: 'quantity=1000'
+  awaiting: [deadline]
+  expected: {quantity: '1000'}
