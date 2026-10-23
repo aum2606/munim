@@ -82,3 +82,6 @@
 
 - NEEDS REVIEW: Introduce the minimal leads aggregate in Phase 2 because requirements must persist on a lead and quotes reference it. Phase 3 retains lead scoring/events/follow-ups.
 - Requirement JSON Schema supports bounded string/integer/boolean slots with enum and bounds. Defaults are applied only when the customer explicitly does not know an answer. Python chooses the next two missing questions; the LLM only extracts slot updates.
+
+- NEEDS REVIEW: Pricing rules have typed params: quantity tiers set unit paise; add-ons charge fixed/per-unit paise for an option value; min-order sets quantity; seasonal uses integer basis points. Active rules apply in priority order (higher priority last); largest eligible tier wins within a rule. Seasonal adjustment follows tiers, before add-ons; line discount then quote discount precede tax. Quote discounts allocate proportionally by GST group, flooring paise and assigning the remainder to the final group.
+- Tax components are rounded half-up to paise per rate group, then the grand total rounds half-up to the nearest rupee. Unknown customer state follows the spec intra-state fallback; owner can explicitly set place of supply. Rates come only from owner catalogue, not tax inference. CBIC distinction verified: https://cbic-gst.gov.in/hindi/faq.html and https://cbic-gst.gov.in/about-gst.html .
