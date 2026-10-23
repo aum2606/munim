@@ -9,7 +9,6 @@ from pydantic import BaseModel
 from app.core.tenant import TenantContext
 from app.llm import LLMClient
 from app.llm.types import LLMRequest, ToolCall
-from app.schemas.knowledge import SearchResults
 
 
 class BaseAgent[I: BaseModel, O: BaseModel]:
@@ -20,9 +19,7 @@ class BaseAgent[I: BaseModel, O: BaseModel]:
     def __init__(self, llm: LLMClient, output_type: type[O]) -> None:
         self.llm, self.output_type = llm, output_type
 
-    async def call_tool(
-        self, name: str, operation: Callable[[], Awaitable[SearchResults]]
-    ) -> SearchResults:
+    async def call_tool[T](self, name: str, operation: Callable[[], Awaitable[T]]) -> T:
         if name not in self.allowed_tools:
             raise PermissionError("Tool is outside the agent allow-list")
         return await operation()

@@ -34,6 +34,10 @@ class TenantSettings(TenantMixin, Base):
     auto_send_quotes: Mapped[bool] = mapped_column(Boolean, default=False)
     auto_send_limit_paise: Mapped[int] = mapped_column(BigInteger, default=0)
     max_auto_discount_pct: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=0)
+    quote_terms: Mapped[str] = mapped_column(
+        default="Prices are valid until the stated date. Work starts after confirmation.",
+        server_default="Prices are valid until the stated date. Work starts after confirmation.",
+    )
     quote_validity_days: Mapped[int] = mapped_column(Integer, default=7)
     followup_policy: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     handoff_rules: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)

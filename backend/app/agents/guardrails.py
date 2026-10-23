@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from app.core.errors import DomainError
 from app.ingestion.price_parser import parse_inr
+from app.pricing.inr import amount_in_words
 
 AMOUNT = r"[+-]?\d[\d,]*(?:\.\d+)?(?:\s*(?:crores?|lakhs?|lac|cr|k|l)\b)?"
 MONEY = re.compile(
@@ -31,6 +32,17 @@ class GuardrailViolation(DomainError):
 
 
 def check_prices(text: str, allowed_paise: set[int]) -> None:
+    word_amount = re.compile(r"\bRupees (?:[A-Za-z]+ )+Only\b", re.I)
+    matches = list(word_amount.finditer(text))
+    if matches:
+        canonical = {
+            amount_in_words(value).casefold()
+            for value in allowed_paise
+            if 0 <= value <= 9_000_000_000_000_000
+        }
+        if any(match.group().casefold() not in canonical for match in matches):
+            raise GuardrailViolation("Amount in words not returned by a tool in this turn")
+        text = word_amount.sub("", text)
     for match in MONEY.finditer(text):
         try:
             paise = parse_inr(match.group())
