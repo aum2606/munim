@@ -1,6 +1,6 @@
 # Progress
 
-Current phase: Phase 2 in progress. Current task: deterministic pricing engine.
+Current phase: Phase 2 in progress. Current task: Quotation Agent, persisted quotes, FY numbering and PDFs.
 
 ### Phase 0 — Foundations (week 1)
 
@@ -60,7 +60,7 @@ Current phase: Phase 2 in progress. Current task: deterministic pricing engine.
 
 - [x] `requirement_schemas` + defaults for the 5 verticals in §5.3. Built: tenant-scoped GET/owner PUT, bounded schema/default validation and five defaults; reviewed migration cbf6e4465abb. 85 backend + 11 frontend tests pass; lint and fresh migration lifecycle pass.
 - [x] Requirements Agent with persisted slot state in `conversation.active_flow` + lead. Built: typed extraction, deterministic two-question selection/defaults/corrections, scoped lead persistence and flow routing. 88 backend + 11 frontend tests and lint pass; reviewed migration 79e9a6c464dd.
-- [ ] Pricing engine (§8) with exhaustive unit tests (tiers, add-ons, GST intra/inter, round-off, min order).
+- [x] Pricing engine (§8) with exhaustive unit tests (tiers, add-ons, GST intra/inter, round-off, min order). Built: Decimal/paise engine, typed effective pricing rules, owner API, proportional tax-group discounts and half-up rounding. 99 backend + 11 frontend tests and lint pass; pricing branch coverage 100%.
 - [ ] Quotation Agent, `quotes`/`quote_items`, FY quote numbering, PDF rendering (logo, GSTIN, HSN/SAC, tax table, amount in words, validity, terms).
 - [ ] Approval workflow: pending queue in dashboard, edit lines, approve → send to customer via channel; auto-send setting.
 
