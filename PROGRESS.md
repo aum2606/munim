@@ -1,6 +1,6 @@
 # Progress
 
-Current phase: Phase 2 in progress. Current task: Quotation Agent, persisted quotes, FY numbering and PDFs.
+Current phase: Phase 2 in progress. Current task: owner edit/approval, web PDF delivery and quote settings.
 
 ### Phase 0 — Foundations (week 1)
 
@@ -61,7 +61,7 @@ Current phase: Phase 2 in progress. Current task: Quotation Agent, persisted quo
 - [x] `requirement_schemas` + defaults for the 5 verticals in §5.3. Built: tenant-scoped GET/owner PUT, bounded schema/default validation and five defaults; reviewed migration cbf6e4465abb. 85 backend + 11 frontend tests pass; lint and fresh migration lifecycle pass.
 - [x] Requirements Agent with persisted slot state in `conversation.active_flow` + lead. Built: typed extraction, deterministic two-question selection/defaults/corrections, scoped lead persistence and flow routing. 88 backend + 11 frontend tests and lint pass; reviewed migration 79e9a6c464dd.
 - [x] Pricing engine (§8) with exhaustive unit tests (tiers, add-ons, GST intra/inter, round-off, min order). Built: Decimal/paise engine, typed effective pricing rules, owner API, proportional tax-group discounts and half-up rounding. 99 backend + 11 frontend tests and lint pass; pricing branch coverage 100%.
-- [ ] Quotation Agent, `quotes`/`quote_items`, FY quote numbering, PDF rendering (logo, GSTIN, HSN/SAC, tax table, amount in words, validity, terms).
+- [x] Quotation Agent, `quotes`/`quote_items`, FY quote numbering, PDF rendering (logo, GSTIN, HSN/SAC, tax table, amount in words, validity, terms). Built: validated mapping without money fields, immutable price snapshots, pending/unpriced lines, atomic scoped FY sequences, guarded PDFs and owner read APIs. 116 backend + 11 frontend tests and lint pass; 100% pricing coverage. Reviewed migration 9f93394957bb and visually checked the one-page printing PDF.
 - [ ] Approval workflow: pending queue in dashboard, edit lines, approve → send to customer via channel; auto-send setting.
 
 **Acceptance:** Scripted conversations for printing (500 visiting cards, double-sided) and photography (wedding, 2 days, photo+video) end with a correct PDF quote whose totals match hand-calculated expected values; owner can approve and the customer receives it in the widget.
