@@ -93,6 +93,7 @@ class RequirementsInput(StrictModel):
     question: str
     category: Category
     slots: list[str]
+    awaiting: list[str]
     filled: list[SlotUpdate]
 
 

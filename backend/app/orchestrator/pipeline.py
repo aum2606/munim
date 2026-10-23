@@ -18,6 +18,7 @@ from app.llm import Embedder, LLMClient
 from app.llm.types import ToolCall
 from app.orchestrator.localized import fallback, greeting, grounded_message
 from app.orchestrator.locks import ConversationLock
+from app.orchestrator.requirements import RequirementsFlow
 from app.repositories.agent_runs import AgentRunRepository
 from app.repositories.conversations import ConversationRepository
 from app.repositories.gaps import KnowledgeGapRepository
@@ -100,6 +101,14 @@ class ConversationOrchestrator:
                 }:
                     handoff = True
                     text = fallback(language)
+                elif (
+                    intent == Intent.QUOTE_REQUEST
+                    or conversation.active_flow.get("kind") == "quote"
+                ):
+                    _, text = await RequirementsFlow(self.session, self.ctx, self.llm).collect(
+                        conversation_id, message_id, question, tenant.business_type
+                    )
+                    check_reply(text, set(), [text])
                 elif intent == Intent.GREETING:
                     text = greeting(language)
                 elif intent in {Intent.SPAM, Intent.OFF_TOPIC}:

@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 
 from app.agents.knowledge import KnowledgeAgent
+from app.agents.requirements import RequirementsAgent
 from app.agents.responder import ResponderAgent
 from app.agents.router import RouterAgent
 from app.core.tenant import TenantContext
@@ -12,6 +13,7 @@ from app.llm.offline import agent_response
 from app.llm.types import LLMRequest, LLMResponse, ToolCall
 from app.schemas.agents import AgentMessage, KnowledgeInput, ResponderInput, RouterInput
 from app.schemas.knowledge import Fact, SearchResults
+from app.schemas.requirements import RequirementsInput
 
 
 class MemoryRecorder:
@@ -25,6 +27,16 @@ class MemoryRecorder:
 @pytest.mark.parametrize(
     "agent_type,body",
     [
+        (
+            RequirementsAgent,
+            RequirementsInput(
+                question="quantity=500",
+                category="printing",
+                slots=["quantity"],
+                awaiting=[],
+                filled=[],
+            ),
+        ),
         (
             RouterAgent,
             RouterInput(

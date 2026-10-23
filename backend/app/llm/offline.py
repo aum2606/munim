@@ -53,6 +53,22 @@ def agent_response(request: LLMRequest) -> LLMResponse:
                 confidence=1,
             ).model_dump(mode="json")
         )
+    if request.agent == "requirements":
+        from app.schemas.requirements import RequirementsOutput, SlotUpdate
+
+        question = body["question"]
+        values = dict(re.findall(r"(\w+)\s*[:=]\s*([^;\n]+)", question))
+        values = {key: value.strip() for key, value in values.items() if key in body["slots"]}
+        if not values:
+            parts = [part.strip() for part in question.split(";")]
+            if body["awaiting"]:
+                for key, value in zip(body["awaiting"], parts, strict=False):
+                    values[key] = value
+        return LLMResponse(
+            output=RequirementsOutput(
+                updates=[SlotUpdate(key=key, value=value) for key, value in values.items()]
+            ).model_dump()
+        )
     if request.agent == "knowledge":
         facts = [Fact.model_validate(fact) for fact in body["facts"]]
         return LLMResponse(
