@@ -77,3 +77,8 @@
 - Demo FAQ chunks are inserted ready by the seeder through repositories, using the configured Embedder; production uploads continue through the worker pipeline. Golden widget tests use scripted FakeLLM responses keyed by actual agent/input hashes, FakeEmbedder, and real Postgres/Redis.
 
 - Provider HTTP failures and malformed document package/XML errors now become visible failed ingestion states, allowing the existing explicit retry flow instead of leaving a document processing indefinitely. A fake timeout test proves failure details are redacted and retry succeeds.
+
+## 2026-10-23 - Phase 2 requirements and quotations
+
+- NEEDS REVIEW: Introduce the minimal leads aggregate in Phase 2 because requirements must persist on a lead and quotes reference it. Phase 3 retains lead scoring/events/follow-ups.
+- Requirement JSON Schema supports bounded string/integer/boolean slots with enum and bounds. Defaults are applied only when the customer explicitly does not know an answer. Python chooses the next two missing questions; the LLM only extracts slot updates.

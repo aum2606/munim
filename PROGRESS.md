@@ -1,6 +1,6 @@
 # Progress
 
-Current phase: Phase 1 complete. All acceptance checks pass locally and on GitHub CI. Next unchecked task: Phase 2 requirement schemas; Phase 2 is not started.
+Current phase: Phase 2 in progress. Current task: Requirements Agent and persisted lead/flow state.
 
 ### Phase 0 — Foundations (week 1)
 
@@ -58,7 +58,7 @@ Current phase: Phase 1 complete. All acceptance checks pass locally and on GitHu
 
 ### Phase 2 — Requirements & Quotations (weeks 3–5)
 
-- [ ] `requirement_schemas` + defaults for the 5 verticals in §5.3.
+- [x] `requirement_schemas` + defaults for the 5 verticals in §5.3. Built: tenant-scoped GET/owner PUT, bounded schema/default validation and five defaults; reviewed migration cbf6e4465abb. 85 backend + 11 frontend tests pass; lint and fresh migration lifecycle pass.
 - [ ] Requirements Agent with persisted slot state in `conversation.active_flow` + lead.
 - [ ] Pricing engine (§8) with exhaustive unit tests (tiers, add-ons, GST intra/inter, round-off, min order).
 - [ ] Quotation Agent, `quotes`/`quote_items`, FY quote numbering, PDF rendering (logo, GSTIN, HSN/SAC, tax table, amount in words, validity, terms).
