@@ -1,11 +1,12 @@
 from typing import cast
 from uuid import UUID
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query, Request
 
 from app.channels.web import WebChannelAdapter
 from app.core.deps import Config, Context, Owner, Session, TraceReader
 from app.core.workspace import WorkspaceService
+from app.db.models.conversation import ConversationMode, ConversationStatus
 from app.ingestion.documents import DocumentService
 from app.repositories.agent_runs import AgentRunRepository
 from app.repositories.conversations import ConversationRepository
@@ -27,10 +28,19 @@ async def playground(
 
 
 @router.get("/conversations", response_model=list[ConversationView])
-async def conversations(session: Session, ctx: Context) -> list[ConversationView]:
+async def conversations(
+    session: Session,
+    ctx: Context,
+    status: ConversationStatus | None = None,
+    mode: ConversationMode | None = None,
+    channel: str | None = None,
+    q: str | None = Query(default=None, max_length=200),
+) -> list[ConversationView]:
     return [
         ConversationView.model_validate(conversation)
-        for conversation in await ConversationRepository(session, ctx).list()
+        for conversation in await ConversationRepository(session, ctx).filtered(
+            status, mode, channel, q
+        )
     ]
 
 
