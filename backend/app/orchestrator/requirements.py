@@ -91,7 +91,9 @@ class RequirementsFlow:
             conversation_id, category
         )
         lead.requirements = dict(filled)
-        lead.stage = LeadStage.QUALIFIED if not missing else LeadStage.ENGAGED
+        await LeadRepository(self.session, self.ctx).transition(
+            lead, LeadStage.QUALIFIED if not missing else LeadStage.ENGAGED
+        )
         await self.session.flush()
         text = (
             " ".join(schema.question_templates[key] for key in missing[:2])

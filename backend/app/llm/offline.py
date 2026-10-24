@@ -8,6 +8,16 @@ from app.schemas.knowledge import Fact
 
 def agent_response(request: LLMRequest) -> LLMResponse:
     body = request.content.model_dump(mode="json")
+    if request.agent == "lead":
+        return LLMResponse(
+            output={
+                "summary": "Customer enquiry needs review.",
+                "tags": ["enquiry"],
+                "buying_signal": 0,
+            }
+        )
+    if request.agent == "handoff":
+        return LLMResponse(output={"summary": "Staff assistance requested: " + body["reason"]})
     if request.agent == "router":
         text = body["messages"][-1]["content"].lower()
         hinglish = any(
