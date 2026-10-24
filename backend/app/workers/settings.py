@@ -4,7 +4,7 @@ from typing import Any, ClassVar
 from arq.connections import RedisSettings
 
 from app.core.config import Settings
-from app.workers.tasks import ingest_document, process_message
+from app.workers.tasks import ingest_document, process_message, update_lead
 
 
 async def heartbeat(ctx: dict[str, Any]) -> str:
@@ -17,6 +17,7 @@ class WorkerSettings:
         heartbeat,
         ingest_document,
         process_message,
+        update_lead,
     ]
     redis_settings = RedisSettings.from_dsn(Settings().redis_url)
 

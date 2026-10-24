@@ -130,7 +130,10 @@ class QuoteApproval:
         )
         conversation.last_business_msg_at = quote.sent_at
         lead = await ScopedRepository(self.session, self.ctx, Lead).get(quote.lead_id)
-        lead.stage = LeadStage.QUOTED
+        from app.repositories.leads import LeadRepository
+
+        await LeadRepository(self.session, self.ctx).transition(lead, LeadStage.QUOTED)
+        lead.estimated_value_paise = quote.total_paise
         await self.session.flush()
         return quote
 
@@ -141,5 +144,15 @@ class QuoteApproval:
             if quote.status not in {QuoteStatus.SENT, QuoteStatus.VIEWED}:
                 raise DomainError("Only delivered quotes can be accepted or rejected", 409)
             quote.status = status
+            from app.repositories.leads import LeadRepository
+
+            repository = LeadRepository(self.session, self.ctx)
+            await ConversationRepository(self.session, self.ctx).get(
+                quote.conversation_id, for_update=True
+            )
+            lead = await repository.get(quote.lead_id, for_update=True)
+            await repository.transition(
+                lead, LeadStage.WON if status == QuoteStatus.ACCEPTED else LeadStage.LOST
+            )
         await self.session.flush()
         return quote
