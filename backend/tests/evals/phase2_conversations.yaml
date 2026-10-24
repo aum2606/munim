@@ -1,0 +1,18 @@
+﻿- tenant: printing
+  turns:
+    - 'quote; item=visiting cards; quantity=500; sides=double-sided'
+    - 'size=unknown; material=unknown; colour=unknown; finishing=unknown; deadline=2026-12-20'
+  subtotal_paise: 275000
+  cgst_paise: 24750
+  sgst_paise: 24750
+  total_paise: 324500
+  pdf_amount: '3,245.00'
+- tenant: photography
+  turns:
+    - 'quote; event_type=wedding; days=2; deliverables=photo+video'
+    - 'date=2026-12-20; city_venue=Ahmedabad demo hall; hours=unknown; crew_size=unknown'
+  subtotal_paise: 9000000
+  cgst_paise: 810000
+  sgst_paise: 810000
+  total_paise: 10620000
+  pdf_amount: '1,06,200.00'
