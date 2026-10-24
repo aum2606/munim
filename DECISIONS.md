@@ -102,3 +102,9 @@
 ## 2026-10-24 - Phase 2 final acceptance
 
 - Browser acceptance now overrides the device preset viewport explicitly to 375x812. The preset had used 320px; its eight flows passed too. PDF and UI previews are kept in ignored .cache instead of creating new top-level artifact folders.
+
+
+## 2026-10-24 - Phase 3 leads and human workflow
+
+- NEEDS REVIEW: Extend the Phase 2 lead with scoring, assignment, manual-stage override and last-scored message. Add lead_events, followups, handoffs and reply_drafts. Private assist drafts are a separate tenant-scoped table, never customer messages. Follow-ups deduplicate by lead/kind/source timestamp; one open handoff per conversation. No new top-level folders.
+- Reviewed migration 4f75c80bba26: named reversible assignee FK and explicit score/value checks (Alembic does not autogenerate added check constraints). Existing leads receive safe server defaults.
