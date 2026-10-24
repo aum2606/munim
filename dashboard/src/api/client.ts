@@ -33,7 +33,7 @@ async function request<T>(
   path: string,
   init: RequestInit = {},
   retry = true,
-  format: "json" | "blob" = "json",
+  format: "json" | "blob" | "stream" = "json",
 ): Promise<T> {
   const response = await fetch(`/api/v1${path}`, {
     ...init,
@@ -74,6 +74,7 @@ async function request<T>(
   }
   if (!response.ok) throw new Error(`Request failed: ${response.status}`);
   if (response.status === 204) return undefined as T;
+  if (format === "stream") return response as T;
   if (format === "blob") return (await response.blob()) as T;
   return response.json() as Promise<T>;
 }
@@ -110,4 +111,11 @@ export function authenticatedRequest<T>(
 }
 export function authenticatedDownload(path: string): Promise<Blob> {
   return request<Blob>(path, {}, true, "blob");
+}
+
+export function authenticatedStream(
+  path: string,
+  signal: AbortSignal,
+): Promise<Response> {
+  return request<Response>(path, { signal }, true, "stream");
 }
