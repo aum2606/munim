@@ -2,7 +2,9 @@ from uuid import uuid4
 
 import pytest
 
+from app.agents.handoff import HandoffAgent
 from app.agents.knowledge import KnowledgeAgent
+from app.agents.lead import LeadAgent
 from app.agents.quotation import QuotationAgent
 from app.agents.requirements import RequirementsAgent
 from app.agents.responder import ResponderAgent
@@ -14,6 +16,7 @@ from app.llm.offline import agent_response
 from app.llm.types import LLMRequest, LLMResponse, ToolCall
 from app.schemas.agents import AgentMessage, KnowledgeInput, ResponderInput, RouterInput
 from app.schemas.knowledge import Fact, SearchResults
+from app.schemas.leads import HandoffInput, LeadInput
 from app.schemas.quotes import QuotationInput
 from app.schemas.requirements import RequirementsInput
 
@@ -29,6 +32,8 @@ class MemoryRecorder:
 @pytest.mark.parametrize(
     "agent_type,body",
     [
+        (LeadAgent, LeadInput(messages=["Customer wants a quote"])),
+        (HandoffAgent, HandoffInput(reason="complaint", messages=["Damaged order"])),
         (QuotationAgent, QuotationInput(category="printing", requirements=[], candidates=[])),
         (
             RequirementsAgent,

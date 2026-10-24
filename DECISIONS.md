@@ -108,3 +108,5 @@
 
 - NEEDS REVIEW: Extend the Phase 2 lead with scoring, assignment, manual-stage override and last-scored message. Add lead_events, followups, handoffs and reply_drafts. Private assist drafts are a separate tenant-scoped table, never customer messages. Follow-ups deduplicate by lead/kind/source timestamp; one open handoff per conversation. No new top-level folders.
 - Reviewed migration 4f75c80bba26: named reversible assignee FK and explicit score/value checks (Alembic does not autogenerate added check constraints). Existing leads receive safe server defaults.
+
+- Lead scoring runs in a separate durable arq job after message processing; retries enqueue even when the message was already processed. Only the newest processed inbound is scored; the last-scored marker prevents duplicate model calls. Score formula is documented in core/leads.py; estimated value copies the latest deterministic quote, never model output. Workflow stages cannot regress, and terminal/manual stages are protected. Staff must explicitly clear the override and choose an active stage to reopen.

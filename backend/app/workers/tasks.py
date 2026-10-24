@@ -55,9 +55,31 @@ async def process_message(ctx: dict[str, Any], tenant_id: str, message_id: str) 
             )
             try:
                 await orchestrator.process(message.conversation_id)
+                await ArqJobQueue(settings.redis_url).enqueue(
+                    "update_lead", tenant.tenant_id, message.id
+                )
             except DomainError as error:
                 if error.status_code == 409:
                     raise Retry(defer=5) from error
                 raise
+    finally:
+        await engine.dispose()
+
+
+async def update_lead(ctx: dict[str, Any], tenant_id: str, message_id: str) -> None:
+    from app.core.leads import LeadService
+    from app.llm.factory import make_llm
+    from app.repositories.agent_runs import DatabaseRunRecorder
+
+    settings = Settings()
+    engine = create_async_engine(settings.database_url, hide_parameters=True)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        async with sessions() as session:
+            await LeadService(
+                session,
+                TenantContext(UUID(tenant_id)),
+                make_llm(settings, DatabaseRunRecorder(sessions)),
+            ).update(UUID(message_id))
     finally:
         await engine.dispose()
