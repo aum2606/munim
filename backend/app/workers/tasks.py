@@ -83,3 +83,30 @@ async def update_lead(ctx: dict[str, Any], tenant_id: str, message_id: str) -> N
             ).update(UUID(message_id))
     finally:
         await engine.dispose()
+
+
+async def schedule_followups(ctx: dict[str, Any]) -> None:
+    from app.repositories.followups import scheduled_tenants
+
+    settings = Settings()
+    engine = create_async_engine(settings.database_url, hide_parameters=True)
+    try:
+        async with async_sessionmaker(engine)() as session:
+            for tenant_id in await scheduled_tenants(session):
+                await ArqJobQueue(settings.redis_url).enqueue(
+                    "draft_followups", tenant_id, tenant_id
+                )
+    finally:
+        await engine.dispose()
+
+
+async def draft_followups(ctx: dict[str, Any], tenant_id: str, resource_id: str) -> None:
+    from app.core.followups import FollowupService
+
+    settings = Settings()
+    engine = create_async_engine(settings.database_url, hide_parameters=True)
+    try:
+        async with async_sessionmaker(engine, expire_on_commit=False)() as session:
+            await FollowupService(session, TenantContext(UUID(tenant_id))).schedule()
+    finally:
+        await engine.dispose()
