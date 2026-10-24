@@ -56,3 +56,54 @@ async def test_lead_scoring_idempotency_manual_override_and_scoped_api(client, s
         "id"
     ] == str(lead_id)
     assert (await client.get("/api/v1/leads?score_min=101", headers=a)).status_code == 422
+
+
+async def test_background_model_does_not_block_chat_and_discards_stale_results(client, sessions):
+    import asyncio
+
+    a, ctx, _ = await owner(client)
+    widget = (await client.post("/api/v1/playground/session", headers=a)).json()
+    conversation_id = UUID(widget["conversation_id"])
+    started, resume = asyncio.Event(), asyncio.Event()
+
+    class PausingLead(FakeLLM):
+        async def _generate(self, request):
+            started.set()
+            await resume.wait()
+            return await super()._generate(request)
+
+    fake = PausingLead(DatabaseRunRecorder(sessions), {}, fallback=agent_response)
+    async with sessions() as session:
+        message = await ConversationRepository(session, ctx).receive(
+            conversation_id, "Hello", "first"
+        )
+        message.processed_at = datetime.now(UTC)
+        await session.commit()
+        message_id = message.id
+
+    async def update():
+        async with sessions() as session:
+            await LeadService(session, ctx, fake).update(message_id)
+
+    async def receive():
+        async with sessions() as session:
+            await ConversationRepository(session, ctx).receive(
+                conversation_id, "Newer enquiry", "second"
+            )
+            await session.commit()
+
+    task = asyncio.create_task(update())
+    try:
+        await asyncio.wait_for(started.wait(), timeout=10)
+        await asyncio.wait_for(receive(), timeout=10)
+        resume.set()
+        await asyncio.wait_for(task, timeout=10)
+        async with sessions() as session:
+            lead = await LeadRepository(session, ctx).for_conversation(conversation_id, "printing")
+            assert lead.last_scored_message_id is None
+            assert lead.summary == ""
+    finally:
+        resume.set()
+        if not task.done():
+            task.cancel()
+        await asyncio.gather(task, return_exceptions=True)

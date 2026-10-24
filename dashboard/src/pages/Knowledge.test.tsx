@@ -2,6 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { KnowledgePage } from "./Knowledge";
+import { MemoryRouter } from "react-router-dom";
+import { leadsApi } from "../api/leads";
 import { InboxPage } from "./Inbox";
 import { knowledgeApi } from "../api/knowledge";
 afterEach(() => vi.restoreAllMocks());
@@ -17,7 +19,9 @@ function mount(page: "knowledge" | "inbox" = "knowledge") {
         })
       }
     >
-      {page === "knowledge" ? <KnowledgePage /> : <InboxPage />}
+      <MemoryRouter>
+        {page === "knowledge" ? <KnowledgePage /> : <InboxPage />}
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -116,7 +120,8 @@ it("shows import preview and commits only after explicit confirmation", async ()
   expect(await screen.findByText("Catalogue imported")).toBeTruthy();
   expect(commit).toHaveBeenCalledWith("i", preview.mapping);
 });
-it("renders read-only conversation history", async () => {
+it("requires takeover before staff replies", async () => {
+  vi.spyOn(leadsApi, "drafts").mockResolvedValue([]);
   vi.spyOn(knowledgeApi, "conversations").mockResolvedValue([
     {
       id: "conversation",
@@ -139,5 +144,11 @@ it("renders read-only conversation history", async () => {
   ]);
   mount("inbox");
   expect(await screen.findByText("Customer question")).toBeTruthy();
-  expect(screen.queryByRole("textbox")).toBeNull();
+  expect(
+    (screen.getByLabelText("Staff reply") as HTMLTextAreaElement).disabled,
+  ).toBe(true);
+  expect(
+    (screen.getByRole("button", { name: "Take over" }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(false);
 });

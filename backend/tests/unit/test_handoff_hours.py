@@ -10,6 +10,7 @@ def test_business_hours_and_localized_holding():
     assert outside_hours({"monday": ["11:00", "18:00"]}, "Asia/Kolkata", now)
     assert outside_hours({"tuesday": ["09:00", "18:00"]}, "Asia/Kolkata", now)
     assert outside_hours({"monday": ["bad", "time"]}, "Asia/Kolkata", now)
-    assert not outside_hours({"monday": ["18:00", "11:00"]}, "Asia/Kolkata", now)
+    assert outside_hours({"monday": ["18:00", "11:00"]}, "Asia/Kolkata", now)
+    assert not outside_hours({"sunday": ["18:00", "11:00"]}, "Asia/Kolkata", now)
     for language in ["en", "hi", "gu", "hinglish", "gujlish", "other"]:
         assert holding_message(language, True) != holding_message(language, False)

@@ -58,9 +58,15 @@ async def test_due_drafts_idempotency_owner_approval_and_stale_reply(client, ses
         conversation = await ScopedRepository(session, ctx, Conversation).get(conversation_id)
         conversation.last_customer_msg_at = now - timedelta(days=4)
         conversation.last_business_msg_at = now - timedelta(days=3)
-        await LeadRepository(session, ctx).for_conversation(conversation_id, "printing")
+        lead = await LeadRepository(session, ctx).for_conversation(conversation_id, "printing")
+        lead.stage_override = True
+        lead.next_followup_at = now + timedelta(days=5)
         await session.commit()
         service = FollowupService(session, ctx)
+        await service.schedule(now)
+        assert await FollowupRepository(session, ctx).pending() == []
+        lead.next_followup_at = None
+        await session.commit()
         await service.schedule(now)
         await service.schedule(now)
         drafts = await FollowupRepository(session, ctx).pending()

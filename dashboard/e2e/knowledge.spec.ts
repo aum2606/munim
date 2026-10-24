@@ -69,5 +69,8 @@ test("owner imports knowledge, tests a guarded answer and reads the inbox", asyn
     "visiting cards ka rate kya hai",
   );
   await expect(page.getByRole("log")).toContainText("\u20b9450.00");
-  await expect(page.getByRole("textbox")).toHaveCount(0);
+  await expect(page.getByLabel("Staff reply")).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Take over", exact: true }),
+  ).toBeEnabled();
 });
