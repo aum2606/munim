@@ -1,6 +1,6 @@
 # Progress
 
-Current phase: Phase 2 complete. Local and GitHub CI acceptance pass. Next unchecked task: Phase 3 lead/event/follow-up/handoff models; Phase 3 is not started.
+Current phase: Phase 3 in progress. Current task: Lead Agent, scoring, stage transitions and manual overrides.
 
 ### Phase 0 — Foundations (week 1)
 
@@ -83,7 +83,7 @@ Current phase: Phase 2 complete. Local and GitHub CI acceptance pass. Next unche
 
 ### Phase 3 — Leads, follow-ups, human handoff (weeks 5–6)
 
-- [ ] `leads`, `lead_events`, `followups`, `handoffs` models. Phase 2 already introduced the minimal lead aggregate for requirements/quotes; extend it rather than recreate it.
+- [x] `leads`, `lead_events`, `followups`, `handoffs` models. Extended the Phase 2 lead and added private assist drafts; reviewed migration 4f75c80bba26. `make test` (121 backend + 16 frontend), `make lint`, `make migrate` and fresh upgrade/downgrade pass.
 - [ ] Lead Agent (async) + rule-based scoring; stage transitions; manual overrides.
 - [ ] Follow-up scheduler (arq cron): no-reply after N days, quote reminder before expiry, re-engage dormant; drafts go to owner for approval by default.
 - [ ] Handoff Agent + conversation modes (`ai`/`assist`/`human`), live Inbox with SSE, staff replies, take-over/return-to-AI.
