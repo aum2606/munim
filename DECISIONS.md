@@ -110,3 +110,5 @@
 - Reviewed migration 4f75c80bba26: named reversible assignee FK and explicit score/value checks (Alembic does not autogenerate added check constraints). Existing leads receive safe server defaults.
 
 - Lead scoring runs in a separate durable arq job after message processing; retries enqueue even when the message was already processed. Only the newest processed inbound is scored; the last-scored marker prevents duplicate model calls. Score formula is documented in core/leads.py; estimated value copies the latest deterministic quote, never model output. Workflow stages cannot regress, and terminal/manual stages are protected. Staff must explicitly clear the override and choose an active stage to reopen.
+
+- Follow-up cron fans out from tenant IDs (tenants table only) into scoped jobs every 15 minutes. Defaults: no reply 2 days, quote reminder 1 day before expiry, dormant re-engagement after 14 days. Every send needs owner approval; drafts carry no prices and pass check_prices. Current phase delivers web only; other channels require templates/adapters in Phase 4. Disabled policy, customer reply, human mode and terminal/closed workflows invalidate eligibility.
