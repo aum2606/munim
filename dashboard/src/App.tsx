@@ -1,3 +1,5 @@
+import { QuotesPage } from "./pages/Quotes";
+import { qt } from "./i18n/quotes";
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -137,6 +139,7 @@ function ProtectedLayout() {
         <Link to="/knowledge">{kt.title}</Link>
         <Link to="/playground">{kt.playground}</Link>
         <Link to="/inbox">{kt.inbox}</Link>
+        <Link to="/quotes">{qt.title}</Link>
       </nav>
       <main>
         <Outlet />
@@ -166,6 +169,7 @@ export function App() {
         <Route path="/knowledge" element={<KnowledgePage />} />
         <Route path="/playground" element={<PlaygroundPage />} />
         <Route path="/inbox" element={<InboxPage />} />
+        <Route path="/quotes" element={<QuotesPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

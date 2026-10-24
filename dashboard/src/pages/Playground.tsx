@@ -1,3 +1,5 @@
+import { saveBlob } from "../api/quotes";
+import { qt } from "../i18n/quotes";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { startPlayground, WidgetClient, type ChatMessage } from "../api/chat";
@@ -18,6 +20,13 @@ export function PlaygroundPage() {
   );
   const session = useMutation({ mutationFn: startPlayground });
   const current = session.data;
+  const download = useMutation({
+    mutationFn: async (quoteId: string) => {
+      if (!current) throw new Error("No active chat session");
+      saveBlob(await client.quotePdf(current, quoteId), "quotation.pdf");
+    },
+    onError: () => setError(t.error),
+  });
   const messages = useQuery<ChatMessage[]>({
     queryKey: ["playground-messages", current?.session_id],
     queryFn: async () => [],
@@ -91,6 +100,21 @@ export function PlaygroundPage() {
                 key={message.id}
               >
                 <p>{message.content}</p>
+                {message.attachments
+                  ?.filter((attachment) => attachment.quote_id)
+                  .map((attachment) => (
+                    <Button
+                      type="button"
+                      key={attachment.quote_id}
+                      disabled={download.isPending}
+                      onClick={() => {
+                        if (attachment.quote_id)
+                          download.mutate(attachment.quote_id);
+                      }}
+                    >
+                      {qt.pdf}
+                    </Button>
+                  ))}
                 {message.attachments?.flatMap(
                   (attachment) => attachment.citations || [],
                 ).length > 0 && (
