@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field
 
@@ -30,6 +30,7 @@ class AgentMessage(StrictModel):
 class RouterInput(StrictModel):
     messages: list[AgentMessage]
     business_type: str
+    active_flow: dict[str, Any] = Field(default_factory=dict)
 
 
 class Entities(StrictModel):

@@ -104,6 +104,7 @@ def quote_totals(
     total = paise_round(Decimal(unrounded) / Decimal(100)) * 100
     TypeAdapter(Paise).validate_python(total)
     return Totals(
+        quote_discount_paise=discount,
         subtotal_paise=sum(line.subtotal_paise for line in lines),
         discount_paise=discount + sum(line.discount_paise for line in lines),
         taxable_paise=taxable - discount,

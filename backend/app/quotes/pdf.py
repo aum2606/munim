@@ -1,6 +1,7 @@
 from io import BytesIO
 from pathlib import Path
 from xml.sax.saxutils import escape
+from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from reportlab.lib import colors
@@ -84,6 +85,8 @@ def render_quote_pdf(quote: QuoteView, storage_root: Path) -> bytes:
     )
     header = environment.get_template("quote_header.html.jinja").render(seller=quote.seller)
     check_prices(header, quote_allowed_prices(quote))
+    issued = quote.created_at.astimezone(ZoneInfo("Asia/Kolkata")).date().isoformat()
+    valid_until = quote.valid_until.astimezone(ZoneInfo("Asia/Kolkata")).date().isoformat()
     story.extend(
         [
             Paragraph(header, normal),
@@ -94,10 +97,7 @@ def render_quote_pdf(quote: QuoteView, storage_root: Path) -> bytes:
                 "Place of supply state: "
                 f"{quote.customer_state or quote.seller.state_code or 'Unspecified'}"
             ),
-            paragraph(
-                f"Issued: {quote.created_at.date().isoformat()}  |  "
-                f"Valid until: {quote.valid_until.date().isoformat()}"
-            ),
+            paragraph(f"Issued: {issued}  |  Valid until: {valid_until}"),
             Spacer(1, 18),
         ]
     )

@@ -1,10 +1,13 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 from uuid import UUID
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 
+from app.core.errors import DomainError
 from app.db.models.quote import QuoteStatus
+from app.ingestion.price_parser import parse_inr
 from app.schemas.knowledge import StrictModel
 from app.schemas.pricing import Paise, Quantity, Totals
 from app.schemas.requirements import SlotUpdate
@@ -92,6 +95,7 @@ class QuoteView(StrictModel):
     lines: list[QuoteLineView]
     totals: Totals
     display_total: str
+    quote_discount_paise: int
     display_amounts: dict[str, str]
     display_lines: list[dict[str, str]]
     approved_by: UUID | None
@@ -99,6 +103,21 @@ class QuoteView(StrictModel):
 
 
 class QuoteSettings(StrictModel):
+    @model_validator(mode="before")
+    @classmethod
+    def parse_limit(cls, value: Any) -> Any:
+        if isinstance(value, dict) and "auto_send_limit_inr" in value:
+            value = dict(value)
+            if "auto_send_limit_paise" in value:
+                raise ValueError("Supply only one auto-send limit")
+            if not isinstance(value["auto_send_limit_inr"], str):
+                raise ValueError("Supply the limit as an INR string")
+            try:
+                value["auto_send_limit_paise"] = parse_inr(value.pop("auto_send_limit_inr"))
+            except DomainError as error:
+                raise ValueError(error.message) from error
+        return value
+
     model_config = ConfigDict(from_attributes=True)
     auto_send_quotes: bool = False
     auto_send_limit_paise: Paise = 0

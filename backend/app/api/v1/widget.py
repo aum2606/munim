@@ -2,7 +2,7 @@ from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from redis.asyncio import Redis
 
@@ -11,6 +11,9 @@ from app.core.deps import Config, Session, bearer
 from app.core.errors import NotFound, Unauthorized
 from app.core.security import token_hash
 from app.core.tenant import TenantContext
+from app.db.models.quote import QuoteStatus
+from app.quotes.service import QuoteService
+from app.repositories.quotes import QuoteRepository
 from app.repositories.widget import WidgetCredentialRepository
 from app.schemas.chat import MessageView, WidgetMessage, WidgetSessionView, WidgetStart
 from app.workers.queue import JobQueue
@@ -79,4 +82,23 @@ async def stream(
         stream_messages(request.app.state.sessions, ctx, config.widget_stream_seconds, once),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.get("/quotes/{quote_id}/pdf")
+async def quote_pdf(quote_id: UUID, ctx: WidgetAuth, session: Session, config: Config) -> Response:
+    quote = await QuoteRepository(session, ctx.tenant).get(quote_id)
+    if quote.conversation_id != ctx.conversation_id or quote.sent_at is None:
+        raise NotFound()
+    content = await QuoteService(session, ctx.tenant, config).pdf(quote_id)
+    if quote.status == QuoteStatus.SENT:
+        quote.status = QuoteStatus.VIEWED
+        await session.commit()
+    return Response(
+        content,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": 'attachment; filename="quotation.pdf"',
+            "Cache-Control": "no-store",
+        },
     )

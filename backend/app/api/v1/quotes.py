@@ -2,11 +2,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Response
 
-from app.core.deps import Config, Context, Session
+from app.core.deps import Config, Context, Owner, Session
 from app.db.models.quote import QuoteStatus
+from app.quotes.approval import QuoteApproval
 from app.quotes.service import QuoteService
 from app.repositories.quotes import QuoteRepository
-from app.schemas.quotes import QuoteView
+from app.schemas.quotes import QuoteAction, QuoteEdit, QuoteView
 
 router = APIRouter(prefix="/quotes")
 
@@ -37,3 +38,44 @@ async def pdf(quote_id: UUID, session: Session, ctx: Context, config: Config) ->
             "Cache-Control": "no-store",
         },
     )
+
+
+@router.patch("/{quote_id}", response_model=QuoteView)
+async def edit_quote(
+    quote_id: UUID, body: QuoteEdit, session: Session, ctx: Owner, config: Config
+) -> QuoteView:
+    await QuoteApproval(session, ctx, config).edit(quote_id, body)
+    await session.commit()
+    return await QuoteService(session, ctx, config).view(quote_id)
+
+
+@router.post("/{quote_id}/approve", response_model=QuoteView)
+@router.post("/{quote_id}/send", response_model=QuoteView)
+async def approve_quote(
+    quote_id: UUID, body: QuoteAction, session: Session, ctx: Owner, config: Config
+) -> QuoteView:
+    await QuoteApproval(session, ctx, config).send(quote_id, body.expected_version)
+    await session.commit()
+    return await QuoteService(session, ctx, config).view(quote_id)
+
+
+@router.post("/{quote_id}/mark-accepted", response_model=QuoteView)
+async def accept_quote(
+    quote_id: UUID, body: QuoteAction, session: Session, ctx: Owner, config: Config
+) -> QuoteView:
+    await QuoteApproval(session, ctx, config).mark(
+        quote_id, body.expected_version, QuoteStatus.ACCEPTED
+    )
+    await session.commit()
+    return await QuoteService(session, ctx, config).view(quote_id)
+
+
+@router.post("/{quote_id}/mark-rejected", response_model=QuoteView)
+async def reject_quote(
+    quote_id: UUID, body: QuoteAction, session: Session, ctx: Owner, config: Config
+) -> QuoteView:
+    await QuoteApproval(session, ctx, config).mark(
+        quote_id, body.expected_version, QuoteStatus.REJECTED
+    )
+    await session.commit()
+    return await QuoteService(session, ctx, config).view(quote_id)
