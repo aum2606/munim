@@ -1,6 +1,6 @@
 # Progress
 
-Current phase: Phase 3 in progress. Current task: follow-up scheduling and owner approval.
+Current phase: Phase 3 in progress. Current task: handoff, conversation modes, private assist drafts and live inbox APIs.
 
 ### Phase 0 — Foundations (week 1)
 
@@ -85,7 +85,7 @@ Current phase: Phase 3 in progress. Current task: follow-up scheduling and owner
 
 - [x] `leads`, `lead_events`, `followups`, `handoffs` models. Extended the Phase 2 lead and added private assist drafts; reviewed migration 4f75c80bba26. `make test` (121 backend + 16 frontend), `make lint`, `make migrate` and fresh upgrade/downgrade pass.
 - [x] Lead Agent (async) + rule-based scoring; stage transitions; manual overrides. Separate retryable worker job, bounded signal, persisted quote value, scoped list/detail/patch/events API and stage audit. 13 targeted agent/scoring/requirements/quote tests, Ruff and strict mypy pass; full regression repeated at phase acceptance.
-- [ ] Follow-up scheduler (arq cron): no-reply after N days, quote reminder before expiry, re-engage dormant; drafts go to owner for approval by default.
+- [x] Follow-up scheduler (arq cron): no-reply after N days, quote reminder before expiry, re-engage dormant; drafts go to owner for approval by default. Scoped 15-minute jobs, paginated lead scan, deduplication, owner policy/approval APIs and stale eligibility checks. Two real-Postgres tests cover all kinds, disablement, approval and isolation; Ruff/strict mypy pass.
 - [ ] Handoff Agent + conversation modes (`ai`/`assist`/`human`), live Inbox with SSE, staff replies, take-over/return-to-AI.
 - [ ] Dashboard: Leads kanban, lead detail timeline, Inbox actions, notifications.
 
