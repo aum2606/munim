@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { WidgetClient, type ChatMessage, type ChatSession } from "./client";
+import {
+  saveChatFile,
+  WidgetClient,
+  type ChatMessage,
+  type ChatSession,
+} from "./client";
 import { en } from "./i18n";
 export interface WidgetProps {
   publicKey: string;
@@ -91,6 +96,23 @@ export function Widget({
             {messages.map((message) => (
               <div key={message.id} class={"bubble " + message.direction}>
                 {message.content}
+                {message.attachments
+                  .filter((attachment) => attachment.quote_id)
+                  .map((attachment) => (
+                    <button
+                      type="button"
+                      key={attachment.quote_id}
+                      onClick={() => {
+                        if (session && attachment.quote_id)
+                          void client
+                            .quotePdf(session, attachment.quote_id)
+                            .then((blob) => saveChatFile(blob, "quotation.pdf"))
+                            .catch(() => setError(en.error));
+                      }}
+                    >
+                      {en.downloadQuote}
+                    </button>
+                  ))}
               </div>
             ))}
           </div>

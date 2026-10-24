@@ -19,11 +19,13 @@ from app.llm.types import ToolCall
 from app.orchestrator.localized import fallback, greeting, grounded_message
 from app.orchestrator.locks import ConversationLock
 from app.orchestrator.requirements import RequirementsFlow
+from app.quotes.approval import QuoteApproval
 from app.quotes.service import QuoteService
 from app.repositories.agent_runs import AgentRunRepository
 from app.repositories.conversations import ConversationRepository
 from app.repositories.gaps import KnowledgeGapRepository
 from app.repositories.identity import TenantRepository
+from app.repositories.quotes import QuoteRepository
 from app.repositories.search import SearchRepository
 from app.schemas.agents import AgentMessage, Intent, KnowledgeInput, ResponderInput, RouterInput
 from app.tools.catalog_lookup import CatalogLookup, get_business_info
@@ -91,6 +93,7 @@ class ConversationOrchestrator:
                             for message in history
                         ],
                         business_type=tenant.business_type,
+                        active_flow=conversation.active_flow,
                     ),
                     message_id=message_id,
                 )
@@ -111,13 +114,28 @@ class ConversationOrchestrator:
                             self.session, self.ctx, self.llm
                         ).collect(conversation_id, message_id, question, tenant.business_type)
                         if state["ready_for_quote"]:
-                            await QuoteService(
+                            quote = await QuoteService(
                                 self.session, self.ctx, self.settings
                             ).create_from_requirements(conversation_id, message_id, self.llm)
+                            lines = await QuoteRepository(self.session, self.ctx).lines(quote.id)
+                            if (
+                                settings.auto_send_quotes
+                                and quote.total_paise < settings.auto_send_limit_paise
+                                and not any(line.needs_owner_pricing for line in lines)
+                                and (
+                                    not any(line.gst_rate for line in lines)
+                                    or (tenant.gstin and tenant.state_code)
+                                )
+                            ):
+                                await QuoteApproval(self.session, self.ctx, self.settings).send(
+                                    quote.id, quote.version, automated=True
+                                )
                             text = (
                                 "Your quote is ready for the team to review. "
                                 "They will confirm the exact price shortly."
                             )
+                            if quote.sent_at:
+                                text = "Your quotation has been prepared and sent below."
                         check_reply(text, set(), [text])
                 elif intent == Intent.GREETING:
                     text = greeting(language)

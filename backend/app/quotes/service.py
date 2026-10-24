@@ -62,6 +62,7 @@ class QuoteService:
             lines=lines,
             totals=totals,
             display_total=format_inr(totals.total_paise),
+            quote_discount_paise=totals.quote_discount_paise,
             display_amounts={
                 key: format_inr(value)
                 for key, value in totals.model_dump().items()
@@ -132,7 +133,11 @@ class QuoteService:
         quote = await self.quotes.get(quote_id)
         view = await self.view(quote_id)
         content = await run_in_threadpool(render_quote_pdf, view, Path(self.config.storage_dir))
-        relative = Path(str(self.ctx.tenant_id)) / "quotes" / f"{quote.id}-v{quote.version}.pdf"
+        relative = (
+            Path(str(self.ctx.tenant_id))
+            / "quotes"
+            / f"{quote.id}-v{quote.version}-{quote.status.value}.pdf"
+        )
         path = Path(self.config.storage_dir) / relative
 
         def write() -> None:
@@ -302,7 +307,7 @@ class QuoteService:
             **{
                 key: value
                 for key, value in totals.model_dump().items()
-                if key not in {"taxable_paise", "tax_groups"}
+                if key not in {"taxable_paise", "tax_groups", "quote_discount_paise"}
             },
         )
         await self.quotes.replace_lines(quote.id, snapshots)

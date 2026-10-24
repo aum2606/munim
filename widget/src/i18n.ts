@@ -1,4 +1,5 @@
 export const en = {
+  downloadQuote: "Download quote PDF",
   launcher: "Chat with us",
   close: "Close chat",
   message: "Message",

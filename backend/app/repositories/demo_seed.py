@@ -38,7 +38,7 @@ class DemoSeedRepository:
             )
         owner = (
             await self.session.scalars(
-                select(User).where(User.tenant_id == self.ctx.tenant_id, User.role == Role.OWNER)
+                select(User).where(User.tenant_id == self.ctx.tenant_id, User.email == email)
             )
         ).first()
         if owner is None:

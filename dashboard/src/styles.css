@@ -341,3 +341,37 @@ textarea {
     grid-template-columns: 280px minmax(0, 1fr);
   }
 }
+.quote-detail fieldset {
+  border: 1px solid #dbe3dc;
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+  min-width: 0;
+}
+.quote-detail button {
+  margin: 0.4rem 0.4rem 0.4rem 0;
+}
+.quote-detail dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.quote-detail dd {
+  margin: 0;
+}
+.quote-option {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: end;
+}
+.quote-option label {
+  min-width: 0;
+  flex: 1 1 100px;
+}
+.panel input[type="checkbox"],
+.conversation-list input[type="checkbox"] {
+  display: inline-block;
+  width: auto;
+  margin-right: 0.5rem;
+}

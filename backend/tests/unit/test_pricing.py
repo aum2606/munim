@@ -53,6 +53,7 @@ def test_intra_inter_state_grouped_gst_discount_allocation_and_roundoff():
     lines = [line(price=10000, rate=18), line(price=10000, rate=5)]
     intra = quote_totals(lines, "24", "24", 1001)
     assert intra.subtotal_paise == 20000 and intra.discount_paise == 1001
+    assert intra.quote_discount_paise == 1001
     assert [g.taxable_paise for g in intra.tax_groups] == [9500, 9499]
     assert (intra.cgst_paise, intra.sgst_paise, intra.igst_paise) == (1093, 1093, 0)
     assert intra.total_paise == 21200 and intra.round_off_paise == 15

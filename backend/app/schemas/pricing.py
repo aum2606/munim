@@ -99,6 +99,7 @@ class TaxGroup(StrictModel):
 
 
 class Totals(StrictModel):
+    quote_discount_paise: int = 0
     subtotal_paise: int
     discount_paise: int
     taxable_paise: int

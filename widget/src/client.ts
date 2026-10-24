@@ -10,7 +10,11 @@ export interface ChatMessage {
   direction: "in" | "out";
   content: string;
   created_at: string;
-  attachments: { citations?: string[] }[];
+  attachments: {
+    citations?: string[];
+    quote_id?: string;
+    quote_number?: string;
+  }[];
 }
 export class WidgetClient {
   constructor(readonly base: string) {}
@@ -43,6 +47,15 @@ export class WidgetClient {
         content,
       }),
     });
+  }
+  async quotePdf(session: ChatSession, quoteId: string): Promise<Blob> {
+    const response = await fetch(
+      this.base.replace(/\/$/, "") +
+        `/api/v1/widget/quotes/${encodeURIComponent(quoteId)}/pdf`,
+      { headers: { Authorization: `Bearer ${session.token}` } },
+    );
+    if (!response.ok) throw new Error("Quote download unavailable");
+    return response.blob();
   }
   async subscribe(
     session: ChatSession,
@@ -100,4 +113,13 @@ export class WidgetClient {
         });
     }
   }
+}
+
+export function saveChatFile(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
