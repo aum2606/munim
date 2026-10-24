@@ -91,3 +91,14 @@
 - PDFs use ReportLab with escaped Jinja header text, tenant-local logos only and bundled Noto Sans (SIL OFL license retained). Every rendered text fragment passes check_prices against the deterministic quote-tool snapshot. Quote dates/numbers use Asia/Kolkata financial years. Layout reference: https://docs.reportlab.com/reportlab/userguide/ch5_platypus/ .
 
 - Amount-in-words guardrail support compares the entire canonical Rupees ... Only string against amount_in_words for tool-returned paise values. Unknown/different words and additional unapproved numeric currency remain blocked; tests cover both. This validates the PDF requirement without exempting its text from check_prices.
+
+- Owner edits create a new reviewed version, reprice from current catalogue/rules, and refresh seller/terms/validity snapshots. Sending an old reviewed version is rejected. Positive-GST quotes require GSTIN and supplier state; unconfigured drafts remain pending until the owner updates the profile and saves a revised quote.
+- Web delivery persists one guarded document message under the quote row lock; retries are idempotent. Customer PDF access requires the session bearer, matching conversation and a delivered quote. Auto-send applies only to fully priced quotes strictly below the configured limit in open AI conversations.
+
+- Role-boundary testing exposed a seed retry bug: demoting a demo owner led the seed to create a duplicate email. Seed identity lookup now uses the scoped demo email and preserves its current role/password; a regression test covers reseeding a staff account.
+
+- NEEDS REVIEW: Pricing snapshots now retain quote_discount_paise separately from the combined discount so owner quantity edits preserve both line and quote discounts. Old snapshots default this new field to zero. The quote engine bounds amounts at 9,000,000,000,000,000 paise (below JavaScript safe integer range); money is still BIGINT and Decimal on the server, and UI arithmetic is never used.
+
+## 2026-10-24 - Phase 2 final acceptance
+
+- Browser acceptance now overrides the device preset viewport explicitly to 375x812. The preset had used 320px; its eight flows passed too. PDF and UI previews are kept in ignored .cache instead of creating new top-level artifact folders.

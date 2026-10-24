@@ -1,8 +1,8 @@
 ﻿# Munim
 
-Multi-tenant AI employee for Indian small businesses. Phase 1 includes catalogue import,
-document and FAQ ingestion, grounded web chat, a dashboard playground with agent traces,
-and a read-only inbox. See BUILD_PLAN.md for subsequent phases.
+Multi-tenant AI employee for Indian small businesses. Phase 2 includes catalogue import,
+document and FAQ ingestion, grounded web chat, requirements collection, GST quotations
+with owner approval and PDF delivery, a playground with agent traces, and a read-only inbox. See BUILD_PLAN.md for subsequent phases.
 
 ## Run locally
 
@@ -43,6 +43,42 @@ quality. To connect a provider, configure the documented model and API variables
 the catalogue pricing tools. Responses conservatively copy trusted facts; unsupported
 questions create knowledge gaps and receive a holding reply.
 
+## Requirements and quotations
+
+In Quotes, set the business GSTIN, supplier state, address and optional PNG/JPEG logo.
+Set quote validity and terms there too. GST-bearing quotes need the supplier GSTIN and
+state before sending. Profile/settings changes apply to new quotes; saving a revised
+pending quote refreshes its business details, terms and validity.
+
+A customer can request a quote in the widget or Playground. Requirements are saved on
+the conversation and lead. The assistant asks at most two missing questions per turn;
+explicit unknown answers use configured defaults. The five default schemas cover
+printing, photography, interior, repair and electronics; owners can update them through
+the requirement-schemas API.
+
+Quotes shows pending approvals and recent history. Review the PDF, select catalogue
+products, edit quantities/options or place of supply, then Save & recalculate. Approval
+uses the reviewed version; stale edits are rejected. Approve & send delivers one PDF
+message to the same customer conversation. Download requires that conversation's bearer
+session. Sent quotes cannot be edited. Auto-send is off by default; enabling it sends
+only fully priced quotes strictly below the configured INR limit in open AI chats.
+
+Catalogue defaults and pricing rules are available through the owner APIs in the API
+documentation. A base-price option uses `attributes.default_<slot>` (pipe-separated
+accepted values); other options need an add-on rule. Packs use `attributes.pack_size`.
+Unmapped products or unpriced options remain pending owner pricing and block sending.
+An owner can add priced catalogue entries through import, then revise the quote.
+
+For the offline demo, start a printing quote with
+`quote; item=visiting cards; quantity=500; sides=double-sided`, then answer
+`size=unknown; material=unknown; colour=unknown; finishing=unknown; deadline=2026-12-20`.
+For photography start with `quote; event_type=wedding; days=2; deliverables=photo+video`,
+then `date=2026-12-20; city_venue=Ahmedabad; hours=unknown; crew_size=unknown`.
+The synthetic seed prices produce totals of INR 3,245 and INR 1,06,200 respectively.
+Fake mode accepts these explicit key/value answers; this demonstrates the deterministic
+flow, not real-model language quality. Configure your own business tax details before
+using quotations outside the synthetic demo.
+
 ## Development and checks
 
 Backend commands load the repository-root `.env`; exported variables take precedence.
@@ -50,11 +86,13 @@ Backend commands load the repository-root `.env`; exported variables take preced
 `make lint`, `make build`, `make migrate` and `make eval` run the other main checks.
 Integration and golden conversation tests require Docker for isolated PostgreSQL and
 Redis testcontainers. Tests use FakeLLM/FakeEmbedder and block external HTTP; provider
-contract tests use MockTransport. `make eval` includes 25 seeded conversations and
-injection/price guardrail cases. The opt-in real-model evaluation harness is Phase 6.
+contract tests use MockTransport. `make eval` includes 25 Phase 1 conversations, requirement extraction cases, and two
+Phase 2 quotation conversations. The full suite also checks injected prices, approval
+races, stale edits, expiry, tenant isolation and auto-send limits. The opt-in real-model evaluation harness is Phase 6.
 
 `make e2e` runs Chromium flows at desktop and 375px mobile widths. With Compose running,
-install Chromium using `pnpm exec playwright install chromium`, then run `make e2e`.
+install Chromium using `pnpm exec playwright install chromium`, then run `make e2e`. The eight flows include approving a quotation and downloading
+its PDF from a real embedded widget on mobile and desktop.
 For a host API process use `uv run --directory backend uvicorn app.main:create_app
 --factory --port 18000`; also start the worker and built widget server for chat flows.
 

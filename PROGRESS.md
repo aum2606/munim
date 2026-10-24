@@ -1,6 +1,6 @@
 # Progress
 
-Current phase: Phase 2 in progress. Current task: owner edit/approval, web PDF delivery and quote settings.
+Current phase: Phase 2 implementation and local acceptance complete. Final hosted CI verification pending. Phase 3 is not started.
 
 ### Phase 0 — Foundations (week 1)
 
@@ -62,9 +62,24 @@ Current phase: Phase 2 in progress. Current task: owner edit/approval, web PDF d
 - [x] Requirements Agent with persisted slot state in `conversation.active_flow` + lead. Built: typed extraction, deterministic two-question selection/defaults/corrections, scoped lead persistence and flow routing. 88 backend + 11 frontend tests and lint pass; reviewed migration 79e9a6c464dd.
 - [x] Pricing engine (§8) with exhaustive unit tests (tiers, add-ons, GST intra/inter, round-off, min order). Built: Decimal/paise engine, typed effective pricing rules, owner API, proportional tax-group discounts and half-up rounding. 99 backend + 11 frontend tests and lint pass; pricing branch coverage 100%.
 - [x] Quotation Agent, `quotes`/`quote_items`, FY quote numbering, PDF rendering (logo, GSTIN, HSN/SAC, tax table, amount in words, validity, terms). Built: validated mapping without money fields, immutable price snapshots, pending/unpriced lines, atomic scoped FY sequences, guarded PDFs and owner read APIs. 116 backend + 11 frontend tests and lint pass; 100% pricing coverage. Reviewed migration 9f93394957bb and visually checked the one-page printing PDF.
-- [ ] Approval workflow: pending queue in dashboard, edit lines, approve → send to customer via channel; auto-send setting.
+- [x] Approval workflow: pending queue in dashboard, edit lines, approve → send to customer via channel; auto-send setting. Built: owner-only versioned edits/approval, idempotent web document delivery, authenticated widget/playground downloads, quote settings/profile/logo and strict auto-send bounds. 120 backend + 16 frontend tests, lint/build and all eight browser flows pass at explicit 375px mobile and desktop widths.
 
 **Acceptance:** Scripted conversations for printing (500 visiting cards, double-sided) and photography (wedding, 2 days, photo+video) end with a correct PDF quote whose totals match hand-calculated expected values; owner can approve and the customer receives it in the widget.
+
+#### Phase 2 verification - 2026-10-24
+
+- PASS: `make test`: 120 backend tests and 16 frontend tests; real isolated PostgreSQL/Redis, fake LLM/embedding APIs only. Pricing line/branch coverage remains 100% (42 branches).
+- PASS: `make lint` (Ruff, formatting, strict mypy on 113 app files, ESLint, Prettier, TypeScript) and `make build` (widget 20.05 kB / 8.37 kB gzip).
+- PASS: `make migrate`, `uv run --directory backend alembic check`, and fresh testcontainer upgrade/downgrade/upgrade. Reviewed migrations: cbf6e4465abb, 79e9a6c464dd, 9f93394957bb.
+- PASS: `make seed` twice; scoped catalogue/FAQ/schema/add-on updates preserve identities, passwords and roles.
+- PASS: `make eval`: five eval tests, including 25 Phase 1 questions, requirements golden cases and two multi-turn Phase 2 conversations. Fakes validate deterministic workflow and grounding; real-model quality is not claimed.
+- PASS: printing 500 visiting cards = five packs x 45,000 paise + five double-sided add-ons x 10,000 paise = 275,000 paise taxable; CGST/SGST 24,750 each; total 324,500 paise (INR 3,245).
+- PASS: wedding photo+video, two days x 4,500,000 paise = 9,000,000 paise taxable; CGST/SGST 810,000 each; total 10,620,000 paise (INR 1,06,200).
+- PASS: both PDFs include configured GSTIN/logo/tax details, owner approval delivers one document message, customer bearer download succeeds, and a different conversation cannot download it. Incorrect amount-in-words and injected numeric prices remain blocked.
+- PASS: stale versions, concurrent approvals, staff role denial, cross-tenant access, expired/unpriced quotes and strict auto-send limits. Quantity edits preserve existing discounts.
+- PASS: `docker compose up -d --build`; API/Postgres/Redis healthy, migrations exit successfully, worker health check succeeds, shared PDF storage works.
+- PASS: `make e2e`: eight Chromium flows at desktop and explicit 375x812 mobile; includes a real embedded customer completing requirements, owner approval, and a downloaded PDF with a valid PDF header. The earlier 320px preset run passed too. PDF and mobile UI previews visually inspected.
+- Conventional commits separate schemas, requirements, pricing, PDF generation and approval/delivery. Hosted CI for the final implementation is pending; Phase 3 remains unchecked.
 
 ### Phase 3 — Leads, follow-ups, human handoff (weeks 5–6)
 
