@@ -41,15 +41,23 @@ def outside_hours(hours: dict[str, object], timezone: str, now: datetime) -> boo
         return False
     local = now.astimezone(ZoneInfo(timezone))
     # Owner configuration: weekday names -> [HH:MM, HH:MM]; absent/empty days are closed.
-    window = hours.get(local.strftime("%A").lower())
-    if not isinstance(window, list) or len(window) != 2:
-        return True
-    try:
-        start, end = time.fromisoformat(str(window[0])), time.fromisoformat(str(window[1]))
-    except ValueError:
-        return True
+    days = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
     current = local.time().replace(tzinfo=None)
-    return not (start <= current < end if start <= end else current >= start or current < end)
+    for offset in (0, 1):
+        window = hours.get(days[(local.weekday() - offset) % 7])
+        if not isinstance(window, list) or len(window) != 2:
+            continue
+        try:
+            start, end = time.fromisoformat(str(window[0])), time.fromisoformat(str(window[1]))
+        except ValueError:
+            continue
+        if start.tzinfo or end.tzinfo:
+            continue
+        if offset == 0 and (start <= current < end if start <= end else current >= start):
+            return False
+        if offset == 1 and start > end and current < end:
+            return False
+    return True
 
 
 class InboxService:

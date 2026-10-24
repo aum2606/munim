@@ -86,15 +86,21 @@ async def update_lead(ctx: dict[str, Any], tenant_id: str, message_id: str) -> N
 
 
 async def schedule_followups(ctx: dict[str, Any]) -> None:
+    from datetime import UTC, datetime
+
     from app.repositories.followups import scheduled_tenants
+    from app.workers.queue import followup_job_id
 
     settings = Settings()
     engine = create_async_engine(settings.database_url, hide_parameters=True)
     try:
         async with async_sessionmaker(engine)() as session:
+            now = datetime.now(UTC)
             for tenant_id in await scheduled_tenants(session):
                 await ArqJobQueue(settings.redis_url).enqueue(
-                    "draft_followups", tenant_id, tenant_id
+                    "draft_followups",
+                    tenant_id,
+                    followup_job_id(tenant_id, now),
                 )
     finally:
         await engine.dispose()

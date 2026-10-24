@@ -108,7 +108,9 @@ class LeadRepository(ScopedRepository[Lead]):
             from app.core.errors import DomainError
 
             raise DomainError("Follow-up timestamp must include timezone")
-        before = str({key: getattr(lead, key) for key in body.model_fields_set})
+        before = LeadPatch.model_validate(
+            {key: getattr(lead, key) for key in body.model_fields_set}
+        ).model_dump_json(exclude_unset=True)
         if body.stage is not None:
             await self.transition(lead, body.stage, manual=True)
         for key in body.model_fields_set - {"stage"}:

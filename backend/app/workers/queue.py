@@ -1,10 +1,16 @@
+from datetime import datetime
 from typing import Protocol
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from arq.connections import RedisSettings, create_pool
 from redis.exceptions import RedisError
 
 from app.core.errors import DomainError
+
+
+def followup_job_id(tenant_id: UUID, now: datetime) -> UUID:
+    bucket = now.replace(minute=(now.minute // 15) * 15, second=0, microsecond=0)
+    return uuid5(NAMESPACE_URL, f"followups:{tenant_id}:{bucket.isoformat()}")
 
 
 class JobQueue(Protocol):

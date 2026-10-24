@@ -52,6 +52,11 @@ class FollowupService:
             or not last_business
             or not last_customer
             or last_customer > last_business
+            or (
+                lead.stage_override
+                and lead.next_followup_at is not None
+                and lead.next_followup_at > now
+            )
         ):
             return None
         quote = await self.leads.latest_quote(conversation.id)
