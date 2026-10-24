@@ -11,9 +11,10 @@ from app.agents.responder import ResponderAgent
 from app.agents.router import RouterAgent
 from app.core.config import Settings
 from app.core.errors import DomainError
+from app.core.inbox import InboxService
 from app.core.tenant import TenantContext
 from app.db.models import Message
-from app.db.models.conversation import ConversationMode
+from app.db.models.conversation import ConversationMode, ConversationStatus
 from app.llm import Embedder, LLMClient
 from app.llm.types import ToolCall
 from app.orchestrator.localized import fallback, greeting, grounded_message
@@ -67,7 +68,10 @@ class ConversationOrchestrator:
             pending = await self.conversations.pending(conversation_id)
             if not pending:
                 return None
-            if conversation.mode != ConversationMode.AI:
+            if (
+                conversation.mode == ConversationMode.HUMAN
+                or conversation.status != ConversationStatus.OPEN
+            ):
                 await self.conversations.finish(
                     conversation_id, pending, None, intent="human_request", language="en"
                 )
@@ -119,7 +123,8 @@ class ConversationOrchestrator:
                             ).create_from_requirements(conversation_id, message_id, self.llm)
                             lines = await QuoteRepository(self.session, self.ctx).lines(quote.id)
                             if (
-                                settings.auto_send_quotes
+                                conversation.mode == ConversationMode.AI
+                                and settings.auto_send_quotes
                                 and quote.total_paise < settings.auto_send_limit_paise
                                 and not any(line.needs_owner_pricing for line in lines)
                                 and (
@@ -230,6 +235,18 @@ class ConversationOrchestrator:
                 check_reply(text, set(), [fallback(language)])
             elif intent not in KNOWLEDGE_INTENTS:
                 check_reply(text, set(), [text])
+            if handoff:
+                holding = await InboxService(self.session, self.ctx, self.settings).handoff(
+                    conversation_id,
+                    message_id,
+                    intent.value
+                    if intent in {Intent.COMPLAINT, Intent.HUMAN_REQUEST, Intent.NEGOTIATION}
+                    else "guardrail_or_confidence",
+                    language,
+                    self.llm,
+                )
+                handoff = holding is not None
+                text = holding or ""
             latest = await AgentRunRepository(self.session, self.ctx).latest_id(message_id)
             outbound = await self.conversations.finish(
                 conversation_id,

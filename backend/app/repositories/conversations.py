@@ -7,14 +7,44 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import DomainError
 from app.core.tenant import TenantContext
-from app.db.models import Conversation, Message
-from app.db.models.conversation import ConversationMode, Direction, SenderType
+from app.db.models import Conversation, Message, ReplyDraft
+from app.db.models.conversation import ConversationMode, ConversationStatus, Direction, SenderType
 from app.repositories.scoped import ScopedRepository
 
 
 class ConversationRepository(ScopedRepository[Conversation]):
     def __init__(self, session: AsyncSession, ctx: TenantContext) -> None:
         super().__init__(session, ctx, Conversation)
+
+    async def filtered(
+        self,
+        status: ConversationStatus | None = None,
+        mode: ConversationMode | None = None,
+        channel: str | None = None,
+        q: str | None = None,
+    ) -> list[Conversation]:
+        statement = select(Conversation).where(Conversation.tenant_id == self.ctx.tenant_id)
+        if status:
+            statement = statement.where(Conversation.status == status)
+        if mode:
+            statement = statement.where(Conversation.mode == mode)
+        if channel:
+            statement = statement.where(Conversation.channel == channel)
+        if q:
+            statement = statement.where(
+                select(Message.id)
+                .where(
+                    Message.tenant_id == self.ctx.tenant_id,
+                    Message.conversation_id == Conversation.id,
+                    Message.content.icontains(q, autoescape=True),
+                )
+                .exists()
+            )
+        return list(
+            await self.session.scalars(
+                statement.order_by(Conversation.updated_at.desc()).limit(100)
+            )
+        )
 
     async def messages(self, conversation_id: UUID, limit: int = 100) -> list[Message]:
         await self.get(conversation_id)
@@ -48,7 +78,7 @@ class ConversationRepository(ScopedRepository[Conversation]):
         )
 
     async def receive(self, conversation_id: UUID, content: str, external_id: str) -> Message:
-        conversation = await self.get(conversation_id)
+        conversation = await self.get(conversation_id, for_update=True)
         statement = (
             insert(Message)
             .values(
@@ -109,6 +139,21 @@ class ConversationRepository(ScopedRepository[Conversation]):
                 message.processed_at = now
                 message.intent = intent
                 message.language = language
+        if conversation.status != ConversationStatus.OPEN or (
+            conversation.mode == ConversationMode.HUMAN and not handoff
+        ):
+            text = None
+        if text is not None and conversation.mode == ConversationMode.ASSIST:
+            self.session.add(
+                ReplyDraft(
+                    tenant_id=self.ctx.tenant_id,
+                    conversation_id=conversation_id,
+                    source_message_id=pending[-1].id,
+                    content=text,
+                )
+            )
+            await self.session.flush()
+            return None
         if text is None:
             await self.session.flush()
             return None

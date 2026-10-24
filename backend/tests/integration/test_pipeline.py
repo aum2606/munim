@@ -25,6 +25,7 @@ from app.repositories.scoped import ScopedRepository
 from app.repositories.search import SearchRepository
 from app.schemas.agents import AgentMessage, KnowledgeInput, ResponderInput, RouterInput
 from app.schemas.catalog import CatalogInput
+from app.schemas.leads import HandoffInput
 from app.tools.catalog_lookup import CatalogLookup
 from app.workers.queue import ArqJobQueue
 
@@ -98,6 +99,10 @@ async def setup(sessions, question, *, regeneration="valid"):
                 }
             )
         ]
+        if regeneration == "blocked":
+            body = HandoffInput(reason="guardrail_or_confidence", messages=[question])
+            request = LLMRequest(agent="handoff", system="", content=body, output_schema={})
+            scripts[("handoff", input_hash(request))] = [agent_response(request)]
         fake = FakeLLM(DatabaseRunRecorder(sessions), scripts)
         return ctx, conversation.id, message.id, fake, trusted
 
@@ -131,7 +136,9 @@ async def test_pipeline_regenerates_or_hands_off_and_is_idempotent(
             assert await orchestrator.process(conversation_id) is None
             assert len(await ConversationRepository(session, ctx).messages(conversation_id)) == 2
             runs = await AgentRunRepository(session, ctx).list()
-            assert len(runs) == (3 if regeneration == "valid" else 4)
+            assert len(runs) == (
+                3 if regeneration == "valid" else 5 if regeneration == "blocked" else 4
+            )
             knowledge = next(run for run in runs if run.agent == "knowledge")
             assert {call["name"] for call in knowledge.tool_calls} == {
                 "lookup_catalog",

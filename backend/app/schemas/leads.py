@@ -2,8 +2,9 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.db.models.conversation import ConversationMode
 from app.db.models.lead import LeadStage
 from app.schemas.knowledge import StrictModel
 
@@ -101,3 +102,38 @@ class HandoffView(BaseModel):
     reason: str
     summary: str
     status: str
+
+
+class ModeChange(StrictModel):
+    mode: ConversationMode
+
+
+class StaffReply(StrictModel):
+    content: str = Field(min_length=1, max_length=4000)
+    external_id: str = Field(min_length=1, max_length=100)
+
+    @field_validator("content")
+    @classmethod
+    def nonblank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Message cannot be blank")
+        return value.strip()
+
+
+class BusinessHours(StrictModel):
+    hours: dict[str, list[str]] = Field(default_factory=dict, max_length=7)
+
+    @field_validator("hours")
+    @classmethod
+    def valid_hours(cls, value: dict[str, list[str]]) -> dict[str, list[str]]:
+        from datetime import time
+
+        days = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
+        for day, window in value.items():
+            if day not in days or len(window) != 2:
+                raise ValueError("Use weekday names and two HH:MM values")
+            for entry in window:
+                parsed = time.fromisoformat(entry)
+                if parsed.tzinfo or len(entry) != 5:
+                    raise ValueError("Use local HH:MM values")
+        return value
