@@ -79,6 +79,31 @@ Fake mode accepts these explicit key/value answers; this demonstrates the determ
 flow, not real-model language quality. Configure your own business tax details before
 using quotations outside the synthetic demo.
 
+## Leads and the live Inbox
+
+Every processed conversation updates a lead in a separate background job. Leads shows
+stages, scores, requirements, assigned staff and an audited timeline. Saving a manual
+stage protects it from automation; Resume automatic stages releases that override.
+Quote delivery moves an automatic lead to Quoted; accepted/rejected quotes move it to
+Won/Lost. Estimated values come from saved quote totals.
+
+A complaint or request for a human opens a handoff and stops AI replies. Inbox supports
+Take over, Use assist mode and Return to AI. Human mode lets staff reply; assist mode
+creates private suggestions that staff review and approve. Changing mode consumes older
+queued inbound, so Return to AI starts with the customer's next message. Staff messages
+still pass the price and discount checks against current catalogue/quote tool results.
+Notifications show open handoffs and pending follow-ups, with live bearer-authenticated
+SSE updates. Reconnection refreshes expired access tokens.
+
+In Leads, owners configure no-reply, quote reminder and dormant re-engagement windows.
+The worker scans every 15 minutes and creates drafts. Approve & send rechecks whether
+the customer has replied and whether the conversation is still eligible; the scheduler
+never sends customer messages itself. Delivery is web-only until Phase 4 adds channel
+adapters and approved templates. Working hours can be configured through
+`PUT /api/v1/tenant/business-hours`, for example
+`{"hours":{"monday":["09:00","18:00"]}}`. Days not configured are closed;
+empty hours make no out-of-hours claim. Holding replies use the tenant timezone.
+
 ## Development and checks
 
 Backend commands load the repository-root `.env`; exported variables take precedence.
@@ -86,13 +111,14 @@ Backend commands load the repository-root `.env`; exported variables take preced
 `make lint`, `make build`, `make migrate` and `make eval` run the other main checks.
 Integration and golden conversation tests require Docker for isolated PostgreSQL and
 Redis testcontainers. Tests use FakeLLM/FakeEmbedder and block external HTTP; provider
-contract tests use MockTransport. `make eval` includes 25 Phase 1 conversations, requirement extraction cases, and two
-Phase 2 quotation conversations. The full suite also checks injected prices, approval
+contract tests use MockTransport. `make eval` includes 25 Phase 1 conversations, requirement extraction cases, two
+Phase 2 quotation conversations, and Phase 3 handoff/stage/follow-up acceptance. The full suite also checks injected prices, approval
 races, stale edits, expiry, tenant isolation and auto-send limits. The opt-in real-model evaluation harness is Phase 6.
 
 `make e2e` runs Chromium flows at desktop and 375px mobile widths. With Compose running,
-install Chromium using `pnpm exec playwright install chromium`, then run `make e2e`. The eight flows include approving a quotation and downloading
-its PDF from a real embedded widget on mobile and desktop.
+install Chromium using `pnpm exec playwright install chromium`, then run `make e2e`. The ten flows include approving a quotation and downloading
+its PDF, complaint handoff, private assist approval and return to AI with a real embedded
+widget on mobile and desktop.
 For a host API process use `uv run --directory backend uvicorn app.main:create_app
 --factory --port 18000`; also start the worker and built widget server for chat flows.
 

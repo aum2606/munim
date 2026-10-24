@@ -1,3 +1,6 @@
+import { LeadsPage } from "./pages/Leads";
+import { Notifications } from "./components/Notifications";
+import { lt } from "./i18n/leads";
 import { QuotesPage } from "./pages/Quotes";
 import { qt } from "./i18n/quotes";
 import { useState, type FormEvent } from "react";
@@ -139,8 +142,10 @@ function ProtectedLayout() {
         <Link to="/knowledge">{kt.title}</Link>
         <Link to="/playground">{kt.playground}</Link>
         <Link to="/inbox">{kt.inbox}</Link>
+        <Link to="/leads">{lt.title}</Link>
         <Link to="/quotes">{qt.title}</Link>
       </nav>
+      <Notifications />
       <main>
         <Outlet />
       </main>
@@ -169,6 +174,7 @@ export function App() {
         <Route path="/knowledge" element={<KnowledgePage />} />
         <Route path="/playground" element={<PlaygroundPage />} />
         <Route path="/inbox" element={<InboxPage />} />
+        <Route path="/leads" element={<LeadsPage />} />
         <Route path="/quotes" element={<QuotesPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

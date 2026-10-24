@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
 from app.db.models.conversation import ConversationMode
 from app.db.models.lead import LeadStage
@@ -44,6 +44,13 @@ class LeadView(BaseModel):
     next_followup_at: datetime | None
     lost_reason: str | None
     source_channel: str
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def display_estimated_value(self) -> str:
+        from app.pricing.inr import format_inr
+
+        return format_inr(self.estimated_value_paise)
 
 
 class LeadPatch(StrictModel):

@@ -1,6 +1,6 @@
 # Progress
 
-Current phase: Phase 3 in progress. Current task: dashboard Leads, Inbox actions, notifications and phase acceptance.
+Current phase: Phase 3 complete. Local acceptance passes; the implementation is ready for hosted CI verification. Next unchecked task: Phase 4 WhatsApp models/adapter; Phase 4 is not started.
 
 ### Phase 0 — Foundations (week 1)
 
@@ -87,9 +87,23 @@ Current phase: Phase 3 in progress. Current task: dashboard Leads, Inbox actions
 - [x] Lead Agent (async) + rule-based scoring; stage transitions; manual overrides. Separate retryable worker job, bounded signal, persisted quote value, scoped list/detail/patch/events API and stage audit. 13 targeted agent/scoring/requirements/quote tests, Ruff and strict mypy pass; full regression repeated at phase acceptance.
 - [x] Follow-up scheduler (arq cron): no-reply after N days, quote reminder before expiry, re-engage dormant; drafts go to owner for approval by default. Scoped 15-minute jobs, paginated lead scan, deduplication, owner policy/approval APIs and stale eligibility checks. Two real-Postgres tests cover all kinds, disablement, approval and isolation; Ruff/strict mypy pass.
 - [x] Handoff Agent + conversation modes (`ai`/`assist`/`human`), live Inbox with SSE, staff replies, take-over/return-to-AI. Deterministic complaint routing, audited summaries, localized business-hours holding, private assist approvals, guarded/idempotent staff messages, mode race checks and scoped SSE. Eight targeted tests pass; Ruff/strict mypy pass.
-- [ ] Dashboard: Leads kanban, lead detail timeline, Inbox actions, notifications.
+- [x] Dashboard: Leads kanban, lead detail timeline, Inbox actions, notifications. Mobile lead board, readable audited history, assignment/manual stages, owner follow-up policy/approvals, live handoff notifications, guarded staff replies and private assist approvals. 20 frontend tests, lint/build and mobile/desktop browser acceptance pass.
 
 **Acceptance:** A complaint message triggers handoff and stops AI replies; leads move through stages automatically during scripted flows; a lead with no reply for the configured window gets a follow-up draft.
+
+#### Phase 3 verification - 2026-10-24
+
+- PASS: `make test`: 133 backend tests and 20 frontend tests with real isolated PostgreSQL/Redis and fake model APIs. Pricing line/branch coverage is still 100% (42 branches). After the final non-blocking scoring/audit improvements, eight focused backend tests and then both lead-flow tests pass; the complete collected backend suite is now 134 tests.
+- PASS: `make lint`: Ruff/formatting, strict mypy (125 application files), ESLint, Prettier and TypeScript. `make build` passes; widget remains 20.05 kB / 8.37 kB gzip.
+- PASS: `make migrate`, `uv run --directory backend alembic check`, fresh upgrade/downgrade/upgrade and `make seed`. Reviewed migration 4f75c80bba26 adds lead lifecycle resources and their isolation constraints.
+- PASS: `make eval`: seven offline eval tests, including Phase 3 English/Hinglish handoff conversations and quote-driven stages plus a silent-lead follow-up draft. Real-model quality is not claimed.
+- PASS: complaint/human request creates one open handoff and stops later AI replies; controlled paused-model tests prove takeover suppresses a late reply and background scoring releases the conversation lock and discards stale results.
+- PASS: stages progress from new/engaged to qualified, quoted and won using deterministic workflow evidence. Manual overrides survive model runs; owner/staff changes and follow-up actions appear in the lead timeline. Stored estimated values copy quote totals.
+- PASS: no-reply, quote reminder and dormant re-engagement drafts deduplicate; manual future dates defer drafting; owner approval rechecks eligibility and is idempotent. New customer replies invalidate stale drafts. No cron job sends customer messages.
+- PASS: `docker compose up -d --build`; API/Postgres/Redis healthy, migrations successful and worker/cron health check passes.
+- PASS: all ten browser flows at desktop and explicit 375x812 mobile widths. Includes a real embedded customer complaint, staff reply, private assist approval, return to AI, owner stage override and existing quote/PDF flows. The final Inbox success selector is scoped to its status message so the identically named timeline event cannot make the assertion ambiguous. Mobile/desktop screenshots visually reviewed; no horizontal overflow.
+- The first browser run overlapped an API rebuild and failed with connection resets; services were made ready before rerunning. Existing quote/Inbox success assertions were scoped to their own status messages after live status and timeline entries were added; their original behavioral checks remain.
+- Conventional commits separate models, scoring, follow-ups, handoff APIs and the dashboard/acceptance work. Hosted CI is checked after pushing the implementation; its latest status is available at https://github.com/aum2606/munim/actions/workflows/ci.yml .
 
 ### Phase 4 — WhatsApp channel (weeks 6–7)
 

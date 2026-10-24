@@ -375,3 +375,82 @@ textarea {
   width: auto;
   margin-right: 0.5rem;
 }
+
+textarea,
+select {
+  font: inherit;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #b8c6be;
+  border-radius: 8px;
+  background: white;
+  padding: 0.8rem;
+  margin-top: 0.4rem;
+}
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+.notifications {
+  margin: 0 auto;
+  width: min(100%, 1200px);
+  padding: 0.5rem 1rem;
+  overflow-wrap: anywhere;
+}
+.notifications summary {
+  cursor: pointer;
+  padding: 0.5rem 0;
+}
+.kanban {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+.kanban h2 {
+  font-size: 1rem;
+  margin: 0 0 0.8rem;
+}
+.lead-card {
+  display: block;
+  text-align: left;
+  width: 100%;
+  background: #e7f1eb;
+  color: #16332f;
+  margin: 0.5rem 0;
+  border: 1px solid #dbe3dc;
+  overflow-wrap: anywhere;
+}
+.lead-card.selected {
+  border-color: #196a59;
+}
+.inbox-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.inbox-actions button {
+  font-size: 0.85rem;
+  padding: 0.6rem;
+}
+.assist-drafts,
+.followup-draft {
+  border: 1px dashed #b8c6be;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+.followup-draft button {
+  margin: 0.3rem;
+}
+#lead-detail {
+  overflow-wrap: anywhere;
+}
+#lead-detail dl > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.5rem;
+}
+#lead-detail dd {
+  margin: 0;
+}

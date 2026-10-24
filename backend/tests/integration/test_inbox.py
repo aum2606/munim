@@ -11,6 +11,60 @@ from app.repositories.conversations import ConversationRepository
 from tests.integration.test_workspace import owner
 
 
+async def test_takeover_while_router_is_running_blocks_late_ai_delivery(
+    client, sessions, redis_url
+):
+    import asyncio
+
+    a, ctx, _ = await owner(client)
+    widget = (await client.post("/api/v1/playground/session", headers=a)).json()
+    conversation_id = UUID(widget["conversation_id"])
+    started, resume = asyncio.Event(), asyncio.Event()
+
+    class PausingFake(FakeLLM):
+        async def _generate(self, request):
+            if request.agent == "router":
+                started.set()
+                await resume.wait()
+            return await super()._generate(request)
+
+    fake = PausingFake(DatabaseRunRecorder(sessions), {}, fallback=agent_response)
+    redis = Redis.from_url(redis_url)
+
+    async def process():
+        async with sessions() as session:
+            await ConversationRepository(session, ctx).receive(conversation_id, "Hello", "late")
+            await session.commit()
+            return await ConversationOrchestrator(
+                session,
+                ctx,
+                fake,
+                FakeEmbedder(),
+                RedisConversationLock(redis),
+                client._transport.app.state.settings,
+            ).process(conversation_id)
+
+    task = asyncio.create_task(process())
+    try:
+        await asyncio.wait_for(started.wait(), timeout=10)
+        response = await client.post(
+            f"/api/v1/conversations/{conversation_id}/mode", headers=a, json={"mode": "human"}
+        )
+        assert response.status_code == 204
+        resume.set()
+        assert await asyncio.wait_for(task, timeout=10) is None
+        history = (
+            await client.get(f"/api/v1/conversations/{conversation_id}/messages", headers=a)
+        ).json()
+        assert len(history) == 1 and history[0]["direction"] == "in"
+    finally:
+        resume.set()
+        if not task.done():
+            task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        await redis.aclose()
+
+
 async def test_complaint_handoff_staff_modes_private_drafts_and_price_guard(
     client, sessions, redis_url
 ):

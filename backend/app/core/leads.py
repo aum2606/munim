@@ -44,11 +44,16 @@ class LeadService:
         if lead.last_scored_message_id == message_id:
             return
         history = await conversations.messages(conversation.id, 12)
-        result = await LeadAgent(self.llm).run(
-            self.ctx,
-            LeadInput(messages=[entry.content for entry in history]),
-            message_id=message_id,
-        )
+        body = LeadInput(messages=[entry.content for entry in history])
+        # Release row locks before the model call; background scoring must not delay chat.
+        await self.session.commit()
+        result = await LeadAgent(self.llm).run(self.ctx, body, message_id=message_id)
+        conversation = await conversations.get(message.conversation_id, for_update=True)
+        latest = await repository.latest_inbound(conversation.id)
+        lead = await repository.for_conversation(conversation.id, tenant.business_type)
+        if latest is None or latest.id != message_id or lead.last_scored_message_id == message_id:
+            await self.session.commit()
+            return
         customer = await ScopedRepository(self.session, self.ctx, Customer).get(
             conversation.customer_id
         )

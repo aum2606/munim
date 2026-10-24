@@ -108,7 +108,9 @@ test("owner approves a quote and the embedded customer downloads its PDF", async
     .getByLabel("Business address", { exact: true })
     .fill("Demo market, Ahmedabad");
   await page.getByRole("button", { name: "Save business details" }).click();
-  await expect(page.getByRole("status")).toContainText("Saved");
+  await expect(
+    page.getByRole("status").filter({ hasText: "Saved" }),
+  ).toBeVisible();
   const customer = await context.newPage();
   await customer.goto("/login");
   await customer.evaluate(

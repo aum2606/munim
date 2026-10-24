@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { setTokens } from "./api/client";
+vi.mock("./components/Notifications", () => ({ Notifications: () => null }));
 function mount(path = "/") {
   return render(
     <QueryClientProvider

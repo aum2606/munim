@@ -1,0 +1,8 @@
+- question: "Complaint: my order is damaged"
+  intent: complaint
+  language: en
+  mode: human
+- question: "Bhai human se baat karni hai"
+  intent: human_request
+  language: hinglish
+  mode: human
