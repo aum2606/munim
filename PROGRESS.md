@@ -1,6 +1,6 @@
 # Progress
 
-Current phase: Phase 2 implementation and local acceptance complete. Final hosted CI verification pending. Phase 3 is not started.
+Current phase: Phase 2 complete. Local and GitHub CI acceptance pass. Next unchecked task: Phase 3 lead/event/follow-up/handoff models; Phase 3 is not started.
 
 ### Phase 0 — Foundations (week 1)
 
@@ -79,11 +79,11 @@ Current phase: Phase 2 implementation and local acceptance complete. Final hoste
 - PASS: stale versions, concurrent approvals, staff role denial, cross-tenant access, expired/unpriced quotes and strict auto-send limits. Quantity edits preserve existing discounts.
 - PASS: `docker compose up -d --build`; API/Postgres/Redis healthy, migrations exit successfully, worker health check succeeds, shared PDF storage works.
 - PASS: `make e2e`: eight Chromium flows at desktop and explicit 375x812 mobile; includes a real embedded customer completing requirements, owner approval, and a downloaded PDF with a valid PDF header. The earlier 320px preset run passed too. PDF and mobile UI previews visually inspected.
-- Conventional commits separate schemas, requirements, pricing, PDF generation and approval/delivery. Hosted CI for the final implementation is pending; Phase 3 remains unchecked.
+- PASS: final implementation commit 58750bf hosted CI (lint, migrations/drift, 120 backend + 16 frontend tests, builds, five eval tests and eight browser flows): https://github.com/aum2606/munim/actions/runs/40071571683 . Conventional commits separate each Phase 2 task. This final tracking-only commit records the successful acceptance result; Phase 3 remains unchecked.
 
 ### Phase 3 — Leads, follow-ups, human handoff (weeks 5–6)
 
-- [ ] `leads`, `lead_events`, `followups`, `handoffs` models.
+- [ ] `leads`, `lead_events`, `followups`, `handoffs` models. Phase 2 already introduced the minimal lead aggregate for requirements/quotes; extend it rather than recreate it.
 - [ ] Lead Agent (async) + rule-based scoring; stage transitions; manual overrides.
 - [ ] Follow-up scheduler (arq cron): no-reply after N days, quote reminder before expiry, re-engage dormant; drafts go to owner for approval by default.
 - [ ] Handoff Agent + conversation modes (`ai`/`assist`/`human`), live Inbox with SSE, staff replies, take-over/return-to-AI.
