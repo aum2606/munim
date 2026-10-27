@@ -1,4 +1,5 @@
 from app.db.models.agent_run import AgentRun
+from app.db.models.channel import ChannelAccount, ChannelDelivery, WhatsAppContact, WhatsAppTemplate
 from app.db.models.lead import Followup, Handoff, Lead, LeadEvent, ReplyDraft
 from app.db.models.quote import Quote, QuoteItem, QuoteSequence
 from app.db.models.requirements import RequirementSchema
@@ -29,3 +30,6 @@ __all__ += ["RequirementSchema"]
 __all__ += ["Lead", "LeadEvent", "Followup", "Handoff", "ReplyDraft"]
 
 __all__ += ["Quote", "QuoteItem", "QuoteSequence"]
+
+
+__all__ += ["ChannelAccount", "ChannelDelivery", "WhatsAppContact", "WhatsAppTemplate"]

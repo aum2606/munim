@@ -38,5 +38,7 @@ class Settings(BaseSettings):
     whatsapp_verify_token: SecretStr = SecretStr("")
     whatsapp_app_secret: SecretStr = SecretStr("")
     whatsapp_api_version: str = ""
+    whatsapp_timeout_s: int = Field(default=20, ge=1, le=120)
+    whatsapp_max_attempts: int = Field(default=6, ge=1, le=20)
     debounce_seconds: float = Field(default=2.5, ge=0)
     router_confidence_threshold: float = Field(default=0.6, ge=0, le=1)
