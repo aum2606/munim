@@ -22,6 +22,7 @@ from app.api.v1.pricing_rules import router as pricing_rules_router
 from app.api.v1.quotes import router as quotes_router
 from app.api.v1.requirements import router as requirements_router
 from app.api.v1.tenant import router as tenant_router
+from app.api.v1.whatsapp import router as whatsapp_router
 from app.api.v1.widget import router as widget_router
 from app.api.v1.workspace import router as workspace_router
 from app.channels.web import WidgetCORSMiddleware
@@ -89,6 +90,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return JSONResponse({"status": "unavailable"}, status_code=503)
         return JSONResponse({"status": "ready"})
 
+    app.include_router(whatsapp_router, prefix="/api/v1")
     app.include_router(inbox_router, prefix="/api/v1")
     app.include_router(followups_router, prefix="/api/v1")
     app.include_router(leads_router, prefix="/api/v1")
