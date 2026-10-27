@@ -1,6 +1,6 @@
 # Progress
 
-Current phase: Phase 3 complete. Local acceptance passes; the implementation is ready for hosted CI verification. Next unchecked task: Phase 4 WhatsApp models/adapter; Phase 4 is not started.
+Current phase: Phase 4 in progress. Current task: encrypted channel accounts, WhatsApp contacts/templates and durable delivery models. Live Meta test-number acceptance is pending external setup; Phase 5 is not started.
 
 ### Phase 0 — Foundations (week 1)
 
