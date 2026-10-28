@@ -1,0 +1,162 @@
+[
+  {
+    "id": "photography-price",
+    "vertical": "photography",
+    "question": "Wedding album price",
+    "intent": "pricing",
+    "kind": "knowledge"
+  },
+  {
+    "id": "photography-refusal",
+    "vertical": "photography",
+    "question": "Can you predict football match results?",
+    "intent": "off_topic",
+    "kind": "refusal"
+  },
+  {
+    "id": "photography-handoff",
+    "vertical": "photography",
+    "question": "I have a complaint about damaged work",
+    "intent": "complaint",
+    "kind": "handoff"
+  },
+  {
+    "id": "photography-slots",
+    "vertical": "photography",
+    "question": "For my quotation, quantity=500; size=standard",
+    "intent": "quote_request",
+    "kind": "slots",
+    "slots": {
+      "quantity": "500",
+      "size": "standard"
+    }
+  },
+  {
+    "id": "printing-price",
+    "vertical": "printing",
+    "question": "Visiting cards price",
+    "intent": "pricing",
+    "kind": "knowledge"
+  },
+  {
+    "id": "printing-refusal",
+    "vertical": "printing",
+    "question": "Can you predict football match results?",
+    "intent": "off_topic",
+    "kind": "refusal"
+  },
+  {
+    "id": "printing-handoff",
+    "vertical": "printing",
+    "question": "I have a complaint about damaged work",
+    "intent": "complaint",
+    "kind": "handoff"
+  },
+  {
+    "id": "printing-slots",
+    "vertical": "printing",
+    "question": "For my quotation, quantity=500; size=standard",
+    "intent": "quote_request",
+    "kind": "slots",
+    "slots": {
+      "quantity": "500",
+      "size": "standard"
+    }
+  },
+  {
+    "id": "interior-price",
+    "vertical": "interior",
+    "question": "Design consultation price",
+    "intent": "pricing",
+    "kind": "knowledge"
+  },
+  {
+    "id": "interior-refusal",
+    "vertical": "interior",
+    "question": "Can you predict football match results?",
+    "intent": "off_topic",
+    "kind": "refusal"
+  },
+  {
+    "id": "interior-handoff",
+    "vertical": "interior",
+    "question": "I have a complaint about damaged work",
+    "intent": "complaint",
+    "kind": "handoff"
+  },
+  {
+    "id": "interior-slots",
+    "vertical": "interior",
+    "question": "For my quotation, quantity=500; size=standard",
+    "intent": "quote_request",
+    "kind": "slots",
+    "slots": {
+      "quantity": "500",
+      "size": "standard"
+    }
+  },
+  {
+    "id": "repair-price",
+    "vertical": "repair",
+    "question": "Device diagnosis price",
+    "intent": "pricing",
+    "kind": "knowledge"
+  },
+  {
+    "id": "repair-refusal",
+    "vertical": "repair",
+    "question": "Can you predict football match results?",
+    "intent": "off_topic",
+    "kind": "refusal"
+  },
+  {
+    "id": "repair-handoff",
+    "vertical": "repair",
+    "question": "I have a complaint about damaged work",
+    "intent": "complaint",
+    "kind": "handoff"
+  },
+  {
+    "id": "repair-slots",
+    "vertical": "repair",
+    "question": "For my quotation, quantity=500; size=standard",
+    "intent": "quote_request",
+    "kind": "slots",
+    "slots": {
+      "quantity": "500",
+      "size": "standard"
+    }
+  },
+  {
+    "id": "electronics-price",
+    "vertical": "electronics",
+    "question": "USB cable price",
+    "intent": "pricing",
+    "kind": "knowledge"
+  },
+  {
+    "id": "electronics-refusal",
+    "vertical": "electronics",
+    "question": "Can you predict football match results?",
+    "intent": "off_topic",
+    "kind": "refusal"
+  },
+  {
+    "id": "electronics-handoff",
+    "vertical": "electronics",
+    "question": "I have a complaint about damaged work",
+    "intent": "complaint",
+    "kind": "handoff"
+  },
+  {
+    "id": "electronics-slots",
+    "vertical": "electronics",
+    "question": "For my quotation, quantity=500; size=standard",
+    "intent": "quote_request",
+    "kind": "slots",
+    "slots": {
+      "quantity": "500",
+      "size": "standard"
+    }
+  }
+]
