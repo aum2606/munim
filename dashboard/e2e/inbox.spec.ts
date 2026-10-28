@@ -50,6 +50,7 @@ test("complaint handoff, private assist and return to AI reach the embedded cust
     },
   );
   await customer.getByRole("button", { name: "Chat with us" }).click();
+  await customer.getByRole("button", { name: "Agree & start chat" }).click();
   const message = customer.getByLabel("Message", { exact: true });
   await expect(message).toBeEnabled();
   await message.fill("Complaint: my order is damaged");
