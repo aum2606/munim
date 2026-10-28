@@ -161,6 +161,43 @@ Official references: [Meta's Cloud API collection](https://www.postman.com/meta/
 [document delivery](https://www.postman.com/meta/whatsapp-business-platform/request/zjtbdpz/send-document-message-by-id),
 and [WhatsApp messaging policy](https://business.whatsapp.com/policy).
 
+## Insights and weekly digest
+
+Open **Overview** for enquiries over time, grounded catalogue interest, intent mix,
+quote statuses, channels, first reply time, AI resolution and current open knowledge gaps.
+Choose a rolling 7/30/90-day window or the current IST week/month. Every chart has an
+expandable exact-value table, including on phones. Missing response/resolution data is
+shown as unavailable instead of zero.
+
+Open **Insights → Ask Munim** and try:
+
+- "Who hasn't responded this week?"
+- "What are people asking about most this month?"
+- "How many quotes were accepted?"
+
+The reasoning model selects one of twelve fixed analytics tools. All queries run through
+tenant-scoped repositories, and Python renders the returned counts/tables/chart specs;
+the model cannot submit SQL or change numbers. Unsupported questions create a knowledge
+gap and receive the standard confirmation response. Fake-model mode supports these demo
+questions; offline golden tests use synthetic seeded facts. Real-model answer quality
+still needs the opt-in evaluation work scheduled in Phase 6.
+
+Enquiries count the first inbound per conversation. The quote funnel and accepted count
+show **current statuses for quotes created in the selected period**, not a historical
+status-transition chart. First-response time is measured at message persistence and
+excludes unanswered conversations; it does not measure WhatsApp delivery latency.
+AI resolution is the share of closed conversations without a handoff within the enquiry
+cohort. Item counts cover grounded catalogue references and quotation lines since event
+tracking began; older activity is not inferred or backfilled. Open gaps are a current
+snapshot. The page includes these definitions.
+
+The worker publishes a dashboard digest on **Monday 09:00 IST**, covering the preceding
+Monday-to-Monday week. Worker startup catches up the latest due week. A unique tenant/week
+key prevents duplicate digests on retries; viewing a digest does not regenerate it.
+Keep the worker running to receive scheduled digests. Optional delivery to the owner's
+WhatsApp/email remains deferred until recipient/consent/template setup is available.
+The Phase 4 live Meta test remains pending separately, as authorized by the user.
+
 ## Development and checks
 
 Backend commands load the repository-root `.env`; exported variables take precedence.
@@ -169,7 +206,7 @@ Backend commands load the repository-root `.env`; exported variables take preced
 Integration and golden conversation tests require Docker for isolated PostgreSQL and
 Redis testcontainers. Tests use FakeLLM/FakeEmbedder and block external HTTP; provider
 contract tests use MockTransport. `make eval` includes 25 Phase 1 conversations, requirement extraction cases, two
-Phase 2 quotation conversations, Phase 3 handoff/stage/follow-up acceptance, and Phase 4 fake-Meta quotation delivery and expired-window checks. The full suite also checks injected prices, approval
+Phase 2 quotation conversations, Phase 3 handoff/stage/follow-up acceptance, Phase 4 fake-Meta quotation delivery and expired-window checks, and the three Phase 5 analytics acceptance questions. The full suite also checks injected prices, approval
 races, stale edits, expiry, tenant isolation and auto-send limits. The opt-in real-model evaluation harness is Phase 6.
 
 `make e2e` runs Chromium flows at desktop and 375px mobile widths. With Compose running,

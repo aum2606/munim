@@ -474,3 +474,73 @@ textarea {
   display: inline-block;
   margin-right: 0.5rem;
 }
+
+.insight-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 0.8rem;
+  margin: 1rem 0;
+}
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+}
+.metric strong {
+  font-size: 1.7rem;
+  color: #196a59;
+}
+.insight-panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+.insight-panels > .card {
+  min-width: 0;
+  margin: 0;
+}
+.insight-chart {
+  width: 100%;
+  min-width: 0;
+  height: 240px;
+  margin: 1rem 0;
+}
+.analytics-table {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.analytics-table th,
+.analytics-table td {
+  text-align: left;
+  padding: 0.6rem;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+.metric-definitions,
+.insight-answer small {
+  color: #52665e;
+  font-size: 0.85rem;
+}
+.sample-questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+.sample-questions button {
+  white-space: normal;
+  text-align: left;
+  font-size: 0.85rem;
+}
+.insight-answer {
+  overflow-wrap: anywhere;
+}
+.analytics-overview select {
+  max-width: 280px;
+}
+@media (min-width: 900px) {
+  .insight-panels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
