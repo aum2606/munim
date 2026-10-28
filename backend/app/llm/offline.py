@@ -8,6 +8,54 @@ from app.schemas.knowledge import Fact
 
 def agent_response(request: LLMRequest) -> LLMResponse:
     body = request.content.model_dump(mode="json")
+    if request.agent == "insights":
+        from app.schemas.insights import AnalyticsTool, InsightPlan, Period
+
+        question = body["question"].lower()
+        period = (
+            Period.THIS_WEEK
+            if "this week" in question
+            else Period.THIS_MONTH
+            if "this month" in question
+            else Period.MONTH
+        )
+        tool = None
+        if not any(
+            word in question
+            for word in ("sql", "secret", "other tenant", "revenue", "system prompt")
+        ):
+            if any(word in question for word in ("hasn't responded", "not responded", "silent")):
+                tool = AnalyticsTool.SILENT
+            elif "followed up" in question:
+                tool = AnalyticsTool.NOT_FOLLOWED
+            elif "awaiting" in question or "waiting for my reply" in question:
+                tool = AnalyticsTool.AWAITING
+            elif "asking about" in question or "top items" in question:
+                tool = AnalyticsTool.TOP
+            elif "accepted" in question or "rejected" in question:
+                tool = AnalyticsTool.QUOTES
+            elif "funnel" in question:
+                tool = AnalyticsTool.FUNNEL
+            elif "intent" in question:
+                tool = AnalyticsTool.INTENT
+            elif "response time" in question:
+                tool = AnalyticsTool.RESPONSE
+            elif "knowledge gaps" in question:
+                tool = AnalyticsTool.GAPS
+            elif "channel" in question:
+                tool = AnalyticsTool.CHANNEL
+            elif "lost" in question:
+                tool = AnalyticsTool.LOST
+            elif "enquiries" in question:
+                tool = AnalyticsTool.TREND
+        return LLMResponse(
+            output=InsightPlan(
+                tool=tool,
+                period=period,
+                days=1,
+                status="rejected" if "rejected" in question else "accepted",
+            ).model_dump(mode="json")
+        )
     if request.agent == "lead":
         return LLMResponse(
             output={
