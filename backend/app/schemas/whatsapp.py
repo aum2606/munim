@@ -46,9 +46,12 @@ class DeliveryView(BaseModel):
     last_error: str | None
     provider_message_id: str | None
     next_attempt_at: datetime
+    conversation_id: UUID | None = None
+    content_preview: str = ""
 
 
 class ConsentChange(StrictModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     opted_in: bool
     note: str = Field(min_length=3, max_length=500)
 
@@ -58,6 +61,7 @@ class ConsentView(BaseModel):
     opted_in_at: datetime | None
     opted_out: bool
     consent_note: str
+    freeform_allowed: bool = False
 
 
 class MetaText(BaseModel):
@@ -134,3 +138,21 @@ class ParsedInbound(StrictModel):
     content: str
     content_type: str
     attachments: list[dict[str, str]]
+
+
+class DeliveryResolution(StrictModel):
+    confirmed_not_sent: bool = False
+    provider_message_id: str | None = Field(default=None, pattern=r"^wamid\..{1,500}$")
+
+
+class SetupView(StrictModel):
+    callback_url: str
+    encryption_ready: bool
+    webhook_ready: bool
+    api_version_ready: bool
+
+
+class FollowupOptions(StrictModel):
+    conversation_id: UUID
+    consent: ConsentView
+    templates: list[TemplateView]

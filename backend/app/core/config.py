@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     whatsapp_verify_token: SecretStr = SecretStr("")
     whatsapp_app_secret: SecretStr = SecretStr("")
     whatsapp_api_version: str = ""
+    whatsapp_max_media_bytes: int = Field(default=8 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024)
     whatsapp_timeout_s: int = Field(default=20, ge=1, le=120)
     whatsapp_max_attempts: int = Field(default=6, ge=1, le=20)
     debounce_seconds: float = Field(default=2.5, ge=0)

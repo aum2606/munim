@@ -3,20 +3,22 @@ from uuid import UUID
 
 import httpx
 from fastapi import APIRouter, Header, Query, Request
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, Response
 
 from app.channels.service import WhatsAppService, ingest_webhook, verify_challenge
 from app.core.deps import Config, Context, Owner, Session
 from app.core.errors import DomainError
 from app.repositories.channels import ChannelRepository
-from app.repositories.conversations import ConversationRepository
 from app.schemas.whatsapp import (
     AccountChange,
     AccountView,
     ConnectWhatsApp,
     ConsentChange,
     ConsentView,
+    DeliveryResolution,
     DeliveryView,
+    FollowupOptions,
+    SetupView,
     TemplateView,
 )
 from app.workers.queue import JobQueue
@@ -80,12 +82,16 @@ async def connect(
 
 @router.patch("/channels/whatsapp/{account_id}", response_model=AccountView)
 async def change(
-    account_id: UUID, body: AccountChange, session: Session, ctx: Owner
+    account_id: UUID,
+    body: AccountChange,
+    request: Request,
+    session: Session,
+    ctx: Owner,
+    config: Config,
 ) -> AccountView:
-    account = await ChannelRepository(session, ctx).get(account_id, for_update=True)
-    account.status = body.status
-    await session.commit()
-    return AccountView.model_validate(account)
+    return AccountView.model_validate(
+        await service(request, session, ctx, config).change_account(account_id, body.status)
+    )
 
 
 @router.get("/channels/whatsapp/{account_id}/templates", response_model=list[TemplateView])
@@ -107,34 +113,74 @@ async def sync(
 
 
 @router.get("/channels/whatsapp/deliveries", response_model=list[DeliveryView])
-async def deliveries(session: Session, ctx: Context) -> list[DeliveryView]:
-    return [
-        DeliveryView.model_validate(delivery)
-        for delivery in await ChannelRepository(session, ctx).deliveries()
-    ]
+async def deliveries(
+    request: Request, session: Session, ctx: Context, config: Config
+) -> list[DeliveryView]:
+    return await service(request, session, ctx, config).delivery_views()
 
 
 @router.get("/conversations/{conversation_id}/whatsapp-consent", response_model=ConsentView)
-async def consent(conversation_id: UUID, session: Session, ctx: Context) -> ConsentView:
-    await ConversationRepository(session, ctx).get(conversation_id)
-    return ConsentView.model_validate(
-        await ChannelRepository(session, ctx).contact(conversation_id)
-    )
+async def consent(
+    conversation_id: UUID, request: Request, session: Session, ctx: Context, config: Config
+) -> ConsentView:
+    return await service(request, session, ctx, config).consent_view(conversation_id)
 
 
 @router.put("/conversations/{conversation_id}/whatsapp-consent", response_model=ConsentView)
 async def set_consent(
-    conversation_id: UUID, body: ConsentChange, session: Session, ctx: Owner
+    conversation_id: UUID,
+    body: ConsentChange,
+    request: Request,
+    session: Session,
+    ctx: Owner,
+    config: Config,
 ) -> ConsentView:
-    from datetime import UTC, datetime
+    return await service(request, session, ctx, config).record_consent(conversation_id, body)
 
-    await ConversationRepository(session, ctx).get(conversation_id, for_update=True)
-    contact = await ChannelRepository(session, ctx).contact(conversation_id)
-    contact.opted_in_at = datetime.now(UTC) if body.opted_in else None
-    contact.opted_out, contact.consent_note, contact.consent_by = (
-        not body.opted_in,
-        body.note,
-        ctx.user_id,
+
+@router.get("/channels/whatsapp/setup", response_model=SetupView)
+async def setup(request: Request, session: Session, config: Config, ctx: Owner) -> SetupView:
+    return service(request, session, ctx, config).setup_view()
+
+
+@router.post("/channels/whatsapp/deliveries/{delivery_id}/resolve", response_model=DeliveryView)
+async def resolve(
+    delivery_id: UUID,
+    body: DeliveryResolution,
+    request: Request,
+    session: Session,
+    ctx: Owner,
+    config: Config,
+) -> DeliveryView:
+    return await service(request, session, ctx, config).resolve(delivery_id, body)
+
+
+@router.get("/followups/{followup_id}/whatsapp-options", response_model=FollowupOptions)
+async def options(
+    followup_id: UUID, request: Request, session: Session, ctx: Owner, config: Config
+) -> FollowupOptions:
+    return await service(request, session, ctx, config).followup_options(followup_id)
+
+
+@router.get("/conversations/{conversation_id}/messages/{message_id}/media/{media_id}")
+async def media(
+    conversation_id: UUID,
+    message_id: UUID,
+    media_id: str,
+    request: Request,
+    session: Session,
+    ctx: Context,
+    config: Config,
+) -> Response:
+    content, filename = await service(request, session, ctx, config).media(
+        conversation_id, message_id, media_id
     )
-    await session.commit()
-    return ConsentView.model_validate(contact)
+    return Response(
+        content,
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )

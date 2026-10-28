@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.guardrails import check_prices
+from app.core.config import Settings
 from app.core.errors import DomainError
 from app.core.tenant import TenantContext
 from app.db.models import Followup, LeadEvent, Message
@@ -30,8 +31,11 @@ DRAFTS = {
 
 
 class FollowupService:
-    def __init__(self, session: AsyncSession, ctx: TenantContext) -> None:
+    def __init__(
+        self, session: AsyncSession, ctx: TenantContext, config: Settings | None = None
+    ) -> None:
         self.session, self.ctx = session, ctx
+        self.config = config or Settings()
         self.repository = FollowupRepository(session, ctx)
         self.leads = LeadRepository(session, ctx)
         self.conversations = ConversationRepository(session, ctx)
@@ -105,7 +109,9 @@ class FollowupService:
         await self.session.commit()
         return count
 
-    async def act(self, followup_id: UUID, approve: bool) -> Followup:
+    async def act(
+        self, followup_id: UUID, approve: bool, template_id: UUID | None = None
+    ) -> Followup:
         initial = await self.repository.get(followup_id)
         lead = await self.leads.get(initial.lead_id)
         conversation = await self.conversations.get(lead.conversation_id, for_update=True)
@@ -121,17 +127,36 @@ class FollowupService:
             )
             if await self.eligible(lead, now, policy) != (draft.kind, draft.source_at):
                 draft.status = "skipped"
-            elif draft.requires_template or conversation.channel != "web":
+            elif conversation.channel not in {"web", "whatsapp"}:
                 raise DomainError("This channel requires an approved template and adapter", 409)
             else:
+                from app.channels.service import require_send
+
+                template = None
+                if conversation.channel == "whatsapp":
+                    if template_id is None:
+                        raise DomainError(
+                            "Choose an approved WhatsApp template before approval", 409
+                        )
+                    template = await require_send(
+                        self.session, self.ctx, self.config, conversation.id, template_id
+                    )
+                    if template is None:
+                        raise DomainError("WhatsApp template is required", 409)
+                    draft.draft_text = template.body_text
                 check_prices(draft.draft_text, set())
-                await ScopedRepository(self.session, self.ctx, Message).create(
+                outbound = await ScopedRepository(self.session, self.ctx, Message).create(
                     conversation_id=conversation.id,
                     direction=Direction.OUT,
                     sender_type=SenderType.STAFF,
                     content=draft.draft_text,
                     external_id=f"followup:{draft.id}",
                     attachments=[],
+                )
+                from app.repositories.channels import ChannelRepository
+
+                await ChannelRepository(self.session, self.ctx).queue(
+                    outbound, template_id if template else None
                 )
                 conversation.last_business_msg_at = now
                 draft.status = "sent"

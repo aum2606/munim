@@ -119,3 +119,19 @@ class ChannelDelivery(TenantRecord):
     attempts: Mapped[int] = mapped_column(default=0)
     next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     last_error: Mapped[str | None]
+
+
+class ChannelStatusReceipt(TenantRecord):
+    __tablename__ = "channel_status_receipts"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "account_id", "provider_message_id", "status"),
+        Index(
+            "ix_channel_status_tenant_provider", "tenant_id", "account_id", "provider_message_id"
+        ),
+        ForeignKeyConstraint(
+            ["tenant_id", "account_id"], ["channel_accounts.tenant_id", "channel_accounts.id"]
+        ),
+    )
+    account_id: Mapped[UUID]
+    provider_message_id: Mapped[str]
+    status: Mapped[str]

@@ -2,10 +2,11 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
 from app.db.models.conversation import ConversationMode
 from app.db.models.lead import LeadStage
+from app.schemas.chat import ReplyButton
 from app.schemas.knowledge import StrictModel
 
 
@@ -92,6 +93,7 @@ class FollowupView(BaseModel):
 
 class FollowupAction(StrictModel):
     action: Literal["approve", "cancel"]
+    template_id: UUID | None = None
 
 
 class DraftView(BaseModel):
@@ -116,8 +118,18 @@ class ModeChange(StrictModel):
 
 
 class StaffReply(StrictModel):
+    buttons: list[ReplyButton] = Field(default_factory=list, max_length=3)
     content: str = Field(min_length=1, max_length=4000)
     external_id: str = Field(min_length=1, max_length=100)
+
+    @model_validator(mode="after")
+    def valid_buttons(self) -> "StaffReply":
+        if self.buttons and (
+            len(self.content) > 1024
+            or len({button.id for button in self.buttons}) != len(self.buttons)
+        ):
+            raise ValueError("Interactive messages need a short body and unique button IDs")
+        return self
 
     @field_validator("content")
     @classmethod

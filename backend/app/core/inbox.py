@@ -123,11 +123,20 @@ class InboxService:
             message.processed_at = datetime.now(UTC)
         await self.session.commit()
 
-    async def reply(self, conversation_id: UUID, content: str, external_id: str) -> Message:
+    async def reply(
+        self,
+        conversation_id: UUID,
+        content: str,
+        external_id: str,
+        buttons: list[dict[str, str]] | None = None,
+    ) -> Message:
         conversation = await self.conversations.get(conversation_id, for_update=True)
         existing = await self.repository.outbound(conversation_id, "staff:" + external_id)
         if existing:
-            if existing.content != content:
+            existing_buttons: object = next(
+                (entry.get("buttons") for entry in existing.attachments if entry.get("buttons")), []
+            )
+            if existing.content != content or existing_buttons != (buttons or []):
                 raise DomainError("Message ID already used for different content", 409)
             return existing
         if (
@@ -135,21 +144,34 @@ class InboxService:
             or conversation.status != ConversationStatus.OPEN
         ):
             raise DomainError("Take over this open conversation before replying", 409)
+        from app.channels.service import require_send
+
+        await require_send(self.session, self.ctx, self.config, conversation_id)
         settings = await TenantRepository(self.session, self.ctx).settings()
         allowed = await reply_prices(self.session, self.ctx, self.config, conversation_id)
         check_reply(content, allowed, [content], settings.max_auto_discount_pct)
+        if buttons:
+            from app.agents.guardrails import check_prices
+
+            if conversation.channel != "whatsapp":
+                raise DomainError("Reply buttons are available on WhatsApp", 409)
+            for button in buttons:
+                check_prices(button["title"], set())
         message = await ScopedRepository(self.session, self.ctx, Message).create(
             conversation_id=conversation_id,
             direction=Direction.OUT,
             sender_type=SenderType.STAFF,
             content=content,
             external_id="staff:" + external_id,
-            attachments=[],
+            attachments=[{"buttons": buttons}] if buttons else [],
         )
         conversation.last_business_msg_at = datetime.now(UTC)
         for draft in await self.repository.drafts(conversation_id):
             draft.status = "discarded"
         await self.session.flush()
+        from app.repositories.channels import ChannelRepository
+
+        await ChannelRepository(self.session, self.ctx).queue(message)
         return message
 
     async def approve_draft(self, draft_id: UUID) -> Message:

@@ -6,6 +6,8 @@ from arq.connections import RedisSettings
 
 from app.core.config import Settings
 from app.workers.tasks import (
+    deliver_whatsapp,
+    dispatch_channels,
     draft_followups,
     ingest_document,
     process_message,
@@ -26,10 +28,14 @@ class WorkerSettings:
         process_message,
         update_lead,
         draft_followups,
+        deliver_whatsapp,
     ]
     redis_settings = RedisSettings.from_dsn(Settings().redis_url)
 
-    cron_jobs = [cron(schedule_followups, minute={0, 15, 30, 45}, run_at_startup=True)]
+    cron_jobs = [
+        cron(schedule_followups, minute={0, 15, 30, 45}, run_at_startup=True),
+        cron(dispatch_channels, second=set(range(0, 60, 5)), run_at_startup=True),
+    ]
 
     max_tries = 100
     job_timeout = Settings().llm_timeout_s * 10 + 120

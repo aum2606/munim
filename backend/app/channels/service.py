@@ -1,4 +1,5 @@
 import hmac
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -16,7 +17,17 @@ from app.db.models import ChannelAccount, Conversation, WhatsAppTemplate
 from app.db.models.channel import AccountStatus
 from app.repositories.channels import ChannelDiscovery, ChannelRepository
 from app.repositories.scoped import ScopedRepository
-from app.schemas.whatsapp import ConnectWhatsApp, MetaWebhook
+from app.schemas.whatsapp import (
+    ConnectWhatsApp,
+    ConsentChange,
+    ConsentView,
+    DeliveryResolution,
+    DeliveryView,
+    FollowupOptions,
+    MetaWebhook,
+    SetupView,
+    TemplateView,
+)
 from app.workers.queue import JobQueue
 
 
@@ -55,6 +66,10 @@ async def require_send(
     conversation = await ScopedRepository(session, ctx, Conversation).get(conversation_id)
     if conversation.channel == "web":
         return None
+    from app.db.models.conversation import ConversationStatus
+
+    if conversation.status != ConversationStatus.OPEN:
+        raise DomainError("Reopen the conversation before sending", 409)
     repository = ChannelRepository(session, ctx)
     contact = await repository.contact(conversation_id)
     account = await repository.get(contact.account_id)
@@ -98,10 +113,171 @@ class WhatsAppService:
             self.transport,
         )
 
+    async def media(
+        self, conversation_id: UUID, message_id: UUID, media_id: str
+    ) -> tuple[bytes, str]:
+        from app.db.models import Message
+
+        await ScopedRepository(self.session, self.ctx, Conversation).get(conversation_id)
+        message = await ScopedRepository(self.session, self.ctx, Message).get(message_id)
+        if message.conversation_id != conversation_id:
+            raise NotFound()
+        attachment = next(
+            (entry for entry in message.attachments if entry.get("media_id") == media_id), None
+        )
+        if attachment is None:
+            raise NotFound()
+        contact = await self.repository.contact(conversation_id)
+        account = await self.repository.get(contact.account_id)
+        content = await self.graph(account).download_media(account.external_id, media_id)
+        filename = attachment.get("filename")
+        import re
+
+        safe = re.sub(r"[^A-Za-z0-9 ._-]", "", str(filename or "attachment"))[:100] or "attachment"
+        return content, safe
+
+    def setup_view(self) -> SetupView:
+        import re
+
+        from app.core.credentials import cipher
+
+        encryption_ready = True
+        try:
+            cipher(self.config.credentials_encryption_key)
+        except DomainError:
+            encryption_ready = False
+        return SetupView(
+            callback_url=self.config.public_api_url.rstrip("/") + "/api/v1/webhooks/whatsapp",
+            encryption_ready=encryption_ready,
+            webhook_ready=bool(
+                self.config.whatsapp_app_secret.get_secret_value()
+                and self.config.whatsapp_verify_token.get_secret_value()
+            ),
+            api_version_ready=bool(re.fullmatch(r"v[0-9]+\.0", self.config.whatsapp_api_version)),
+        )
+
+    async def consent_view(self, conversation_id: UUID) -> ConsentView:
+        conversation = await ScopedRepository(self.session, self.ctx, Conversation).get(
+            conversation_id
+        )
+        contact = await self.repository.contact(conversation_id)
+        account = await self.repository.get(contact.account_id)
+        return ConsentView.model_validate(contact).model_copy(
+            update={
+                "freeform_allowed": account.status == AccountStatus.ACTIVE
+                and not contact.opted_out
+                and WhatsAppAdapter(self.config).can_send_freeform(conversation)
+            }
+        )
+
+    async def record_consent(self, conversation_id: UUID, body: ConsentChange) -> ConsentView:
+        await ScopedRepository(self.session, self.ctx, Conversation).get(
+            conversation_id, for_update=True
+        )
+        contact = await self.repository.contact(conversation_id)
+        contact.opted_in_at = datetime.now(UTC) if body.opted_in else None
+        contact.opted_out, contact.consent_note, contact.consent_by = (
+            not body.opted_in,
+            body.note,
+            self.ctx.user_id,
+        )
+        await self.session.commit()
+        return await self.consent_view(conversation_id)
+
+    async def change_account(self, account_id: UUID, status: AccountStatus) -> ChannelAccount:
+        account = await self.repository.get(account_id, for_update=True)
+        account.status = status
+        await self.session.commit()
+        return account
+
+    async def delivery_views(self) -> list[DeliveryView]:
+        from app.db.models import Message
+
+        views = []
+        for delivery in await self.repository.deliveries():
+            message = await ScopedRepository(self.session, self.ctx, Message).get(
+                delivery.message_id
+            )
+            views.append(
+                DeliveryView.model_validate(delivery).model_copy(
+                    update={
+                        "conversation_id": message.conversation_id,
+                        "content_preview": message.content[:200],
+                    }
+                )
+            )
+        return views
+
+    async def followup_options(self, followup_id: UUID) -> FollowupOptions:
+        from app.db.models import Followup
+        from app.repositories.leads import LeadRepository
+
+        draft = await ScopedRepository(self.session, self.ctx, Followup).get(followup_id)
+        lead = await LeadRepository(self.session, self.ctx).get(draft.lead_id)
+        contact = await self.repository.contact(lead.conversation_id)
+        templates = await self.repository.templates(contact.account_id)
+        return FollowupOptions(
+            conversation_id=lead.conversation_id,
+            consent=ConsentView.model_validate(contact),
+            templates=[
+                TemplateView.model_validate(template) for template in templates if template.usable
+            ],
+        )
+
+    async def resolve(self, delivery_id: UUID, body: DeliveryResolution) -> DeliveryView:
+        import structlog
+
+        from app.db.models import ChannelDelivery
+        from app.db.models.channel import DeliveryStatus
+
+        delivery = await ScopedRepository(self.session, self.ctx, ChannelDelivery).get(
+            delivery_id, for_update=True
+        )
+        if delivery.status not in {
+            DeliveryStatus.UNCERTAIN,
+            DeliveryStatus.FAILED,
+            DeliveryStatus.BLOCKED,
+        }:
+            raise DomainError("Only a delivery needing attention can be reconciled", 409)
+        if body.provider_message_id and body.confirmed_not_sent:
+            raise DomainError(
+                "Choose either a confirmed provider ID or confirmation it was not sent"
+            )
+        if body.provider_message_id:
+            delivery.provider_message_id, delivery.status = (
+                body.provider_message_id,
+                DeliveryStatus.SENT,
+            )
+            await self.repository.reconcile(delivery)
+        elif body.confirmed_not_sent:
+            delivery.status, delivery.attempts = DeliveryStatus.QUEUED, 0
+            delivery.next_attempt_at = datetime.now(UTC)
+        else:
+            raise DomainError("Confirm the delivery outcome before retrying", 409)
+        delivery.last_error = "owner_reconciled:" + str(self.ctx.user_id)
+        try:
+            await self.session.commit()
+        except IntegrityError as error:
+            await self.session.rollback()
+            raise DomainError(
+                "Provider message ID is already assigned to another delivery", 409
+            ) from error
+        structlog.get_logger().info(
+            "whatsapp_owner_reconciled",
+            tenant_id=str(self.ctx.tenant_id),
+            delivery_id=str(delivery_id),
+            actor=str(self.ctx.user_id),
+        )
+        return DeliveryView.model_validate(delivery)
+
     async def connect(self, body: ConnectWhatsApp) -> ChannelAccount:
         encrypted = encrypt_credential(self.config.credentials_encryption_key, body.access_token)
         graph = WhatsAppGraph(self.config, body.access_token.get_secret_value(), self.transport)
         await graph.verify_account(body.phone_number_id, body.business_account_id)
+        # Official subscription contract: https://www.postman.com/meta/whatsapp-business-platform/request/c1ai24q/subscribe-to-your-waba
+        subscribed = await graph.request("POST", body.business_account_id + "/subscribed_apps")
+        if subscribed.get("success") not in (True, "true"):
+            raise DomainError("Meta did not confirm the webhook subscription", 502)
         try:
             existing = await self.repository.by_phone(body.phone_number_id)
         except NotFound:
@@ -201,21 +377,20 @@ async def ingest_webhook(
                 continue
             repository = ChannelRepository(session, ctx)
             account = await repository.by_phone(phone_id)
-            if account.status != AccountStatus.ACTIVE:
-                continue
-            for message in change.value.messages:
-                inbound = adapter.parse_inbound(message)
-                saved = await repository.inbound(
-                    account,
-                    inbound.wa_id,
-                    inbound.provider_id,
-                    inbound.content,
-                    inbound.timestamp,
-                    inbound.content_type,
-                    inbound.attachments,
-                )
-                if saved.processed_at is None:
-                    jobs.append((ctx.tenant_id, saved.id))
+            if account.status == AccountStatus.ACTIVE:
+                for message in change.value.messages:
+                    inbound = adapter.parse_inbound(message)
+                    saved = await repository.inbound(
+                        account,
+                        inbound.wa_id,
+                        inbound.provider_id,
+                        inbound.content,
+                        inbound.timestamp,
+                        inbound.content_type,
+                        inbound.attachments,
+                    )
+                    if saved.processed_at is None:
+                        jobs.append((ctx.tenant_id, saved.id))
             for status in change.value.statuses:
                 await repository.status(account.id, status.id, status.status)
     await session.commit()

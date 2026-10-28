@@ -89,8 +89,11 @@ class QuoteApproval:
             quote.conversation_id, for_update=True
         )
         settings = await TenantRepository(self.session, self.ctx).settings()
-        if conversation.channel != "web":
+        if conversation.channel not in {"web", "whatsapp"}:
             raise DomainError("This channel does not support quotation delivery yet", 409)
+        from app.channels.service import require_send
+
+        await require_send(self.session, self.ctx, self.config, conversation.id)
         if automated:
             if not settings.auto_send_quotes or quote.total_paise >= settings.auto_send_limit_paise:
                 raise DomainError("Quote does not meet the auto-send policy", 409)
@@ -113,7 +116,7 @@ class QuoteApproval:
             f"Valid until {valid_until}. Download the PDF below."
         )
         check_reply(text, quote_allowed_prices(view), [text], settings.max_auto_discount_pct)
-        await ScopedRepository(self.session, self.ctx, Message).create(
+        outbound = await ScopedRepository(self.session, self.ctx, Message).create(
             conversation_id=quote.conversation_id,
             direction=Direction.OUT,
             sender_type=SenderType.SYSTEM,
@@ -125,9 +128,13 @@ class QuoteApproval:
                     "quote_id": str(quote.id),
                     "quote_number": quote.quote_number,
                     "filename": "quotation.pdf",
+                    "automated": automated,
                 }
             ],
         )
+        from app.repositories.channels import ChannelRepository
+
+        await ChannelRepository(self.session, self.ctx).queue(outbound)
         conversation.last_business_msg_at = quote.sent_at
         lead = await ScopedRepository(self.session, self.ctx, Lead).get(quote.lead_id)
         from app.repositories.leads import LeadRepository
