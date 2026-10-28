@@ -1,0 +1,278 @@
+{
+  "name": "munim-production",
+  "services":
+    {
+      "postgres":
+        {
+          "image": "pgvector/pgvector:pg16",
+          "restart": "unless-stopped",
+          "environment":
+            {
+              "POSTGRES_USER": "munim",
+              "POSTGRES_DB": "munim",
+              "POSTGRES_PASSWORD": "${POSTGRES_PASSWORD:?set database password}",
+            },
+          "volumes": ["prod_postgres:/var/lib/postgresql/data"],
+          "healthcheck":
+            {
+              "test": ["CMD-SHELL", "pg_isready -U munim -d munim"],
+              "interval": "5s",
+              "timeout": "5s",
+              "retries": 20,
+            },
+          "mem_limit": "1g",
+        },
+      "redis":
+        {
+          "image": "redis:7-alpine",
+          "restart": "unless-stopped",
+          "command":
+            [
+              "redis-server",
+              "--appendonly",
+              "yes",
+              "--maxmemory",
+              "192mb",
+              "--maxmemory-policy",
+              "noeviction",
+            ],
+          "volumes": ["prod_redis:/data"],
+          "healthcheck":
+            {
+              "test": ["CMD", "redis-cli", "ping"],
+              "interval": "5s",
+              "timeout": "3s",
+              "retries": 20,
+            },
+          "mem_limit": "256m",
+        },
+      "migrate":
+        {
+          "build": { "context": ".", "dockerfile": "deploy/Dockerfile.api" },
+          "restart": "no",
+          "read_only": true,
+          "tmpfs": ["/tmp:mode=1777,size=128m"],
+          "security_opt": ["no-new-privileges:true"],
+          "cap_drop": ["ALL"],
+          "volumes": ["prod_uploads:/data/uploads"],
+          "mem_limit": "1g",
+          "environment":
+            {
+              "APP_ENV": "prod",
+              "SECRET_KEY": "${SECRET_KEY:?set SECRET_KEY}",
+              "DATABASE_URL": "${DATABASE_URL:?set DATABASE_URL}",
+              "REDIS_URL": "redis://redis:6379/0",
+              "STORAGE_DIR": "/data/uploads",
+              "CORS_ORIGINS": "${CORS_ORIGINS:?set HTTPS origins}",
+              "PUBLIC_API_URL": "${PUBLIC_API_URL:?set HTTPS origin}",
+              "WIDGET_SCRIPT_URL": "${WIDGET_SCRIPT_URL:?set HTTPS widget URL}",
+              "CREDENTIALS_ENCRYPTION_KEY": "${CREDENTIALS_ENCRYPTION_KEY:?set stable Fernet key}",
+              "PRIVACY_HASH_KEY": "${PRIVACY_HASH_KEY:?set stable privacy HMAC key}",
+              "LLM_PROVIDER": "${LLM_PROVIDER:?set provider}",
+              "LLM_BASE_URL": "${LLM_BASE_URL:-https://api.openai.com/v1}",
+              "LLM_API_KEY": "${LLM_API_KEY:-}",
+              "LLM_MODEL_ROUTER": "${LLM_MODEL_ROUTER:-}",
+              "LLM_MODEL_REASONING": "${LLM_MODEL_REASONING:-}",
+              "LLM_MODEL_CHEAP": "${LLM_MODEL_CHEAP:-}",
+              "EMBEDDING_PROVIDER": "${EMBEDDING_PROVIDER:?set embedding provider}",
+              "EMBEDDING_MODEL": "${EMBEDDING_MODEL:-}",
+              "WHATSAPP_VERIFY_TOKEN": "${WHATSAPP_VERIFY_TOKEN:-}",
+              "WHATSAPP_APP_SECRET": "${WHATSAPP_APP_SECRET:-}",
+              "WHATSAPP_API_VERSION": "${WHATSAPP_API_VERSION:-}",
+              "RATE_LIMITS_ENABLED": "true",
+              "ALLOW_FAKE_MODELS_IN_PROD": "${ALLOW_FAKE_MODELS_IN_PROD:-false}",
+            },
+          "command": ["/app/.venv/bin/alembic", "upgrade", "head"],
+          "depends_on": { "postgres": { "condition": "service_healthy" } },
+        },
+      "api":
+        {
+          "build": { "context": ".", "dockerfile": "deploy/Dockerfile.api" },
+          "restart": "unless-stopped",
+          "read_only": true,
+          "tmpfs": ["/tmp:mode=1777,size=128m"],
+          "security_opt": ["no-new-privileges:true"],
+          "cap_drop": ["ALL"],
+          "volumes": ["prod_uploads:/data/uploads"],
+          "mem_limit": "1g",
+          "environment":
+            {
+              "APP_ENV": "prod",
+              "SECRET_KEY": "${SECRET_KEY:?set SECRET_KEY}",
+              "DATABASE_URL": "${DATABASE_URL:?set DATABASE_URL}",
+              "REDIS_URL": "redis://redis:6379/0",
+              "STORAGE_DIR": "/data/uploads",
+              "CORS_ORIGINS": "${CORS_ORIGINS:?set HTTPS origins}",
+              "PUBLIC_API_URL": "${PUBLIC_API_URL:?set HTTPS origin}",
+              "WIDGET_SCRIPT_URL": "${WIDGET_SCRIPT_URL:?set HTTPS widget URL}",
+              "CREDENTIALS_ENCRYPTION_KEY": "${CREDENTIALS_ENCRYPTION_KEY:?set stable Fernet key}",
+              "PRIVACY_HASH_KEY": "${PRIVACY_HASH_KEY:?set stable privacy HMAC key}",
+              "LLM_PROVIDER": "${LLM_PROVIDER:?set provider}",
+              "LLM_BASE_URL": "${LLM_BASE_URL:-https://api.openai.com/v1}",
+              "LLM_API_KEY": "${LLM_API_KEY:-}",
+              "LLM_MODEL_ROUTER": "${LLM_MODEL_ROUTER:-}",
+              "LLM_MODEL_REASONING": "${LLM_MODEL_REASONING:-}",
+              "LLM_MODEL_CHEAP": "${LLM_MODEL_CHEAP:-}",
+              "EMBEDDING_PROVIDER": "${EMBEDDING_PROVIDER:?set embedding provider}",
+              "EMBEDDING_MODEL": "${EMBEDDING_MODEL:-}",
+              "WHATSAPP_VERIFY_TOKEN": "${WHATSAPP_VERIFY_TOKEN:-}",
+              "WHATSAPP_APP_SECRET": "${WHATSAPP_APP_SECRET:-}",
+              "WHATSAPP_API_VERSION": "${WHATSAPP_API_VERSION:-}",
+              "RATE_LIMITS_ENABLED": "true",
+              "ALLOW_FAKE_MODELS_IN_PROD": "${ALLOW_FAKE_MODELS_IN_PROD:-false}",
+            },
+          "healthcheck":
+            {
+              "test":
+                [
+                  "CMD",
+                  "/app/.venv/bin/python",
+                  "-c",
+                  "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready')",
+                ],
+              "interval": "10s",
+              "timeout": "5s",
+              "retries": 20,
+            },
+          "depends_on":
+            {
+              "migrate": { "condition": "service_completed_successfully" },
+              "redis": { "condition": "service_healthy" },
+            },
+        },
+      "worker":
+        {
+          "build": { "context": ".", "dockerfile": "deploy/Dockerfile.api" },
+          "restart": "unless-stopped",
+          "read_only": true,
+          "tmpfs": ["/tmp:mode=1777,size=128m"],
+          "security_opt": ["no-new-privileges:true"],
+          "cap_drop": ["ALL"],
+          "volumes": ["prod_uploads:/data/uploads"],
+          "mem_limit": "1g",
+          "environment":
+            {
+              "APP_ENV": "prod",
+              "SECRET_KEY": "${SECRET_KEY:?set SECRET_KEY}",
+              "DATABASE_URL": "${DATABASE_URL:?set DATABASE_URL}",
+              "REDIS_URL": "redis://redis:6379/0",
+              "STORAGE_DIR": "/data/uploads",
+              "CORS_ORIGINS": "${CORS_ORIGINS:?set HTTPS origins}",
+              "PUBLIC_API_URL": "${PUBLIC_API_URL:?set HTTPS origin}",
+              "WIDGET_SCRIPT_URL": "${WIDGET_SCRIPT_URL:?set HTTPS widget URL}",
+              "CREDENTIALS_ENCRYPTION_KEY": "${CREDENTIALS_ENCRYPTION_KEY:?set stable Fernet key}",
+              "PRIVACY_HASH_KEY": "${PRIVACY_HASH_KEY:?set stable privacy HMAC key}",
+              "LLM_PROVIDER": "${LLM_PROVIDER:?set provider}",
+              "LLM_BASE_URL": "${LLM_BASE_URL:-https://api.openai.com/v1}",
+              "LLM_API_KEY": "${LLM_API_KEY:-}",
+              "LLM_MODEL_ROUTER": "${LLM_MODEL_ROUTER:-}",
+              "LLM_MODEL_REASONING": "${LLM_MODEL_REASONING:-}",
+              "LLM_MODEL_CHEAP": "${LLM_MODEL_CHEAP:-}",
+              "EMBEDDING_PROVIDER": "${EMBEDDING_PROVIDER:?set embedding provider}",
+              "EMBEDDING_MODEL": "${EMBEDDING_MODEL:-}",
+              "WHATSAPP_VERIFY_TOKEN": "${WHATSAPP_VERIFY_TOKEN:-}",
+              "WHATSAPP_APP_SECRET": "${WHATSAPP_APP_SECRET:-}",
+              "WHATSAPP_API_VERSION": "${WHATSAPP_API_VERSION:-}",
+              "RATE_LIMITS_ENABLED": "true",
+              "ALLOW_FAKE_MODELS_IN_PROD": "${ALLOW_FAKE_MODELS_IN_PROD:-false}",
+            },
+          "command":
+            ["/app/.venv/bin/arq", "app.workers.settings.WorkerSettings"],
+          "healthcheck":
+            {
+              "test":
+                [
+                  "CMD",
+                  "/app/.venv/bin/arq",
+                  "--check",
+                  "app.workers.settings.WorkerSettings",
+                ],
+              "interval": "60s",
+              "timeout": "10s",
+              "retries": 3,
+              "start_period": "60s",
+            },
+          "depends_on":
+            {
+              "migrate": { "condition": "service_completed_successfully" },
+              "redis": { "condition": "service_healthy" },
+            },
+        },
+      "web":
+        {
+          "build": { "context": ".", "dockerfile": "deploy/Dockerfile.web" },
+          "restart": "unless-stopped",
+          "ports": ["80:80", "443:443", "443:443/udp"],
+          "environment":
+            {
+              "APP_DOMAIN": "${APP_DOMAIN:?set domain}",
+              "TLS_EMAIL": "${TLS_EMAIL:?set certificate email}",
+            },
+          "volumes": ["caddy_data:/data", "caddy_config:/config"],
+          "depends_on": { "api": { "condition": "service_healthy" } },
+          "mem_limit": "256m",
+        },
+      "backup":
+        {
+          "build": { "context": ".", "dockerfile": "deploy/Dockerfile.ops" },
+          "restart": "unless-stopped",
+          "environment":
+            {
+              "PGHOST": "postgres",
+              "PGPORT": "5432",
+              "PGUSER": "munim",
+              "PGDATABASE": "munim",
+              "PGPASSWORD": "${POSTGRES_PASSWORD:?set database password}",
+              "BACKUP_BUCKET": "${BACKUP_BUCKET:?set private backup bucket}",
+              "BACKUP_PREFIX": "${BACKUP_PREFIX:-munim}",
+              "BACKUP_ENDPOINT_URL": "${BACKUP_ENDPOINT_URL:-}",
+              "BACKUP_SSE": "${BACKUP_SSE:-AES256}",
+              "BACKUP_KMS_KEY_ID": "${BACKUP_KMS_KEY_ID:-}",
+              "BACKUP_HOUR_UTC": "${BACKUP_HOUR_UTC:-20}",
+              "BACKUP_MINUTE_UTC": "${BACKUP_MINUTE_UTC:-30}",
+              "AWS_ACCESS_KEY_ID": "${AWS_ACCESS_KEY_ID:-}",
+              "AWS_SECRET_ACCESS_KEY": "${AWS_SECRET_ACCESS_KEY:-}",
+              "AWS_DEFAULT_REGION": "${AWS_DEFAULT_REGION:-ap-south-1}",
+              "ALERT_WEBHOOK_URL": "${ALERT_WEBHOOK_URL:-}",
+              "HEALTH_URL": "http://api:8000/ready",
+            },
+          "volumes":
+            [
+              "prod_uploads:/data/uploads:ro",
+              "backup_state:/backup-state",
+              "backup_work:/backups",
+            ],
+          "security_opt": ["no-new-privileges:true"],
+          "depends_on": { "api": { "condition": "service_healthy" } },
+          "mem_limit": "512m",
+        },
+      "monitor":
+        {
+          "build": { "context": ".", "dockerfile": "deploy/Dockerfile.ops" },
+          "restart": "unless-stopped",
+          "environment":
+            {
+              "ALERT_WEBHOOK_URL": "${ALERT_WEBHOOK_URL:-}",
+              "HEALTH_URL": "http://api:8000/ready",
+              "MONITOR_INTERVAL_S": "${MONITOR_INTERVAL_S:-60}",
+              "MONITOR_FAILURES": "${MONITOR_FAILURES:-3}",
+              "BACKUP_MAX_AGE_HOURS": "${BACKUP_MAX_AGE_HOURS:-26}",
+            },
+          "volumes": ["backup_state:/backup-state:ro"],
+          "security_opt": ["no-new-privileges:true"],
+          "depends_on": { "backup": { "condition": "service_started" } },
+          "mem_limit": "128m",
+          "command": ["/ops-venv/bin/python", "/ops/ops.py", "monitor"],
+        },
+    },
+  "volumes":
+    {
+      "prod_postgres": {},
+      "prod_redis": {},
+      "prod_uploads": {},
+      "caddy_data": {},
+      "caddy_config": {},
+      "backup_state": {},
+      "backup_work": {},
+    },
+}

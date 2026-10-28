@@ -1,0 +1,4 @@
+FROM postgres:16-alpine
+RUN apk add --no-cache python3 py3-pip aws-cli && python3 -m venv /ops-venv && /ops-venv/bin/pip install --no-cache-dir "psycopg[binary]==3.3.6" "pydantic-settings==2.16.1"
+COPY deploy/ops.py /ops/ops.py
+CMD ["/ops-venv/bin/python","/ops/ops.py","backup-loop"]
