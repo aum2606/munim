@@ -2,6 +2,7 @@ import json
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from functools import wraps
 from typing import Any, Protocol, TypeVar
 from uuid import UUID
@@ -32,6 +33,7 @@ class RunRecorder(Protocol):
         status: str,
         error: str | None,
         message_id: UUID | None,
+        started_at: datetime | None = None,
     ) -> None: ...
 
 
@@ -47,6 +49,7 @@ def recorded_call(
         output_type: type[BaseModel] | None = None,
     ) -> LLMResponse:
         started = time.perf_counter_ns()
+        started_at = datetime.now(UTC)
         response: LLMResponse | None = None
         status, error_name = AgentRunStatus.ERROR, None
         try:
@@ -83,6 +86,7 @@ def recorded_call(
                 status=status,
                 error=error_name,
                 message_id=message_id,
+                started_at=started_at,
             )
 
     return wrapped
