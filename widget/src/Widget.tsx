@@ -18,6 +18,7 @@ export function Widget({
 }: WidgetProps) {
   const client = useMemo(() => new WidgetClient(apiBase), [apiBase]);
   const [open, setOpen] = useState(initiallyOpen);
+  const [consented, setConsented] = useState(false);
   const [session, setSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [content, setContent] = useState("");
@@ -26,7 +27,7 @@ export function Widget({
   const [attempt, setAttempt] = useState(0);
   const draft = useRef<{ content: string; id: string } | null>(null);
   useEffect(() => {
-    if (!open || session) return;
+    if (!open || !consented || session) return;
     let active = true;
     setError("");
     client
@@ -40,7 +41,7 @@ export function Widget({
     return () => {
       active = false;
     };
-  }, [open, session, publicKey, client, attempt]);
+  }, [open, consented, session, publicKey, client, attempt]);
   useEffect(() => {
     if (!open || !session) return;
     const controller = new AbortController();
@@ -92,7 +93,15 @@ export function Widget({
           </header>
           <div class="messages" role="log" aria-live="polite">
             <p class="hint">{en.welcome}</p>
-            {!session && !error && <p>{en.connecting}</p>}
+            {!consented && (
+              <div class="privacy-notice">
+                <p>{en.privacy}</p>
+                <button type="button" onClick={() => setConsented(true)}>
+                  {en.startChat}
+                </button>
+              </div>
+            )}
+            {consented && !session && !error && <p>{en.connecting}</p>}
             {messages.map((message) => (
               <div key={message.id} class={"bubble " + message.direction}>
                 {message.content}
