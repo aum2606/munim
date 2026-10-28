@@ -1,3 +1,4 @@
+import logging
 import re
 from collections.abc import Mapping, MutableMapping
 from typing import Any
@@ -14,6 +15,11 @@ SENSITIVE = {
     "refresh_token",
     "api_key",
     "secret",
+    "app_secret",
+    "client_secret",
+    "credentials_encrypted",
+    "consent_note",
+    "token",
 }
 
 
@@ -34,12 +40,33 @@ def redact_event(logger: object, method: str, event: MutableMapping[str, Any]) -
     }
 
 
-def configure_logging() -> None:
-    import logging
+class StandardLogRedactor(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        if isinstance(record.args, tuple):
+            arguments = list(record.args)
+            if record.name == "uvicorn.access" and len(arguments) >= 5:
+                arguments[2] = str(arguments[2]).split("?", 1)[0]
+            record.args = tuple(redact(value) for value in arguments)
+        elif isinstance(record.args, dict):
+            record.args = redact(record.args)
+        record.msg = redact(str(record.msg))
+        if record.exc_info:
+            record.exc_text = redact(logging.Formatter().formatException(record.exc_info))
+            record.exc_info = None
+        return True
 
+
+def configure_logging() -> None:
     # Provider/media URLs can contain temporary credentials; do not emit HTTP request URLs.
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
+    for name in ("uvicorn.access", "uvicorn.error", "arq.worker", "arq.jobs"):
+        logger = logging.getLogger(name)
+        if not any(isinstance(value, StandardLogRedactor) for value in logger.filters):
+            logger.addFilter(StandardLogRedactor())
+    for handler in logging.getLogger().handlers:
+        if not any(isinstance(value, StandardLogRedactor) for value in handler.filters):
+            handler.addFilter(StandardLogRedactor())
     structlog.configure(
         processors=[
             structlog.processors.TimeStamper(fmt="iso"),

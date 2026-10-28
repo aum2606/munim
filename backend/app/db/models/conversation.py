@@ -142,6 +142,9 @@ class WidgetSession(TenantRecord):
         ),
     )
     conversation_id: Mapped[UUID]
+    consented_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    notice_version: Mapped[str | None]
+    is_playground: Mapped[bool] = mapped_column(default=False, server_default="false")
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 

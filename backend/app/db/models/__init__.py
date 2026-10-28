@@ -8,6 +8,7 @@ from app.db.models.channel import (
     WhatsAppTemplate,
 )
 from app.db.models.lead import Followup, Handoff, Lead, LeadEvent, ReplyDraft
+from app.db.models.privacy import PrivacyErasure
 from app.db.models.quote import Quote, QuoteItem, QuoteSequence
 from app.db.models.requirements import RequirementSchema
 from app.db.models.tenant import Tenant, TenantSettings
@@ -45,3 +46,5 @@ __all__ += ["ChannelStatusReceipt"]
 
 
 __all__ += ["AnalyticsEvent", "WeeklyDigest"]
+
+__all__ += ["PrivacyErasure"]

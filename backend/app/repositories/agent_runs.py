@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -7,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import redact
 from app.core.tenant import TenantContext
-from app.db.models import AgentRun
+from app.db.models import AgentRun, Message, TenantSettings
 
 
 class AgentRunRepository:
@@ -56,8 +57,28 @@ class DatabaseRunRecorder:
         status: str,
         error: str | None,
         message_id: UUID | None,
+        started_at: datetime | None = None,
     ) -> None:
         async with self.sessions() as session:
+            settings = (
+                await session.scalars(
+                    select(TenantSettings)
+                    .where(TenantSettings.tenant_id == ctx.tenant_id)
+                    .with_for_update()
+                )
+            ).one()
+            beginning = started_at or datetime.now(UTC) - timedelta(milliseconds=latency_ms)
+            erased = settings.last_erasure_at is not None and settings.last_erasure_at >= beginning
+            if message_id is not None:
+                source = await session.scalar(
+                    select(Message.id).where(
+                        Message.tenant_id == ctx.tenant_id, Message.id == message_id
+                    )
+                )
+                erased = erased or source is None
+            if erased:
+                request, output, tool_calls, message_id = {"privacy_erased": True}, {}, [], None
+                status, error = "error", "PrivacyErased"
             session.add(
                 AgentRun(
                     tenant_id=ctx.tenant_id,

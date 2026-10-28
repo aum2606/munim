@@ -1,8 +1,9 @@
 import secrets
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import BigInteger, Boolean, Integer, Numeric, String, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, DateTime, Integer, Numeric, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -42,3 +43,6 @@ class TenantSettings(TenantMixin, Base):
     followup_policy: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     handoff_rules: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     owner_notify_whatsapp: Mapped[bool] = mapped_column(default=False)
+
+    last_erasure_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -31,6 +31,7 @@ Config = Annotated[Settings, Depends(settings_for)]
 async def tenant_context(
     settings: Config,
     session: Session,
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
 ) -> TenantContext:
     if credentials is None:
@@ -40,6 +41,12 @@ async def tenant_context(
     user = await UserRepository(session, ctx).get(claims.sub)
     if not user.is_active:
         raise Unauthorized()
+    if settings.rate_limits_enabled:
+        from app.core.hardening import RateLimiter
+
+        limiter = RateLimiter(request.app.state.redis)
+        await limiter.check(f"tenant:{user.tenant_id}", settings.tenant_rate_per_minute)
+        await limiter.check(f"user:{user.tenant_id}:{user.id}", settings.user_rate_per_minute)
     return TenantContext(user.tenant_id, user.id, user.role.value)
 
 

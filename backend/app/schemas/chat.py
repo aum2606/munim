@@ -8,6 +8,8 @@ from app.db.models.conversation import ConversationMode, ConversationStatus, Dir
 
 
 class WidgetStart(BaseModel):
+    consent: bool = Field(default=False, strict=True)
+    notice_version: str = Field(default="", max_length=32)
     key: str = Field(min_length=20, max_length=128)
 
 

@@ -14,8 +14,10 @@ from app.core.tenant import TenantContext
 from app.db.models.knowledge import DocumentStatus, SourceType
 from app.ingestion.chunker import TextChunk, chunk_pages
 from app.ingestion.parsers import parse_document
+from app.ingestion.validation import validate_document
 from app.llm import Embedder
 from app.repositories.documents import DocumentRepository
+from app.repositories.storage import protect_storage_write
 from app.schemas.documents import DocumentView, FAQInput
 from app.workers.queue import JobQueue
 
@@ -38,7 +40,9 @@ class DocumentService:
         extensions = {".txt": SourceType.TXT, ".pdf": SourceType.PDF, ".docx": SourceType.DOCX}
         if suffix not in extensions or not content or len(content) > 5 * 1024 * 1024:
             raise DomainError("Upload a nonempty PDF, DOCX or UTF-8 TXT under 5 MB")
+        validate_document(content, suffix)
         source = source or extensions[suffix]
+        await protect_storage_write(self.session, self.ctx)
         document_id = uuid4()
         directory = Path(self.settings.storage_dir) / str(self.ctx.tenant_id)
         path = directory / (str(document_id) + suffix)
