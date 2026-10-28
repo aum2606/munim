@@ -1,3 +1,5 @@
+import { WhatsAppPage } from "./pages/WhatsApp";
+import { wa } from "./i18n/whatsapp";
 import { LeadsPage } from "./pages/Leads";
 import { Notifications } from "./components/Notifications";
 import { lt } from "./i18n/leads";
@@ -143,6 +145,7 @@ function ProtectedLayout() {
         <Link to="/playground">{kt.playground}</Link>
         <Link to="/inbox">{kt.inbox}</Link>
         <Link to="/leads">{lt.title}</Link>
+        <Link to="/whatsapp">{wa.title}</Link>
         <Link to="/quotes">{qt.title}</Link>
       </nav>
       <Notifications />
@@ -175,6 +178,7 @@ export function App() {
         <Route path="/playground" element={<PlaygroundPage />} />
         <Route path="/inbox" element={<InboxPage />} />
         <Route path="/leads" element={<LeadsPage />} />
+        <Route path="/whatsapp" element={<WhatsAppPage />} />
         <Route path="/quotes" element={<QuotesPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

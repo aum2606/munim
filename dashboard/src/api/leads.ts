@@ -89,8 +89,11 @@ export const leadsApi = {
     >,
   ) => request<Lead>("/leads/" + id, body(value, "PATCH")),
   followups: () => request<Followup[]>("/followups"),
-  followup: (id: string, action: "approve" | "cancel") =>
-    request<Followup>("/followups/" + id + "/action", body({ action })),
+  followup: (id: string, action: "approve" | "cancel", template_id?: string) =>
+    request<Followup>(
+      "/followups/" + id + "/action",
+      body({ action, template_id }),
+    ),
   policy: () => request<Policy>("/tenant/followup-policy"),
   savePolicy: (value: Policy) =>
     request<Policy>("/tenant/followup-policy", body(value, "PUT")),
@@ -98,10 +101,15 @@ export const leadsApi = {
   handoffs: () => request<Handoff[]>("/handoffs"),
   mode: (id: string, mode: string) =>
     request<void>("/conversations/" + id + "/mode", body({ mode })),
-  reply: (id: string, content: string, external_id: string) =>
+  reply: (
+    id: string,
+    content: string,
+    external_id: string,
+    buttons?: { id: string; title: string }[],
+  ) =>
     request<Message>(
       "/conversations/" + id + "/messages",
-      body({ content, external_id }),
+      body({ content, external_id, buttons }),
     ),
   drafts: (id: string) => request<Draft[]>("/conversations/" + id + "/drafts"),
   approveDraft: (id: string) =>
