@@ -1,6 +1,6 @@
 # Progress
 
-Current phase: Phase 4 implementation complete; live Meta test-number acceptance is pending external setup. Phase 5 is not started because the phase acceptance gate has not passed.
+Current phase: Phase 5 in progress. Current task: final dashboard/browser acceptance and hosted CI. User authorized proceeding while Phase 4 live Meta test-number acceptance remains pending.
 
 ### Phase 0 — Foundations (week 1)
 
@@ -121,15 +121,15 @@ Current phase: Phase 4 implementation complete; live Meta test-number acceptance
 - PASS (previous implementation run): `make eval`, nine offline eval tests, including enquiry → requirements → owner approval → generated PDF document transport and duplicate webhook checks. Expired windows block document uploads.
 - PASS (previous implementation run): `make migrate`, Alembic drift check, fresh upgrade/downgrade/upgrade and Docker service build/start. Reviewed additive migrations c5a795a9544e and 7eca09a42015.
 - Covered: tenant/role isolation, encrypted credentials, bounded authenticated media, price guardrails, consent, takeover races, retry exhaustion and uncertain delivery reconciliation. Mobile WhatsApp setup screenshot inspected at 375px width.
-- PENDING: final browser recheck and hosted CI. On resuming work, Docker's Linux engine was unavailable; the browser recheck was stopped without a result. Earlier service health does not establish current readiness.
-- PENDING LIVE ACCEPTANCE: user confirmed no Meta test number or recipient is configured. Offline transports do not satisfy the required live acceptance test. Follow README WhatsApp setup before performing the live test. Phase 5 remains gated unless the user explicitly authorizes proceeding with this exception.
+- PASS: hosted CI for 695fdad, including all twelve offline browser flows: https://github.com/aum2606/munim/actions/runs/40659865374 . Local Docker was unavailable on resuming work; it has since been restarted for Phase 5 checks.
+- PENDING LIVE ACCEPTANCE: user confirmed no Meta test number or recipient is configured. Offline transports do not satisfy the required live acceptance test. Follow README WhatsApp setup before performing the live test. User explicitly authorized starting Phase 5 with this live-test exception; live acceptance remains pending.
 
 ### Phase 5 — Insights & analytics (weeks 7–8)
 
-- [ ] `analytics_events` emission across the pipeline.
-- [ ] Analytics functions (§5.7) as tenant-scoped SQL with tests.
+- [x] `analytics_events` emission across the pipeline. Built: atomic typed events, unique replay keys, scoped references and allow-listed non-PII properties for inbound/replies, handoffs, quotes, leads, follow-ups and owner engagement.
+- [x] Analytics functions (§5.7) as tenant-scoped SQL with tests. Built: twelve fixed SQL tools, exact counts, bounded tables, IST windows/buckets, null-safe response/resolution metrics and cross-tenant isolation.
 - [ ] Insights Agent with tool calling; chart specs rendered in dashboard (Recharts).
-- [ ] Weekly digest cron (Mon 09:00 IST) → dashboard + optional WhatsApp to owner.
+- [x] Weekly digest cron (Mon 09:00 IST) → dashboard + optional WhatsApp to owner. Built: explicit UTC worker scheduling, previous IST week, startup catch-up and immutable tenant/week snapshots with concurrent deduplication. Optional owner WhatsApp/email delivery deferred pending recipient setup.
 - [ ] Overview dashboard: enquiries/day, top items, intent mix, funnel, first-response time, AI resolution rate, open knowledge gaps.
 
 **Acceptance:** "Who hasn't responded this week?", "What are people asking about most this month?", "How many quotes were accepted?" return correct answers verified against seeded data.
