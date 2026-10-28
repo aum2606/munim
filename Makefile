@@ -30,3 +30,7 @@ build:
 	pnpm build
 eval:
 	uv run --directory backend pytest tests/evals
+
+.PHONY: channel-key
+channel-key:
+	uv run --directory backend python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
