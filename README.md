@@ -210,7 +210,7 @@ Phase 2 quotation conversations, Phase 3 handoff/stage/follow-up acceptance, Pha
 races, stale edits, expiry, tenant isolation and auto-send limits. The opt-in real-model evaluation harness is Phase 6.
 
 `make e2e` runs Chromium flows at desktop and 375px mobile widths. With Compose running,
-install Chromium using `pnpm exec playwright install chromium`, then run `make e2e`. The twelve flows include approving a quotation and downloading
+install Chromium using `pnpm exec playwright install chromium`, then run `make e2e`. The fourteen flows include analytics/Ask Munim, approving a quotation and downloading
 its PDF, complaint handoff, private assist approval and return to AI with a real embedded
 widget on mobile and desktop.
 For a host API process use `uv run --directory backend uvicorn app.main:create_app

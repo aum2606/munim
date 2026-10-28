@@ -1,6 +1,6 @@
 # Progress
 
-Current phase: Phase 5 in progress. Current task: final dashboard/browser acceptance and hosted CI. User authorized proceeding while Phase 4 live Meta test-number acceptance remains pending.
+Current phase: Phase 5 complete. Phase 6 has not started. Phase 4 live Meta test-number acceptance remains pending under the user-authorized exception.
 
 ### Phase 0 — Foundations (week 1)
 
@@ -128,11 +128,23 @@ Current phase: Phase 5 in progress. Current task: final dashboard/browser accept
 
 - [x] `analytics_events` emission across the pipeline. Built: atomic typed events, unique replay keys, scoped references and allow-listed non-PII properties for inbound/replies, handoffs, quotes, leads, follow-ups and owner engagement.
 - [x] Analytics functions (§5.7) as tenant-scoped SQL with tests. Built: twelve fixed SQL tools, exact counts, bounded tables, IST windows/buckets, null-safe response/resolution metrics and cross-tenant isolation.
-- [ ] Insights Agent with tool calling; chart specs rendered in dashboard (Recharts).
+- [x] Insights Agent with tool calling; chart specs rendered in dashboard (Recharts). Built: reasoning-model typed tool plans, explicit twelve-tool allow-list, audited calls, exact Python-rendered answers/tables/chart specs, refusal gaps and accessible Recharts views.
 - [x] Weekly digest cron (Mon 09:00 IST) → dashboard + optional WhatsApp to owner. Built: explicit UTC worker scheduling, previous IST week, startup catch-up and immutable tenant/week snapshots with concurrent deduplication. Optional owner WhatsApp/email delivery deferred pending recipient setup.
-- [ ] Overview dashboard: enquiries/day, top items, intent mix, funnel, first-response time, AI resolution rate, open knowledge gaps.
+- [x] Overview dashboard: enquiries/day, top items, intent mix, funnel, first-response time, AI resolution rate, open knowledge gaps. Built: IST period filters, documented metric definitions, null-safe empty states, mobile charts with exact tables, lazy loading and links to scoped business records.
 
 **Acceptance:** "Who hasn't responded this week?", "What are people asking about most this month?", "How many quotes were accepted?" return correct answers verified against seeded data.
+
+#### Phase 5 verification — 2026-10-28
+
+- PASS: full implementation CI at 3dd288b: https://github.com/aum2606/munim/actions/runs/40690647860 . `make test` passes 172 backend tests and 30 frontend tests; pricing line/branch coverage is 100% (42 branches). Local full backend regression passed before the final schedule/concurrency/grouping cases were added; those targeted cases and the full hosted suite then pass.
+- PASS: `make lint` (Ruff, formatting, strict mypy on 143 app files, ESLint, Prettier, TypeScript), `make build`, `make migrate`, Alembic drift check and fresh testcontainer upgrade/downgrade/upgrade. Migration ef44c0737283 reviewed and applied cleanly; no new env variables.
+- PASS: `make eval`, twelve offline eval tests. The three Phase 5 seeded cases return one silent customer this week, visiting cards with three enquiries (ahead of brochures with one), and two accepted quotes in the selected creation cohort. Other-tenant records are excluded from every fixed analytics tool.
+- PASS: replayed inbound/outbound events remain unique; rollback removes their events; foreign-tenant references are rejected. Missing/blank lost reasons combine correctly, record limits report truncation, zero denominators return null, and first reply statistics match hand-counted seconds.
+- PASS: weekly scheduling calculation is Monday 09:00 IST even on a non-UTC host. Concurrent digest generation persists one immutable tenant/week snapshot; scoped latest reads and opened events work. The running worker successfully executes startup digest scheduling.
+- PASS: `make seed` preserves the three demo workspaces/passwords; `docker compose up -d --build` succeeds, migrations exit successfully, API readiness and worker health checks pass. Initial image dependency downloads were slow; the final source rebuild uses cached dependencies.
+- PASS: all fourteen `make e2e` flows locally and in hosted CI at desktop and explicit 375x812 mobile. New flow checks overview filtering/charts, grounded Ask Munim results, unsupported-query refusal, digest state and no horizontal overflow; existing auth, knowledge, quote/PDF, handoff and widget flows remain green. Overview and Insights screenshots visually reviewed at both widths.
+- PASS: chart modules are loaded separately from login; exact-value tables and translated labels remain available without relying on chart hover. No real model or Meta API is called by tests; real-model answer quality is not claimed.
+- Phase 5 acceptance is complete. Phase 4 live WhatsApp test remains pending external Meta setup; optional owner WhatsApp/email alerts/digests remain deferred. Phase 6 remains unchecked.
 
 ### Phase 6 — Hardening, evals, pilot launch (weeks 8–10)
 
