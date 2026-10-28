@@ -131,6 +131,7 @@ test("owner approves a quote and the embedded customer downloads its PDF", async
     },
   );
   await customer.getByRole("button", { name: "Chat with us" }).click();
+  await customer.getByRole("button", { name: "Agree & start chat" }).click();
   await expect(customer.getByLabel("Message", { exact: true })).toBeEnabled();
   await customer
     .getByLabel("Message", { exact: true })

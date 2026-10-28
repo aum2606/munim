@@ -1,3 +1,6 @@
+import { OnboardingPage } from "./pages/Onboarding";
+import { PrivacyPage } from "./pages/Privacy";
+import { pt } from "./i18n/pilot";
 import { it } from "./i18n/insights";
 import { WhatsAppPage } from "./pages/WhatsApp";
 import { wa } from "./i18n/whatsapp";
@@ -124,6 +127,12 @@ function ProtectedLayout() {
   const navigate = useNavigate();
   const cache = useQueryClient();
   const [active, setActive] = useState(hasSession());
+  const identity = useQuery({
+    queryKey: ["me"],
+    queryFn: api.me,
+    enabled: active,
+    retry: false,
+  });
   setSessionLost(() => {
     cache.clear();
     setActive(false);
@@ -152,6 +161,12 @@ function ProtectedLayout() {
         </Button>
       </header>
       <nav>
+        {identity.data?.role === "owner" && (
+          <>
+            <Link to="/onboarding">{pt.title}</Link>
+            <Link to="/privacy">{pt.privacy}</Link>
+          </>
+        )}
         <Link to="/">{en.home}</Link>
         <Link to="/insights">{it.title}</Link>
         <Link to="/knowledge">{kt.title}</Link>
@@ -200,6 +215,8 @@ export function App() {
             </Suspense>
           }
         />
+        <Route path="/onboarding" element={<OnboardingPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/knowledge" element={<KnowledgePage />} />
         <Route path="/playground" element={<PlaygroundPage />} />
         <Route path="/inbox" element={<InboxPage />} />

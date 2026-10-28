@@ -54,6 +54,8 @@ it("opens, renders streamed answers, and submits a customer message", async () =
   render(<Widget publicKey="synthetic-widget-key-123" apiBase="http://api" />);
   expect(screen.queryByRole("dialog")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Chat with us" }));
+  expect(fetcher).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Agree & start chat" }));
   expect(await screen.findByText("Visiting cards: \u20b9450.00")).toBeTruthy();
   fireEvent.input(screen.getByLabelText("Message"), {
     target: { value: "Are you open?" },
@@ -72,6 +74,7 @@ it("shows a connection error with an explicit retry", async () => {
       initiallyOpen
     />,
   );
+  fireEvent.click(screen.getByRole("button", { name: "Agree & start chat" }));
   expect(await screen.findByRole("alert")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Reconnect" })).toBeTruthy();
 });

@@ -31,7 +31,11 @@ export class WidgetClient {
     return this.request<ChatSession>("/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key }),
+      body: JSON.stringify({
+        key,
+        consent: true,
+        notice_version: "2026-10-28",
+      }),
     });
   }
   send(session: ChatSession, content: string, externalId: string) {

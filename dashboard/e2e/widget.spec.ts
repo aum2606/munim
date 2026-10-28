@@ -63,6 +63,7 @@ test("embedded widget answers a catalogue price across origins", async ({
     },
   );
   await page.getByRole("button", { name: "Chat with us" }).click();
+  await page.getByRole("button", { name: "Agree & start chat" }).click();
   await expect(page.getByLabel("Message", { exact: true })).toBeEnabled();
   await page
     .getByLabel("Message", { exact: true })
