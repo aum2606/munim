@@ -1,4 +1,5 @@
-﻿import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { QuotesPage } from "./Quotes";
@@ -57,7 +58,7 @@ beforeEach(() => {
   ]);
 });
 afterEach(() => vi.restoreAllMocks());
-function mount() {
+function mount(path = "/quotes") {
   return render(
     <QueryClientProvider
       client={
@@ -69,7 +70,9 @@ function mount() {
         })
       }
     >
-      <QuotesPage />
+      <MemoryRouter initialEntries={[path]}>
+        <QuotesPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -175,4 +178,16 @@ it("preserves existing line and quote discounts while editing quantity", async (
       null,
     ),
   );
+});
+
+it("opens a quote linked from an insights result even when it is accepted", async () => {
+  quote = { ...quote, status: "accepted" };
+  mount("/quotes?quote=q1");
+  expect(
+    await screen.findByRole("heading", { name: "Q/2026-27/0001" }),
+  ).toBeTruthy();
+  expect(
+    (screen.getByLabelText("Pending approvals only") as HTMLInputElement)
+      .checked,
+  ).toBe(false);
 });
