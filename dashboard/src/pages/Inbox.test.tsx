@@ -1,3 +1,7 @@
+import { whatsappApi } from "../api/whatsapp";
+import { api } from "../api/client";
+import { saveBlob } from "../api/quotes";
+vi.mock("../api/quotes", () => ({ saveBlob: vi.fn() }));
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -89,5 +93,65 @@ it("takes over before sending a staff reply and exposes private draft approval",
   fireEvent.click(screen.getByRole("button", { name: "Approve & send" }));
   await waitFor(() =>
     expect(approve).toHaveBeenCalledWith("d", expect.anything()),
+  );
+});
+
+it("downloads a WhatsApp attachment using the authenticated API", async () => {
+  vi.spyOn(api, "me").mockResolvedValue({
+    id: "u",
+    tenant_id: "t",
+    name: "Owner",
+    role: "owner",
+    email: "owner@example.test",
+  });
+  vi.spyOn(knowledgeApi, "conversations").mockResolvedValue([
+    {
+      id: "c",
+      channel: "whatsapp",
+      mode: "human",
+      status: "open",
+      last_customer_msg_at: null,
+      last_business_msg_at: null,
+    },
+  ]);
+  vi.spyOn(knowledgeApi, "messages").mockResolvedValue([
+    {
+      id: "m",
+      conversation_id: "c",
+      direction: "in",
+      content: "Document received",
+      created_at: "2026-10-27",
+      attachments: [{ media_id: "1234567", filename: "example.pdf" }],
+    },
+  ]);
+  vi.spyOn(leadsApi, "drafts").mockResolvedValue([]);
+  vi.spyOn(whatsappApi, "consent").mockResolvedValue({
+    opted_in_at: null,
+    opted_out: false,
+    consent_note: "",
+    freeform_allowed: true,
+  });
+  const download = vi
+    .spyOn(whatsappApi, "media")
+    .mockResolvedValue(new Blob(["%PDF-synthetic"]));
+  render(
+    <QueryClientProvider
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
+    >
+      <MemoryRouter>
+        <InboxPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Download attachment" }),
+  );
+  await waitFor(() =>
+    expect(download).toHaveBeenCalledWith("c", "m", "1234567"),
+  );
+  await waitFor(() =>
+    expect(saveBlob).toHaveBeenCalledWith(expect.any(Blob), "example.pdf"),
   );
 });

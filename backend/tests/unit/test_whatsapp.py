@@ -27,6 +27,7 @@ def test_raw_signature_and_exact_24_hour_boundary():
     assert adapter.verify_webhook(raw, signature)
     assert not adapter.verify_webhook(raw + b" ", signature)
     assert not adapter.verify_webhook(raw, "wrong")
+    assert not adapter.verify_webhook(raw, "sha256=é")
     now = datetime.now(UTC)
     conversation = Conversation(
         status=ConversationStatus.OPEN, last_customer_msg_at=now - timedelta(hours=24)
@@ -103,13 +104,16 @@ async def test_graph_wire_contract_and_redacted_errors():
         "synthetic",
         httpx.MockTransport(
             lambda _: httpx.Response(
-                401, json={"error": {"code": 190, "message": "sensitive-provider-detail"}}
+                401,
+                headers={"Retry-After": "45"},
+                json={"error": {"code": 190, "message": "sensitive-provider-detail"}},
             )
         ),
     )
     with pytest.raises(GraphRejected) as failure:
         await bad.send("12345", {})
     assert failure.value.code == "190" and "sensitive" not in str(failure.value)
+    assert failure.value.retry_after == 45
     malformed = WhatsAppGraph(
         config(), "synthetic", httpx.MockTransport(lambda _: httpx.Response(200, json={}))
     )
