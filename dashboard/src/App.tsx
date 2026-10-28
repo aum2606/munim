@@ -1,3 +1,4 @@
+import { it } from "./i18n/insights";
 import { WhatsAppPage } from "./pages/WhatsApp";
 import { wa } from "./i18n/whatsapp";
 import { LeadsPage } from "./pages/Leads";
@@ -5,7 +6,7 @@ import { Notifications } from "./components/Notifications";
 import { lt } from "./i18n/leads";
 import { QuotesPage } from "./pages/Quotes";
 import { qt } from "./i18n/quotes";
-import { useState, type FormEvent } from "react";
+import { useState, lazy, Suspense, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Link,
@@ -22,6 +23,17 @@ import { knowledge as kt } from "./i18n/knowledge";
 import { KnowledgePage } from "./pages/Knowledge";
 import { PlaygroundPage } from "./pages/Playground";
 import { InboxPage } from "./pages/Inbox";
+
+const AnalyticsOverview = lazy(() =>
+  import("./pages/Insights").then((module) => ({
+    default: module.AnalyticsOverview,
+  })),
+);
+const InsightsPage = lazy(() =>
+  import("./pages/Insights").then((module) => ({
+    default: module.InsightsPage,
+  })),
+);
 
 function AuthPage({ register = false }: { register?: boolean }) {
   const navigate = useNavigate();
@@ -141,6 +153,7 @@ function ProtectedLayout() {
       </header>
       <nav>
         <Link to="/">{en.home}</Link>
+        <Link to="/insights">{it.title}</Link>
         <Link to="/knowledge">{kt.title}</Link>
         <Link to="/playground">{kt.playground}</Link>
         <Link to="/inbox">{kt.inbox}</Link>
@@ -160,11 +173,16 @@ function Overview() {
   if (profile.isPending) return <p>{en.loading}</p>;
   if (profile.isError) return <p role="alert">{en.error}</p>;
   return (
-    <section className="card">
-      <p className="eyebrow">{profile.data.name}</p>
-      <h1>{en.welcome}</h1>
-      <p>{en.foundation}</p>
-    </section>
+    <>
+      <section className="card">
+        <p className="eyebrow">{profile.data.name}</p>
+        <h1>{en.welcome}</h1>
+        <p>{en.foundation}</p>
+      </section>
+      <Suspense fallback={<p>{en.loading}</p>}>
+        <AnalyticsOverview />
+      </Suspense>
+    </>
   );
 }
 export function App() {
@@ -174,6 +192,14 @@ export function App() {
       <Route path="/register" element={<AuthPage register />} />
       <Route element={<ProtectedLayout />}>
         <Route path="/" element={<Overview />} />
+        <Route
+          path="/insights"
+          element={
+            <Suspense fallback={<p>{en.loading}</p>}>
+              <InsightsPage />
+            </Suspense>
+          }
+        />
         <Route path="/knowledge" element={<KnowledgePage />} />
         <Route path="/playground" element={<PlaygroundPage />} />
         <Route path="/inbox" element={<InboxPage />} />

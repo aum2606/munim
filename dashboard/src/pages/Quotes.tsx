@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -400,8 +401,9 @@ function ProfileForm({ profile }: { profile: QuoteProfile }) {
   );
 }
 export function QuotesPage() {
-  const [pendingOnly, setPendingOnly] = useState(true);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [params] = useSearchParams();
+  const [pendingOnly, setPendingOnly] = useState(!params.has("quote"));
+  const [selected, setSelected] = useState<string | null>(params.get("quote"));
   const cache = useQueryClient();
   const quotes = useQuery({
     queryKey: ["quotes"],
