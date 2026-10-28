@@ -80,7 +80,10 @@ async def reply(
     conversation_id: UUID, body: StaffReply, session: Session, ctx: Context, config: Config
 ) -> MessageView:
     message = await InboxService(session, ctx, config).reply(
-        conversation_id, body.content, body.external_id
+        conversation_id,
+        body.content,
+        body.external_id,
+        [button.model_dump() for button in body.buttons],
     )
     await session.commit()
     return MessageView.model_validate(message)

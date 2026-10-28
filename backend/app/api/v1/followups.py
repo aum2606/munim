@@ -2,7 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter
 
-from app.core.deps import Context, Owner, Session
+from app.core.deps import Config, Context, Owner, Session
 from app.core.followups import FollowupService
 from app.repositories.followups import FollowupRepository
 from app.repositories.identity import TenantRepository
@@ -21,10 +21,12 @@ async def followups(session: Session, ctx: Context) -> list[FollowupView]:
 
 @router.post("/followups/{followup_id}/action", response_model=FollowupView)
 async def action(
-    followup_id: UUID, body: FollowupAction, session: Session, ctx: Owner
+    followup_id: UUID, body: FollowupAction, session: Session, ctx: Owner, config: Config
 ) -> FollowupView:
     return FollowupView.model_validate(
-        await FollowupService(session, ctx).act(followup_id, body.action == "approve")
+        await FollowupService(session, ctx, config).act(
+            followup_id, body.action == "approve", body.template_id
+        )
     )
 
 

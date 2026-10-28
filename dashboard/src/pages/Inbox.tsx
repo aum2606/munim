@@ -1,3 +1,7 @@
+import { saveBlob } from "../api/quotes";
+import { WhatsAppConsentForm } from "../components/WhatsAppControls";
+import { whatsappApi } from "../api/whatsapp";
+import { wa } from "../i18n/whatsapp";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,6 +12,7 @@ export function InboxPage() {
   const cache = useQueryClient();
   const [params, setParams] = useSearchParams();
   const [reply, setReply] = useState("");
+  const [includeButton, setIncludeButton] = useState(false);
   const [externalId, setExternalId] = useState(() => crypto.randomUUID());
   const [search, setSearch] = useState("");
   const conversations = useQuery({
@@ -32,6 +37,23 @@ export function InboxPage() {
     enabled: !!current,
     refetchInterval: 5000,
   });
+  const consent = useQuery({
+    queryKey: ["wa-consent", current],
+    queryFn: () => whatsappApi.consent(current!),
+    enabled: conversation?.channel === "whatsapp",
+    refetchInterval: 5000,
+  });
+  const download = useMutation({
+    mutationFn: async (value: {
+      messageId: string;
+      mediaId: string;
+      filename: string;
+    }) =>
+      saveBlob(
+        await whatsappApi.media(current!, value.messageId, value.mediaId),
+        value.filename,
+      ),
+  });
   const refresh = () => {
     for (const key of [
       "conversations",
@@ -46,7 +68,12 @@ export function InboxPage() {
     onSuccess: refresh,
   });
   const send = useMutation({
-    mutationFn: () => leadsApi.reply(current!, reply, externalId),
+    mutationFn: () =>
+      conversation?.channel === "whatsapp" && includeButton
+        ? leadsApi.reply(current!, reply, externalId, [
+            { id: "talk_to_team", title: "Ask the team" },
+          ])
+        : leadsApi.reply(current!, reply, externalId),
     onSuccess: () => {
       setReply("");
       setExternalId(crypto.randomUUID());
@@ -60,11 +87,14 @@ export function InboxPage() {
   const canReply =
     !!conversation &&
     conversation.mode !== "ai" &&
-    conversation.status === "open";
+    conversation.status === "open" &&
+    (conversation.channel !== "whatsapp" ||
+      consent.data?.freeform_allowed === true);
   return (
     <div className="page-stack">
       <h1>{t.inbox}</h1>
-      {(mode.isError ||
+      {(download.isError ||
+        mode.isError ||
         send.isError ||
         approve.isError ||
         conversations.isError ||
@@ -83,6 +113,7 @@ export function InboxPage() {
               key={c.id}
               onClick={() => {
                 setParams({ conversation: c.id });
+                setIncludeButton(false);
                 setReply("");
                 setExternalId(crypto.randomUUID());
               }}
@@ -126,6 +157,24 @@ export function InboxPage() {
                 key={message.id}
               >
                 <p>{message.content}</p>
+                {message.attachments
+                  .filter((entry) => entry.media_id)
+                  .map((entry) => (
+                    <button
+                      type="button"
+                      key={entry.media_id}
+                      disabled={download.isPending}
+                      onClick={() =>
+                        download.mutate({
+                          messageId: message.id,
+                          mediaId: entry.media_id!,
+                          filename: entry.filename || "attachment",
+                        })
+                      }
+                    >
+                      {wa.download}
+                    </button>
+                  ))}
               </div>
             ))}
             {!messages.data?.length && <p className="muted">{t.noMessages}</p>}
@@ -149,6 +198,13 @@ export function InboxPage() {
               ))}
             </section>
           )}
+          {conversation?.channel === "whatsapp" && consent.data && current && (
+            <WhatsAppConsentForm
+              conversationId={current}
+              consent={consent.data}
+            />
+          )}
+          {consent.isError && <p role="alert">{wa.error}</p>}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -167,6 +223,17 @@ export function InboxPage() {
                 }}
               />
             </label>
+            {conversation?.channel === "whatsapp" && (
+              <label>
+                <input
+                  type="checkbox"
+                  checked={includeButton}
+                  disabled={!canReply}
+                  onChange={(e) => setIncludeButton(e.target.checked)}
+                />
+                {wa.buttons}
+              </label>
+            )}
             {!canReply && <p>{t.modeHint}</p>}
             <button disabled={!canReply || !reply.trim() || send.isPending}>
               {t.send}

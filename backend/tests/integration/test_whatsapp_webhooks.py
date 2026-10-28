@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import json
 from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import httpx
 from cryptography.fernet import Fernet
@@ -21,7 +21,9 @@ def signed(payload):
     }
 
 
-def inbound(text="Hello", message_id="wamid.synthetic", kind="text", details=None):
+def inbound(
+    text="Hello", message_id="wamid.synthetic", kind="text", details=None, phone_id="987654321"
+):
     return {
         "object": "whatsapp_business_account",
         "entry": [
@@ -31,7 +33,7 @@ def inbound(text="Hello", message_id="wamid.synthetic", kind="text", details=Non
                     {
                         "field": "messages",
                         "value": {
-                            "metadata": {"phone_number_id": "987654321"},
+                            "metadata": {"phone_number_id": phone_id},
                             "messages": [
                                 {
                                     "id": message_id,
@@ -52,12 +54,18 @@ def inbound(text="Hello", message_id="wamid.synthetic", kind="text", details=Non
 async def setup_channel(client):
     auth, ctx, user = await owner(client)
     app = client._transport.app
+    phone_id = str(uuid4().int)[:15]
     app.state.settings.credentials_encryption_key = SecretStr(Fernet.generate_key().decode())
     app.state.settings.whatsapp_api_version = "v23.0"
     app.state.settings.whatsapp_app_secret = SecretStr("synthetic-app-secret")
     app.state.settings.whatsapp_verify_token = SecretStr("synthetic-verify-token")
     app.state.whatsapp_transport = httpx.MockTransport(
-        lambda request: httpx.Response(200, json={"data": [{"id": "987654321"}]})
+        lambda request: httpx.Response(
+            200,
+            json={"success": True}
+            if request.url.path.endswith("/subscribed_apps")
+            else {"data": [{"id": phone_id}]},
+        )
     )
 
     class Queue:
@@ -71,7 +79,7 @@ async def setup_channel(client):
         "/api/v1/channels/whatsapp",
         headers=auth,
         json={
-            "phone_number_id": "987654321",
+            "phone_number_id": phone_id,
             "business_account_id": "123456789",
             "access_token": "synthetic-provider-token",
         },
@@ -99,7 +107,7 @@ async def test_verified_connection_signed_inbound_dedup_and_isolation(client, se
     )
     assert (await client.get(verify)).text == "123"
     assert (await client.get(verify.replace("synthetic-verify-token", "bad"))).status_code == 403
-    raw, signature = signed(inbound())
+    raw, signature = signed(inbound(phone_id=account["external_id"]))
     assert (await client.post("/api/v1/webhooks/whatsapp", content=raw)).status_code == 403
     assert (
         await client.post("/api/v1/webhooks/whatsapp", content=raw + b" ", headers=signature)
@@ -117,7 +125,7 @@ async def test_verified_connection_signed_inbound_dedup_and_isolation(client, se
         assert "synthetic-provider-token" not in stored.credentials_encrypted
     assert (await client.get("/api/v1/conversations", headers=b)).json() == []
     assert len(app.state.jobs.jobs) == 2 and app.state.jobs.jobs[0] == app.state.jobs.jobs[1]
-    raw, signature = signed(inbound("STOP", "wamid.stop"))
+    raw, signature = signed(inbound("STOP", "wamid.stop", phone_id=account["external_id"]))
     assert (
         await client.post("/api/v1/webhooks/whatsapp", content=raw, headers=signature)
     ).status_code == 200

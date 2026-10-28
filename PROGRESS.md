@@ -1,6 +1,6 @@
 # Progress
 
-Current phase: Phase 4 in progress. Current task: encrypted channel accounts, WhatsApp contacts/templates and durable delivery models. Live Meta test-number acceptance is pending external setup; Phase 5 is not started.
+Current phase: Phase 4 implementation complete; live Meta test-number acceptance is pending external setup. Phase 5 is not started because the phase acceptance gate has not passed.
 
 ### Phase 0 — Foundations (week 1)
 
@@ -107,12 +107,22 @@ Current phase: Phase 4 in progress. Current task: encrypted channel accounts, Wh
 
 ### Phase 4 — WhatsApp channel (weeks 6–7)
 
-- [ ] `channel_accounts` with encrypted credentials; WhatsApp adapter (webhook verify, signature check, inbound parse incl. media, outbound text/document/interactive buttons, delivery statuses).
-- [ ] 24h window logic; template-message support for follow-ups; template registry in settings.
-- [ ] Owner notifications on WhatsApp (handoffs, pending quotes) — optional.
-- [ ] Load/robustness: idempotent webhooks, retries with backoff, dead-letter logging.
+- [x] `channel_accounts` with encrypted credentials; WhatsApp adapter (webhook verify, signature check, inbound parse incl. media, outbound text/document/interactive buttons, delivery statuses). Built: verified WABA connection, Fernet credentials, signed ingestion, tenant-scoped media downloads and durable provider status tracking.
+- [x] 24h window logic; template-message support for follow-ups; template registry in settings. Built: exact service-window checks, owner-recorded consent, STOP handling, synchronized approved static templates and owner settings/approval controls.
+- [ ] Owner notifications on WhatsApp (handoffs, pending quotes) — optional. Deferred; dashboard notifications remain available.
+- [x] Load/robustness: idempotent webhooks, retries with backoff, dead-letter logging. Built: transactional outbox, bounded retries, persisted early/out-of-order receipts, ambiguous-send quarantine and explicit owner reconciliation.
 
 **Acceptance:** End-to-end on a WhatsApp test number: enquiry → answer → requirements → approved quote PDF delivered as document; duplicate webhook deliveries don't create duplicate messages.
+
+#### Phase 4 verification — 2026-10-28
+
+- PASS (previous implementation run): `make test`, 161 backend and 25 frontend tests; pricing line/branch coverage 100%. Tests use isolated PostgreSQL/Redis and fake model/Meta transports.
+- PASS: `make lint`, including strict mypy on 134 application files, and `make build` for dashboard and widget (20.05 kB).
+- PASS (previous implementation run): `make eval`, nine offline eval tests, including enquiry → requirements → owner approval → generated PDF document transport and duplicate webhook checks. Expired windows block document uploads.
+- PASS (previous implementation run): `make migrate`, Alembic drift check, fresh upgrade/downgrade/upgrade and Docker service build/start. Reviewed additive migrations c5a795a9544e and 7eca09a42015.
+- Covered: tenant/role isolation, encrypted credentials, bounded authenticated media, price guardrails, consent, takeover races, retry exhaustion and uncertain delivery reconciliation. Mobile WhatsApp setup screenshot inspected at 375px width.
+- PENDING: final browser recheck and hosted CI. On resuming work, Docker's Linux engine was unavailable; the browser recheck was stopped without a result. Earlier service health does not establish current readiness.
+- PENDING LIVE ACCEPTANCE: user confirmed no Meta test number or recipient is configured. Offline transports do not satisfy the required live acceptance test. Follow README WhatsApp setup before performing the live test. Phase 5 remains gated unless the user explicitly authorizes proceeding with this exception.
 
 ### Phase 5 — Insights & analytics (weeks 7–8)
 

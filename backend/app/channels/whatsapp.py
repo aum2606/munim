@@ -14,9 +14,10 @@ from app.schemas.whatsapp import MetaMessage, ParsedInbound
 
 
 class GraphRejected(DomainError):
-    def __init__(self, status: int, code: str = "provider_rejected") -> None:
+    def __init__(self, status: int, code: str = "provider_rejected", retry_after: int = 0) -> None:
         super().__init__("WhatsApp request rejected; check channel delivery details", 502)
         self.provider_status, self.code = status, code
+        self.retry_after = retry_after
 
 
 class GraphAmbiguous(DomainError):
@@ -43,7 +44,7 @@ class WhatsAppGraph:
         pdf: bytes | None = None,
     ) -> dict[str, Any]:
         if not re.fullmatch(
-            r"[0-9]+(?:/(?:messages|media|message_templates|phone_numbers))?", path
+            r"[0-9]+(?:/(?:messages|media|message_templates|phone_numbers|subscribed_apps))?", path
         ):
             raise DomainError("Invalid WhatsApp resource")
         async with httpx.AsyncClient(
@@ -71,8 +72,14 @@ class WhatsAppGraph:
         if not response.is_success:
             error = body.get("error", {}) if isinstance(body, dict) else {}
             code = error.get("code") if isinstance(error, dict) else None
+            retry_value = response.headers.get("retry-after", "")
+            retry_after = (
+                min(86400, int(retry_value)) if re.fullmatch(r"[0-9]{1,6}", retry_value) else 0
+            )
             raise GraphRejected(
-                response.status_code, str(code) if isinstance(code, int) else "provider_rejected"
+                response.status_code,
+                str(code) if isinstance(code, int) else "provider_rejected",
+                retry_after,
             )
         if not isinstance(body, dict):
             raise GraphAmbiguous()
@@ -90,7 +97,8 @@ class WhatsAppGraph:
             paging = body.get("paging", {})
             if not isinstance(paging, dict) or not paging.get("next"):
                 return rows
-            after = paging.get("cursors", {}).get("after")
+            cursors = paging.get("cursors", {})
+            after = cursors.get("after") if isinstance(cursors, dict) else None
             if not isinstance(after, str) or not after:
                 raise DomainError("Invalid WhatsApp pagination", 502)
             # Use a fixed host/path and cursor; never follow a token-bearing arbitrary next URL.
@@ -101,6 +109,42 @@ class WhatsAppGraph:
         phones = await self.list_resources(waba_id + "/phone_numbers", "id")
         if not any(str(phone.get("id")) == phone_id for phone in phones):
             raise DomainError("Phone number does not belong to this WhatsApp business account", 409)
+
+    async def download_media(self, phone_id: str, media_id: str) -> bytes:
+        from urllib.parse import urlparse
+
+        # Meta reference: https://www.postman.com/meta/whatsapp-business-platform/request/ptjyi84/retrieve-media-url
+        metadata = await self.request("GET", media_id, params={"phone_number_id": phone_id})
+        url = metadata.get("url")
+        if not isinstance(url, str) or metadata.get("id") != media_id:
+            raise DomainError("Invalid Meta media metadata", 502)
+        parsed = urlparse(url)
+        if (
+            parsed.scheme != "https"
+            or parsed.hostname not in {"lookaside.fbsbx.com", "graph.facebook.com"}
+            or parsed.port not in {None, 443}
+            or parsed.username
+            or parsed.password
+        ):
+            raise DomainError("Unsupported Meta media host", 502)
+        declared = metadata.get("file_size")
+        if isinstance(declared, int) and declared > self.config.whatsapp_max_media_bytes:
+            raise DomainError("Attachment exceeds the configured download limit", 413)
+        content = bytearray()
+        async with httpx.AsyncClient(
+            transport=self.transport,
+            timeout=self.config.whatsapp_timeout_s,
+            headers={"Authorization": "Bearer " + self.token},
+            follow_redirects=False,
+        ) as client:
+            async with client.stream("GET", url) as response:
+                if response.status_code != 200:
+                    raise DomainError("WhatsApp attachment is unavailable", 502)
+                async for chunk in response.aiter_bytes():
+                    content.extend(chunk)
+                    if len(content) > self.config.whatsapp_max_media_bytes:
+                        raise DomainError("Attachment exceeds the configured download limit", 413)
+        return bytes(content)
 
     async def upload_pdf(self, phone_id: str, pdf: bytes) -> str:
         response = await self.request("POST", phone_id + "/media", pdf=pdf)
@@ -128,7 +172,7 @@ class WhatsAppAdapter:
 
     def verify_webhook(self, raw: bytes, signature: str) -> bool:
         secret = self.config.whatsapp_app_secret.get_secret_value()
-        if not secret or not signature.startswith("sha256="):
+        if not secret or not re.fullmatch(r"sha256=[0-9a-f]{64}", signature):
             return False
         expected = "sha256=" + hmac.new(secret.encode(), raw, hashlib.sha256).hexdigest()
         return hmac.compare_digest(expected, signature)

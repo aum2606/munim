@@ -454,3 +454,23 @@ textarea {
 #lead-detail dd {
   margin: 0;
 }
+
+.channel-card {
+  overflow-wrap: anywhere;
+  min-width: 0;
+  margin: 0.8rem 0;
+  padding: 0.8rem;
+  border: 1px solid #dbe3dc;
+  border-radius: 8px;
+}
+.channel-card button {
+  margin: 0.4rem 0.4rem 0.4rem 0;
+}
+.channel-card summary {
+  cursor: pointer;
+}
+.channel-card input[type="checkbox"] {
+  width: auto;
+  display: inline-block;
+  margin-right: 0.5rem;
+}

@@ -104,6 +104,63 @@ adapters and approved templates. Working hours can be configured through
 `{"hours":{"monday":["09:00","18:00"]}}`. Days not configured are closed;
 empty hours make no out-of-hours claim. Holding replies use the tenant timezone.
 
+## WhatsApp setup and live acceptance
+
+Phase 4 code includes signed webhooks, encrypted per-tenant accounts, native quote PDF
+uploads, interactive reply buttons, static template follow-ups and durable delivery
+status/reconciliation. The automated acceptance uses a fake Meta HTTP transport;
+a real Meta test-number run is still pending because no test number is configured.
+
+1. Create/register your WhatsApp test number in Meta and add an authorized test recipient.
+   Use a token from the same Meta app as your webhook configuration, with
+   `whatsapp_business_messaging` and `whatsapp_business_management` permissions.
+2. Run `make channel-key` once and put its output in `CREDENTIALS_ENCRYPTION_KEY`
+   in `.env`. Keep this key private and stable; changing it requires reconnecting
+   existing accounts. Set `WHATSAPP_APP_SECRET`, a random `WHATSAPP_VERIFY_TOKEN`,
+   and a currently supported `WHATSAPP_API_VERSION` in the form `vNN.0`.
+3. Set `PUBLIC_API_URL` to your public HTTPS API origin and restart API/worker services.
+   In Meta configure the callback shown in Dashboard > WhatsApp, normally
+   `https://your-api.example/api/v1/webhooks/whatsapp`, with the same verification token.
+   Enable the `messages` webhook field. Localhost alone cannot receive Meta callbacks.
+4. In WhatsApp settings enter the phone-number ID, WABA ID and token. Connection verifies
+   the phone belongs to that WABA and subscribes the token's app to WABA webhooks.
+   Credentials are encrypted and never returned by the API. Reconnect with the same
+   IDs to rotate a token. Disabling the account stops new processing/sends while
+   delivery status callbacks continue to be recorded.
+5. Sync approved templates from Meta. Follow-ups support static BODY-only text templates
+   without variables or money; unsupported templates are shown but unavailable. Record
+   the customer's opt-in and evidence in Inbox before approving a template follow-up.
+   Review the exact template text in Leads. STOP revokes opt-in and stops automation.
+
+Free-form text, reply buttons and quote documents are allowed only while the customer's
+24-hour window remains open. The original provider timestamp controls this window;
+webhook replay does not reopen it. Expired quotes and windows block delivery. Media
+inbound is retained as metadata/caption and routed to staff; automatic OCR/ingestion is
+not part of this phase. Staff can download the original attachment from Inbox through
+an authenticated, size-bounded server endpoint (8 MiB default); provider tokens and
+temporary media URLs are never exposed to the browser.
+
+WhatsApp deliveries are durably queued in the same transaction as message approval.
+Quote/follow-up sent state means released to the channel; WhatsApp > Delivery history
+shows actual queued/accepted/delivered/read state. Workers scan every five seconds,
+retry explicit transient rejections with bounded backoff/Retry-After, and record failed
+or blocked deliveries for owner review. Ambiguous sends and interrupted workers are
+marked uncertain and hold later conversation deliveries. Check Meta before explicitly
+confirming a provider message ID or confirming a message was not sent and retrying.
+The system does not claim exactly-once delivery across an ambiguous network failure.
+
+For live acceptance, send the seeded printing enquiry from the authorized test recipient,
+complete requirements, approve the quote in the dashboard, and verify the PDF arrives
+as a WhatsApp document. Then replay the signed webhook (or inspect Meta's duplicate
+retry) and confirm that message/quote counts do not grow. Run an out-of-window and STOP
+check before connecting real customers. Optional owner alerts on WhatsApp are deferred;
+owner handoff/quote notifications remain in the dashboard.
+
+Official references: [Meta's Cloud API collection](https://www.postman.com/meta/whatsapp-business-platform/overview),
+[WABA subscription](https://www.postman.com/meta/whatsapp-business-platform/request/c1ai24q/subscribe-to-your-waba),
+[document delivery](https://www.postman.com/meta/whatsapp-business-platform/request/zjtbdpz/send-document-message-by-id),
+and [WhatsApp messaging policy](https://business.whatsapp.com/policy).
+
 ## Development and checks
 
 Backend commands load the repository-root `.env`; exported variables take precedence.
@@ -112,11 +169,11 @@ Backend commands load the repository-root `.env`; exported variables take preced
 Integration and golden conversation tests require Docker for isolated PostgreSQL and
 Redis testcontainers. Tests use FakeLLM/FakeEmbedder and block external HTTP; provider
 contract tests use MockTransport. `make eval` includes 25 Phase 1 conversations, requirement extraction cases, two
-Phase 2 quotation conversations, and Phase 3 handoff/stage/follow-up acceptance. The full suite also checks injected prices, approval
+Phase 2 quotation conversations, Phase 3 handoff/stage/follow-up acceptance, and Phase 4 fake-Meta quotation delivery and expired-window checks. The full suite also checks injected prices, approval
 races, stale edits, expiry, tenant isolation and auto-send limits. The opt-in real-model evaluation harness is Phase 6.
 
 `make e2e` runs Chromium flows at desktop and 375px mobile widths. With Compose running,
-install Chromium using `pnpm exec playwright install chromium`, then run `make e2e`. The ten flows include approving a quotation and downloading
+install Chromium using `pnpm exec playwright install chromium`, then run `make e2e`. The twelve flows include approving a quotation and downloading
 its PDF, complaint handoff, private assist approval and return to AI with a real embedded
 widget on mobile and desktop.
 For a host API process use `uv run --directory backend uvicorn app.main:create_app

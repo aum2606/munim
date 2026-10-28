@@ -17,7 +17,7 @@ from app.db.models import (
     WhatsAppContact,
     WhatsAppTemplate,
 )
-from app.db.models.channel import AccountStatus, DeliveryStatus
+from app.db.models.channel import AccountStatus, ChannelStatusReceipt, DeliveryStatus
 from app.db.models.conversation import ConversationStatus, Direction
 from app.repositories.scoped import ScopedRepository
 
@@ -60,10 +60,12 @@ class ChannelRepository(ScopedRepository[ChannelAccount]):
     async def contact(self, conversation_id: UUID) -> WhatsAppContact:
         contact = (
             await self.session.scalars(
-                select(WhatsAppContact).where(
+                select(WhatsAppContact)
+                .where(
                     WhatsAppContact.tenant_id == self.ctx.tenant_id,
                     WhatsAppContact.conversation_id == conversation_id,
                 )
+                .execution_options(populate_existing=True)
             )
         ).one_or_none()
         if contact is None:
@@ -192,6 +194,7 @@ class ChannelRepository(ScopedRepository[ChannelAccount]):
                     status=DeliveryStatus.BLOCKED if blocked else DeliveryStatus.QUEUED,
                     last_error="account_disabled_or_opted_out" if blocked else None,
                     attempts=0,
+                    created_at=datetime.now(UTC),
                     next_attempt_at=datetime.now(UTC),
                 )
                 .on_conflict_do_nothing(
@@ -201,11 +204,75 @@ class ChannelRepository(ScopedRepository[ChannelAccount]):
             )
         ).one_or_none()
 
+    async def has_earlier_delivery(self, delivery: ChannelDelivery, conversation_id: UUID) -> bool:
+        earlier = await self.session.scalar(
+            select(ChannelDelivery.id)
+            .join(
+                Message,
+                (Message.tenant_id == ChannelDelivery.tenant_id)
+                & (Message.id == ChannelDelivery.message_id),
+            )
+            .where(
+                ChannelDelivery.tenant_id == self.ctx.tenant_id,
+                Message.tenant_id == self.ctx.tenant_id,
+                Message.conversation_id == conversation_id,
+                ChannelDelivery.created_at < delivery.created_at,
+                ChannelDelivery.status.in_(
+                    [
+                        DeliveryStatus.QUEUED,
+                        DeliveryStatus.RETRY,
+                        DeliveryStatus.SENDING,
+                        DeliveryStatus.UNCERTAIN,
+                    ]
+                ),
+            )
+            .limit(1)
+        )
+        return earlier is not None
+
+    async def recover_interrupted(self, before: datetime) -> None:
+        records = list(
+            await self.session.scalars(
+                select(ChannelDelivery)
+                .where(
+                    ChannelDelivery.tenant_id == self.ctx.tenant_id,
+                    ChannelDelivery.status == DeliveryStatus.SENDING,
+                    ChannelDelivery.updated_at < before,
+                )
+                .with_for_update(skip_locked=True)
+            )
+        )
+        for delivery in records:
+            delivery.status, delivery.last_error = (
+                DeliveryStatus.UNCERTAIN,
+                "interrupted_send_requires_reconciliation",
+            )
+        await self.session.flush()
+
     async def deliveries(self, limit: int = 100) -> list[ChannelDelivery]:
         return await ScopedRepository(self.session, self.ctx, ChannelDelivery).list(limit)
 
     async def status(self, account_id: UUID, provider_id: str, status: str) -> None:
         await self.get(account_id)
+        if status not in {"sent", "delivered", "read", "failed"}:
+            return
+        await self.session.execute(
+            insert(ChannelStatusReceipt)
+            .values(
+                tenant_id=self.ctx.tenant_id,
+                account_id=account_id,
+                provider_message_id=provider_id,
+                status=status,
+            )
+            .on_conflict_do_nothing(
+                index_elements=[
+                    ChannelStatusReceipt.tenant_id,
+                    ChannelStatusReceipt.account_id,
+                    ChannelStatusReceipt.provider_message_id,
+                    ChannelStatusReceipt.status,
+                ]
+            )
+        )
         delivery = (
             await self.session.scalars(
                 select(ChannelDelivery)
@@ -229,6 +296,44 @@ class ChannelRepository(ScopedRepository[ChannelAccount]):
             DeliveryStatus.READ,
         }:
             delivery.status, delivery.last_error = DeliveryStatus.FAILED, "provider_delivery_failed"
+
+    async def reconcile(self, delivery: ChannelDelivery) -> None:
+        if delivery.provider_message_id is None:
+            return
+        statuses = set(
+            await self.session.scalars(
+                select(ChannelStatusReceipt.status).where(
+                    ChannelStatusReceipt.tenant_id == self.ctx.tenant_id,
+                    ChannelStatusReceipt.account_id == delivery.account_id,
+                    ChannelStatusReceipt.provider_message_id == delivery.provider_message_id,
+                )
+            )
+        )
+        if "read" in statuses:
+            delivery.status = DeliveryStatus.READ
+        elif "delivered" in statuses and delivery.status != DeliveryStatus.READ:
+            delivery.status = DeliveryStatus.DELIVERED
+        elif "failed" in statuses and delivery.status not in {
+            DeliveryStatus.DELIVERED,
+            DeliveryStatus.READ,
+        }:
+            delivery.status, delivery.last_error = DeliveryStatus.FAILED, "provider_delivery_failed"
+
+    async def reconcile_pending(self) -> None:
+        deliveries = list(
+            await self.session.scalars(
+                select(ChannelDelivery)
+                .where(
+                    ChannelDelivery.tenant_id == self.ctx.tenant_id,
+                    ChannelDelivery.status.in_([DeliveryStatus.SENT, DeliveryStatus.DELIVERED]),
+                )
+                .order_by(ChannelDelivery.updated_at)
+                .limit(200)
+                .with_for_update(skip_locked=True)
+            )
+        )
+        for delivery in deliveries:
+            await self.reconcile(delivery)
 
 
 async def due_deliveries(

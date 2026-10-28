@@ -60,7 +60,12 @@ export interface Message {
   direction: "in" | "out";
   content: string;
   created_at: string;
-  attachments: { citations?: string[] }[];
+  attachments: {
+    citations?: string[];
+    media_id?: string;
+    filename?: string;
+    kind?: string;
+  }[];
 }
 export interface AgentRun {
   id: string;

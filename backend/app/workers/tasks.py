@@ -116,3 +116,51 @@ async def draft_followups(ctx: dict[str, Any], tenant_id: str, resource_id: str)
             await FollowupService(session, TenantContext(UUID(tenant_id))).schedule()
     finally:
         await engine.dispose()
+
+
+async def dispatch_channels(ctx: dict[str, Any]) -> None:
+    from datetime import UTC, datetime, timedelta
+    from typing import cast
+
+    from arq.connections import ArqRedis
+
+    from app.repositories.channels import ChannelRepository, due_deliveries
+    from app.repositories.followups import scheduled_tenants
+
+    settings = Settings()
+    engine = create_async_engine(settings.database_url, hide_parameters=True)
+    try:
+        async with async_sessionmaker(engine, expire_on_commit=False)() as session:
+            now = datetime.now(UTC)
+            for tenant_id in await scheduled_tenants(session):
+                tenant = TenantContext(tenant_id)
+                await ChannelRepository(session, tenant).recover_interrupted(
+                    now - timedelta(seconds=settings.llm_timeout_s * 10 + 180)
+                )
+                await ChannelRepository(session, tenant).reconcile_pending()
+                await session.commit()
+                for _, delivery_id in await due_deliveries(session, tenant, now):
+                    # Retained arq results must not suppress later retry attempts.
+                    bucket = now.strftime("%Y%m%d%H%M") + str(now.second // 5)
+                    await cast(ArqRedis, ctx["redis"]).enqueue_job(
+                        "deliver_whatsapp",
+                        str(tenant_id),
+                        str(delivery_id),
+                        _job_id=f"whatsapp:{delivery_id}:{bucket}",
+                    )
+    finally:
+        await engine.dispose()
+
+
+async def deliver_whatsapp(ctx: dict[str, Any], tenant_id: str, delivery_id: str) -> None:
+    from app.channels.delivery import DeliveryService
+
+    settings = Settings()
+    engine = create_async_engine(settings.database_url, hide_parameters=True)
+    try:
+        async with async_sessionmaker(engine, expire_on_commit=False)() as session:
+            await DeliveryService(session, TenantContext(UUID(tenant_id)), settings).send(
+                UUID(delivery_id)
+            )
+    finally:
+        await engine.dispose()

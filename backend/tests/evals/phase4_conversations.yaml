@@ -1,0 +1,5 @@
+vertical: printing
+turns:
+  - "quote; item=visiting cards; quantity=500; sides=double-sided"
+  - "size=unknown; material=unknown; colour=unknown; finishing=unknown; deadline=2026-12-20"
+expected_total_paise: 324500

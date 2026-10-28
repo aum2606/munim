@@ -35,6 +35,11 @@ def redact_event(logger: object, method: str, event: MutableMapping[str, Any]) -
 
 
 def configure_logging() -> None:
+    import logging
+
+    # Provider/media URLs can contain temporary credentials; do not emit HTTP request URLs.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
     structlog.configure(
         processors=[
             structlog.processors.TimeStamper(fmt="iso"),

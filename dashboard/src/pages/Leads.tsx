@@ -1,3 +1,4 @@
+import { WhatsAppFollowup } from "../components/WhatsAppControls";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -309,7 +310,9 @@ export function LeadsPage() {
             <article className="followup-draft" key={draft.id}>
               <strong>{draft.kind}</strong>
               <p>{draft.draft_text}</p>
-              {draft.requires_template && <p>{t.channelPending}</p>}
+              {draft.requires_template && isOwner && (
+                <WhatsAppFollowup id={draft.id} />
+              )}
               {isOwner && (
                 <>
                   <button

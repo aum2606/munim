@@ -167,9 +167,12 @@ class ConversationRepository(ScopedRepository[Conversation]):
             language=language,
             intent=intent,
             agent_run_id=agent_run_id,
-            attachments=[{"citations": citations or []}],
+            attachments=[{"citations": citations or [], "handoff": handoff}],
         )
         self.session.add(outbound)
         conversation.last_business_msg_at = now
         await self.session.flush()
+        from app.repositories.channels import ChannelRepository
+
+        await ChannelRepository(self.session, self.ctx).queue(outbound)
         return outbound

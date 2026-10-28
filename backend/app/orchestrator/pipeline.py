@@ -89,18 +89,34 @@ class ConversationOrchestrator:
             handoff = False
             gap_logged = False
             try:
-                route = await RouterAgent(self.llm).run(
-                    self.ctx,
-                    RouterInput(
-                        messages=[
-                            AgentMessage(direction=message.direction.value, content=message.content)
-                            for message in history
-                        ],
-                        business_type=tenant.business_type,
-                        active_flow=conversation.active_flow,
-                    ),
-                    message_id=message_id,
-                )
+                if any(message.content_type != "text" for message in pending):
+                    from app.schemas.agents import Entities, RouterOutput
+
+                    route = RouterOutput(
+                        intent=Intent.HUMAN_REQUEST,
+                        secondary_intents=[],
+                        language="en",
+                        script="latin",
+                        entities=Entities(product=None, quantity=None, date=None),
+                        mentioned_catalog_terms=[],
+                        sentiment="neutral",
+                        confidence=1,
+                    )
+                else:
+                    route = await RouterAgent(self.llm).run(
+                        self.ctx,
+                        RouterInput(
+                            messages=[
+                                AgentMessage(
+                                    direction=message.direction.value, content=message.content
+                                )
+                                for message in history
+                            ],
+                            business_type=tenant.business_type,
+                            active_flow=conversation.active_flow,
+                        ),
+                        message_id=message_id,
+                    )
                 language, intent = route.language, route.intent
                 if route.confidence < self.settings.router_confidence_threshold or intent in {
                     Intent.HUMAN_REQUEST,
