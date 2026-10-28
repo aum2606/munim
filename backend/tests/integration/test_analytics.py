@@ -306,3 +306,27 @@ async def test_concurrent_digest_generation_saves_one_snapshot(client, sessions)
             )
             == 1
         )
+
+
+async def test_lost_reasons_group_null_and_empty_as_one_category(client, sessions):
+    _, ctx, _ = await owner(client)
+    async with sessions() as session:
+        for reason in (None, ""):
+            customer = await ScopedRepository(session, ctx, Customer).create(name="Synthetic")
+            conversation = await ScopedRepository(session, ctx, Conversation).create(
+                customer_id=customer.id
+            )
+            await ScopedRepository(session, ctx, Lead).create(
+                customer_id=customer.id,
+                conversation_id=conversation.id,
+                category="printing",
+                stage=LeadStage.LOST,
+                lost_reason=reason,
+                updated_at=NOW - timedelta(days=1),
+            )
+        await session.commit()
+        start, end = period_bounds(Period.MONTH, NOW)
+        result = await AnalyticsTools(AnalyticsRepository(session, ctx)).execute(
+            InsightPlan(tool=Tool.LOST), start, end
+        )
+        assert result.rows == [{"reason": "Unspecified", "leads": 2}]
