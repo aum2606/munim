@@ -1,0 +1,35 @@
+{
+	email {$TLS_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 6MiB
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		X-Frame-Options "DENY"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+		-Server
+	}
+	@api path /api/* /health /ready
+	handle @api {
+		reverse_proxy api:8000 {
+			flush_interval -1
+		}
+	}
+	handle /widget.js {
+		root * /srv/widget
+		header Access-Control-Allow-Origin "*"
+		header Cross-Origin-Resource-Policy "cross-origin"
+		file_server
+	}
+	handle {
+		root * /srv/dashboard
+		try_files {path} /index.html
+		file_server
+	}
+}

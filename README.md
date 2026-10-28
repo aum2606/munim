@@ -1,8 +1,9 @@
 ﻿# Munim
 
-Multi-tenant AI employee for Indian small businesses. Phase 2 includes catalogue import,
-document and FAQ ingestion, grounded web chat, requirements collection, GST quotations
-with owner approval and PDF delivery, a playground with agent traces, and a read-only inbox. See BUILD_PLAN.md for subsequent phases.
+Multi-tenant AI employee for Indian small businesses: grounded web/WhatsApp chat,
+catalogue and document ingestion, GST quotations, lead follow-ups, a staff inbox and
+owner insights. Phase 6 adds pilot setup, privacy controls, evaluations and production
+operations assets. See PROGRESS.md for completed checks and pending live acceptance.
 
 ## Run locally
 
@@ -180,7 +181,7 @@ tenant-scoped repositories, and Python renders the returned counts/tables/chart 
 the model cannot submit SQL or change numbers. Unsupported questions create a knowledge
 gap and receive the standard confirmation response. Fake-model mode supports these demo
 questions; offline golden tests use synthetic seeded facts. Real-model answer quality
-still needs the opt-in evaluation work scheduled in Phase 6.
+can now be measured with the opt-in evaluation harness described below.
 
 Enquiries count the first inbound per conversation. The quote funnel and accepted count
 show **current statuses for quotes created in the selected period**, not a historical
@@ -207,10 +208,15 @@ Integration and golden conversation tests require Docker for isolated PostgreSQL
 Redis testcontainers. Tests use FakeLLM/FakeEmbedder and block external HTTP; provider
 contract tests use MockTransport. `make eval` includes 25 Phase 1 conversations, requirement extraction cases, two
 Phase 2 quotation conversations, Phase 3 handoff/stage/follow-up acceptance, Phase 4 fake-Meta quotation delivery and expired-window checks, and the three Phase 5 analytics acceptance questions. The full suite also checks injected prices, approval
-races, stale edits, expiry, tenant isolation and auto-send limits. The opt-in real-model evaluation harness is Phase 6.
+races, stale edits, expiry, tenant isolation and auto-send limits. Phase 6 adds twenty
+typed golden cases across five verticals and twelve adversarial injection cases.
+The generated `.cache/evals/report.json` identifies FakeLLM results explicitly.
+To evaluate configured real models, opt in with `EVAL_USE_REAL_LLM=1` and a dedicated
+`EVAL_DATABASE_URL`, apply migrations to that disposable database, and run `make eval`.
+Never use a production database for evaluation. CI and tests always use fakes.
 
 `make e2e` runs Chromium flows at desktop and 375px mobile widths. With Compose running,
-install Chromium using `pnpm exec playwright install chromium`, then run `make e2e`. The fourteen flows include analytics/Ask Munim, approving a quotation and downloading
+install Chromium using `pnpm exec playwright install chromium`, then run `make e2e`. The sixteen flows include fresh-business onboarding and privacy erasure, analytics/Ask Munim, approving a quotation and downloading
 its PDF, complaint handoff, private assist approval and return to AI with a real embedded
 widget on mobile and desktop.
 For a host API process use `uv run --directory backend uvicorn app.main:create_app
@@ -218,6 +224,35 @@ For a host API process use `uv run --directory backend uvicorn app.main:create_a
 
 On Windows, install GNU Make or run the commands from Makefile directly. Use
 `pnpm.cmd` if PowerShell blocks `pnpm.ps1`. Compose uses local database and Redis ports
-57432 and 56379. Production deployment and hardening are scheduled in Phase 6.
+57432 and 56379. Production assets and launch instructions are in
+[the operations runbook](deploy/README.md).
+
+## Pilot setup, privacy and production
+
+Owners can open **Business setup** to complete the guided profile, catalogue/FAQ,
+preferences, grounded playground test and widget publishing steps. Completion is checked
+on the server, including tax readiness. Use the [pilot checklist](deploy/PILOT_CHECKLIST.md)
+and [one-page owner guide](deploy/OWNER_GUIDE.md) during onboarding.
+
+Public widget sessions require affirmative consent to the current privacy notice before
+creation. Owners can search records in **Customer privacy** and request erasure after
+verifying the requester and reviewing retention duties. The owner-only deletion endpoint
+is `DELETE /api/v1/customers/{id}` with matching `confirm_customer_id` and
+`retention_reviewed: true`. Pending private file cleanup can be retried; unresolved
+WhatsApp deliveries must first be reconciled. External providers, independent uploads,
+exports and retained backups require the separate operator process in the runbook.
+
+Redis-backed rate limits, bounded JSON/uploads/webhooks, document signature checks and
+PII log redaction are enabled by default. Production additionally requires HTTPS URLs,
+strong independent keys and real model configuration. Copy `.env.production.example`
+to a private `.env.production`, then use `make prod-config`, `make prod-build` and
+`make prod-up` on the configured server. `make backup` runs an encrypted object-store
+backup; `make restore-check` exercises PostgreSQL dump/restore in isolation. Caddy TLS,
+daily backups and uptime/backup alerts need actual domain, bucket and alert configuration.
+Image/configuration tests do not establish a public deployment or successful live delivery.
+
+The Phase 4 live WhatsApp acceptance test and real-business pilot measurements remain
+pending external setup. Instagram and optional owner WhatsApp/email notifications remain
+deferred. Fake-model evaluation scores do not establish real-model quality or pilot KPIs.
 
 See PROGRESS.md for validation results and DECISIONS.md for design choices.
