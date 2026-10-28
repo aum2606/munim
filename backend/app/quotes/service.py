@@ -8,9 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
 from app.agents.quotation import QuotationAgent
+from app.analytics.events import emit
 from app.core.config import Settings
 from app.core.errors import DomainError, NotFound
 from app.core.tenant import TenantContext
+from app.db.models.analytics import AnalyticsEventType as Event
 from app.db.models.conversation import Message
 from app.db.models.quote import Quote
 from app.llm import LLMClient
@@ -310,6 +312,21 @@ class QuoteService:
                 if key not in {"taxable_paise", "tax_groups", "quote_discount_paise"}
             },
         )
+        await emit(
+            self.session, self.ctx, Event.QUOTE_GENERATED, quote.id, conversation_id=conversation_id
+        )
+        for snapshot in snapshots:
+            catalog_id = snapshot["catalog_item_id"]
+            if catalog_id is not None:
+                await emit(
+                    self.session,
+                    self.ctx,
+                    Event.CATALOG_ENQUIRY,
+                    f"{message_id}:{catalog_id}",
+                    conversation_id=conversation_id,
+                    catalog_item_id=catalog_id,
+                    occurred_at=source.created_at,
+                )
         await self.quotes.replace_lines(quote.id, snapshots)
         await agent.call_tool("render_quote_pdf", lambda: self.write_pdf(quote.id))
         conversation.active_flow = {**state, "kind": "quote_pending", "quote_id": str(quote.id)}

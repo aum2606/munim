@@ -5,9 +5,11 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.guardrails import check_reply
+from app.analytics.events import emit
 from app.core.config import Settings
 from app.core.errors import DomainError
 from app.core.tenant import TenantContext
+from app.db.models.analytics import AnalyticsEventType as Event
 from app.db.models.conversation import (
     ConversationMode,
     ConversationStatus,
@@ -107,6 +109,13 @@ class QuoteApproval:
         quote.approved_by = None if automated else self.ctx.user_id
         quote.status = QuoteStatus.SENT
         quote.sent_at = datetime.now(UTC)
+        await emit(
+            self.session,
+            self.ctx,
+            Event.QUOTE_SENT,
+            quote.id,
+            conversation_id=quote.conversation_id,
+        )
         await self.service.write_pdf(quote.id)
         view = await self.service.view(quote.id)
         valid_until = quote.valid_until.astimezone(ZoneInfo("Asia/Kolkata")).date().isoformat()
@@ -151,6 +160,13 @@ class QuoteApproval:
             if quote.status not in {QuoteStatus.SENT, QuoteStatus.VIEWED}:
                 raise DomainError("Only delivered quotes can be accepted or rejected", 409)
             quote.status = status
+            await emit(
+                self.session,
+                self.ctx,
+                Event.QUOTE_ACCEPTED if status == QuoteStatus.ACCEPTED else Event.QUOTE_REJECTED,
+                quote.id,
+                conversation_id=quote.conversation_id,
+            )
             from app.repositories.leads import LeadRepository
 
             repository = LeadRepository(self.session, self.ctx)

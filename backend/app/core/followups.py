@@ -4,10 +4,12 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.guardrails import check_prices
+from app.analytics.events import emit
 from app.core.config import Settings
 from app.core.errors import DomainError
 from app.core.tenant import TenantContext
 from app.db.models import Followup, LeadEvent, Message
+from app.db.models.analytics import AnalyticsEventType as Event
 from app.db.models.conversation import ConversationMode, ConversationStatus, Direction, SenderType
 from app.db.models.lead import Lead, LeadStage
 from app.db.models.quote import QuoteStatus
@@ -160,6 +162,13 @@ class FollowupService:
                 )
                 conversation.last_business_msg_at = now
                 draft.status = "sent"
+                await emit(
+                    self.session,
+                    self.ctx,
+                    Event.FOLLOWUP_SENT,
+                    draft.id,
+                    conversation_id=conversation.id,
+                )
                 lead.next_followup_at = None
         await ScopedRepository(self.session, self.ctx, LeadEvent).create(
             lead_id=lead.id,

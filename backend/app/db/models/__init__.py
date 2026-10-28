@@ -1,4 +1,5 @@
 from app.db.models.agent_run import AgentRun
+from app.db.models.analytics import AnalyticsEvent, WeeklyDigest
 from app.db.models.channel import (
     ChannelAccount,
     ChannelDelivery,
@@ -41,3 +42,6 @@ __all__ += ["Quote", "QuoteItem", "QuoteSequence"]
 __all__ += ["ChannelAccount", "ChannelDelivery", "WhatsAppContact", "WhatsAppTemplate"]
 
 __all__ += ["ChannelStatusReceipt"]
+
+
+__all__ += ["AnalyticsEvent", "WeeklyDigest"]

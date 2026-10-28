@@ -1,0 +1,12 @@
+- question: "Who hasn't responded this week?"
+  tool: customers_who_went_silent
+  total: 1
+  text_contains: "Customers who have not replied: 1"
+- question: "What are people asking about most this month?"
+  tool: top_enquired_items
+  total: 2
+  text_contains: "Visiting cards (3 enquiries)"
+- question: "How many quotes were accepted?"
+  tool: quotes_by_status
+  total: 2
+  text_contains: "2 quotes created in this period are currently accepted"

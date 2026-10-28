@@ -17,6 +17,7 @@ from app.api.v1.catalog import router as catalog_router
 from app.api.v1.documents import router as documents_router
 from app.api.v1.followups import router as followups_router
 from app.api.v1.inbox import router as inbox_router
+from app.api.v1.insights import router as insights_router
 from app.api.v1.leads import router as leads_router
 from app.api.v1.pricing_rules import router as pricing_rules_router
 from app.api.v1.quotes import router as quotes_router
@@ -90,6 +91,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return JSONResponse({"status": "unavailable"}, status_code=503)
         return JSONResponse({"status": "ready"})
 
+    app.include_router(insights_router, prefix="/api/v1")
     app.include_router(whatsapp_router, prefix="/api/v1")
     app.include_router(inbox_router, prefix="/api/v1")
     app.include_router(followups_router, prefix="/api/v1")

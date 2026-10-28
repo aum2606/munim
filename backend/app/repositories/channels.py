@@ -133,7 +133,7 @@ class ChannelRepository(ScopedRepository[ChannelAccount]):
 
         previous_last = conversation.last_customer_msg_at
         message = await ConversationRepository(self.session, self.ctx).receive(
-            conversation.id, text, key
+            conversation.id, text, key, received_at=timestamp
         )
         message.created_at = timestamp
         message.content_type, message.attachments = kind, attachments

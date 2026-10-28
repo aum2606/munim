@@ -45,7 +45,12 @@ async def sessions(database_url: str) -> AsyncIterator[async_sessionmaker[AsyncS
 @pytest.fixture
 async def client(database_url: str) -> AsyncIterator[httpx.AsyncClient]:
     app = create_app(
-        Settings(database_url=database_url, secret_key="test-only-key-with-at-least-32-characters")
+        Settings(
+            database_url=database_url,
+            secret_key="test-only-key-with-at-least-32-characters",
+            llm_provider="fake",
+            embedding_provider="fake",
+        )
     )
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(
