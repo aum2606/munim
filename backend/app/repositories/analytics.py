@@ -137,7 +137,7 @@ QUERIES = {
         SELECT coalesce(nullif(lost_reason,''),'Unspecified') AS reason,count(*)::bigint AS leads
         FROM leads WHERE tenant_id=:tenant AND stage='lost' AND updated_at>=:start AND
             updated_at<:end
-        GROUP BY lost_reason ORDER BY leads DESC,reason
+        GROUP BY 1 ORDER BY leads DESC,reason
     """,
 }
 
