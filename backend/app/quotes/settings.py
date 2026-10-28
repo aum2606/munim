@@ -10,6 +10,7 @@ from app.core.config import Settings
 from app.core.errors import DomainError
 from app.core.tenant import TenantContext
 from app.repositories.identity import TenantRepository
+from app.repositories.storage import protect_storage_write
 from app.schemas.quote_profile import QuoteProfile
 from app.schemas.quotes import QuoteSettings
 
@@ -36,6 +37,7 @@ class QuoteSettingsService:
     async def logo(self, content: bytes) -> None:
         if len(content) > 2 * 1024 * 1024:
             raise DomainError("Logo must be a PNG or JPEG of at most 2 MB")
+        await protect_storage_write(self.session, self.ctx)
         relative = Path(str(self.ctx.tenant_id)) / "logos" / (str(uuid4()) + ".png")
 
         def save() -> None:

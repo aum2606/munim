@@ -159,7 +159,7 @@ class InsightsService:
                 agent="insights_tools",
                 model="deterministic",
                 request=plan.model_dump(mode="json"),
-                output=answer.model_dump(mode="json"),
+                output={"tool": plan.tool.value, "total": answer.total},
                 tool_calls=[{"name": plan.tool.value, "arguments": plan.model_dump(mode="json")}],
                 latency_ms=0,
                 prompt_tokens=0,

@@ -47,7 +47,9 @@ async def start(
     await WidgetRateLimiter(
         cast(Redis, request.app.state.redis), config.widget_rate_per_minute
     ).check("session:" + ip + ":" + body.key)
-    return await adapter(request, session, config).start(body.key)
+    return await adapter(request, session, config).start(
+        body.key, body.consent, body.notice_version
+    )
 
 
 @router.post("/messages", response_model=MessageView, status_code=202)

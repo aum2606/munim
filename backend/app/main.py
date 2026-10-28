@@ -11,6 +11,8 @@ from redis.asyncio import Redis
 from redis.exceptions import RedisError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from starlette.middleware.base import RequestResponseEndpoint
+from starlette.responses import Response
 
 from app.api.v1.auth import router
 from app.api.v1.catalog import router as catalog_router
@@ -19,7 +21,9 @@ from app.api.v1.followups import router as followups_router
 from app.api.v1.inbox import router as inbox_router
 from app.api.v1.insights import router as insights_router
 from app.api.v1.leads import router as leads_router
+from app.api.v1.onboarding import router as onboarding_router
 from app.api.v1.pricing_rules import router as pricing_rules_router
+from app.api.v1.privacy import router as privacy_router
 from app.api.v1.quotes import router as quotes_router
 from app.api.v1.requirements import router as requirements_router
 from app.api.v1.tenant import router as tenant_router
@@ -30,6 +34,7 @@ from app.channels.web import WidgetCORSMiddleware
 from app.core.config import Settings
 from app.core.deps import Session
 from app.core.errors import DomainError
+from app.core.hardening import RateLimiter, RequestSafetyMiddleware
 from app.core.logging import configure_logging
 from app.repositories.health import check_database
 from app.workers.queue import ArqJobQueue
@@ -60,10 +65,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     app.add_middleware(WidgetCORSMiddleware)
+    app.add_middleware(RequestSafetyMiddleware, settings=config)
+
+    @app.middleware("http")
+    async def public_limits(request: Request, call_next: RequestResponseEndpoint) -> Response:
+        if config.rate_limits_enabled and request.url.path.startswith("/api/v1/auth/"):
+            try:
+                ip = request.client.host if request.client else "unknown"
+                await RateLimiter(redis).check(
+                    "auth:" + ip + ":" + request.url.path, config.auth_rate_per_minute
+                )
+            except DomainError as error:
+                return JSONResponse(
+                    {"detail": error.message}, error.status_code, headers={"Retry-After": "60"}
+                )
+        return await call_next(request)
 
     @app.exception_handler(DomainError)
     async def domain_error(request: Request, error: DomainError) -> JSONResponse:
-        headers = {"WWW-Authenticate": "Bearer"} if error.status_code == 401 else None
+        headers = (
+            {"WWW-Authenticate": "Bearer"}
+            if error.status_code == 401
+            else {"Retry-After": "60"}
+            if error.status_code == 429
+            else None
+        )
         return JSONResponse(
             {"detail": error.message}, status_code=error.status_code, headers=headers
         )
@@ -91,6 +117,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return JSONResponse({"status": "unavailable"}, status_code=503)
         return JSONResponse({"status": "ready"})
 
+    app.include_router(onboarding_router, prefix="/api/v1")
+    app.include_router(privacy_router, prefix="/api/v1")
     app.include_router(insights_router, prefix="/api/v1")
     app.include_router(whatsapp_router, prefix="/api/v1")
     app.include_router(inbox_router, prefix="/api/v1")

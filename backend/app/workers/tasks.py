@@ -206,3 +206,35 @@ async def generate_digest(ctx: dict[str, Any], tenant_id: str, resource_id: str)
             )
     finally:
         await engine.dispose()
+
+
+async def schedule_privacy_cleanup(ctx: dict[str, Any]) -> None:
+    from datetime import UTC, datetime
+
+    from app.repositories.followups import scheduled_tenants
+    from app.workers.queue import followup_job_id
+
+    settings = Settings()
+    engine = create_async_engine(settings.database_url, hide_parameters=True)
+    try:
+        async with async_sessionmaker(engine)() as session:
+            for tenant_id in await scheduled_tenants(session):
+                await ArqJobQueue(settings.redis_url).enqueue(
+                    "cleanup_privacy", tenant_id, followup_job_id(tenant_id, datetime.now(UTC))
+                )
+    finally:
+        await engine.dispose()
+
+
+async def cleanup_privacy(ctx: dict[str, Any], tenant_id: str, resource_id: str) -> None:
+    from app.core.privacy import PrivacyService
+
+    settings = Settings()
+    engine = create_async_engine(settings.database_url, hide_parameters=True)
+    try:
+        async with async_sessionmaker(engine, expire_on_commit=False)() as session:
+            service = PrivacyService(session, TenantContext(UUID(tenant_id)), settings)
+            for erasure in await service.repository.pending():
+                await service.finish_files(erasure.id)
+    finally:
+        await engine.dispose()

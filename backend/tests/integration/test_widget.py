@@ -51,10 +51,23 @@ async def test_widget_session_messages_stream_validation_cors_and_isolation(
     b, ctx_b = await register(client, sessions)
     try:
         assert (
-            await client.post("/api/v1/widget/session", json={"key": "invalid-widget-key-123"})
+            await client.post(
+                "/api/v1/widget/session",
+                json={
+                    "key": "invalid-widget-key-123",
+                    "consent": True,
+                    "notice_version": "2026-10-28",
+                },
+            )
         ).status_code == 401
-        first = await client.post("/api/v1/widget/session", json={"key": a})
-        second = await client.post("/api/v1/widget/session", json={"key": b})
+        first = await client.post(
+            "/api/v1/widget/session",
+            json={"key": a, "consent": True, "notice_version": "2026-10-28"},
+        )
+        second = await client.post(
+            "/api/v1/widget/session",
+            json={"key": b, "consent": True, "notice_version": "2026-10-28"},
+        )
         assert first.status_code == 201 and second.status_code == 201
         one, two = first.json(), second.json()
         auth = {"Authorization": "Bearer " + one["token"]}
@@ -133,7 +146,17 @@ async def test_widget_rate_limit(client, sessions, redis_url):
     key, ctx = await register(client, sessions)
     app.state.settings.widget_rate_per_minute = 1
     try:
-        assert (await client.post("/api/v1/widget/session", json={"key": key})).status_code == 201
-        assert (await client.post("/api/v1/widget/session", json={"key": key})).status_code == 429
+        assert (
+            await client.post(
+                "/api/v1/widget/session",
+                json={"key": key, "consent": True, "notice_version": "2026-10-28"},
+            )
+        ).status_code == 201
+        assert (
+            await client.post(
+                "/api/v1/widget/session",
+                json={"key": key, "consent": True, "notice_version": "2026-10-28"},
+            )
+        ).status_code == 429
     finally:
         await redis.aclose()

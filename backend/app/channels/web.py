@@ -71,15 +71,25 @@ class WebChannelAdapter:
     def __init__(self, session: AsyncSession, config: Settings, queue: JobQueue) -> None:
         self.session, self.config, self.queue = session, config, queue
 
-    async def start(self, public_key: str) -> WidgetSessionView:
-        tenant = await WidgetCredentialRepository(self.session).tenant(public_key)
-        return await self.start_for_tenant(TenantContext(tenant.id))
+    async def start(
+        self, public_key: str, consent: bool = False, notice_version: str = ""
+    ) -> WidgetSessionView:
+        from app.schemas.privacy import NOTICE_VERSION
 
-    async def start_for_tenant(self, ctx: TenantContext) -> WidgetSessionView:
+        if not consent or notice_version != NOTICE_VERSION:
+            raise DomainError("Accept the current privacy notice before starting chat", 409)
+        tenant = await WidgetCredentialRepository(self.session).tenant(public_key)
+        return await self.start_for_tenant(TenantContext(tenant.id), public_consent=True)
+
+    async def start_for_tenant(
+        self, ctx: TenantContext, *, public_consent: bool = False
+    ) -> WidgetSessionView:
         tenant = await TenantRepository(self.session, ctx).get()
         token = secrets.token_urlsafe(32)
         widget = await WidgetRepository(self.session, ctx).create_session(
-            token_hash(token), datetime.now(UTC) + timedelta(hours=self.config.widget_session_hours)
+            token_hash(token),
+            datetime.now(UTC) + timedelta(hours=self.config.widget_session_hours),
+            public_consent=public_consent,
         )
         await self.session.commit()
         return WidgetSessionView(

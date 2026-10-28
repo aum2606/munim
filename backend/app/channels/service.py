@@ -380,6 +380,17 @@ async def ingest_webhook(
             if account.status == AccountStatus.ACTIVE:
                 for message in change.value.messages:
                     inbound = adapter.parse_inbound(message)
+                    from app.repositories.privacy import PrivacyRepository
+
+                    if await PrivacyRepository(
+                        session,
+                        ctx,
+                        (
+                            config.privacy_hash_key.get_secret_value()
+                            or config.secret_key.get_secret_value()
+                        ),
+                    ).replay_erased(account.id, inbound.wa_id, inbound.timestamp):
+                        continue
                     saved = await repository.inbound(
                         account,
                         inbound.wa_id,

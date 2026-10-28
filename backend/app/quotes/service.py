@@ -28,6 +28,7 @@ from app.repositories.leads import LeadRepository
 from app.repositories.pricing_rules import PricingRuleRepository
 from app.repositories.quotes import QuoteRepository, QuoteSequenceRepository
 from app.repositories.scoped import ScopedRepository
+from app.repositories.storage import protect_storage_write
 from app.schemas.pricing import AddonRule, LineResult, PriceItem, Totals
 from app.schemas.quotes import (
     QuotationInput,
@@ -134,6 +135,7 @@ class QuoteService:
     async def write_pdf(self, quote_id: UUID) -> str:
         quote = await self.quotes.get(quote_id)
         view = await self.view(quote_id)
+        await protect_storage_write(self.session, self.ctx)
         content = await run_in_threadpool(render_quote_pdf, view, Path(self.config.storage_dir))
         relative = (
             Path(str(self.ctx.tenant_id))
