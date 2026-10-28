@@ -58,3 +58,22 @@ def test_nested_redaction() -> None:
         redact_event(None, "info", {"authorization": "Bearer secret"})["authorization"]
         == "[redacted]"
     )
+
+
+def test_standard_access_logs_remove_customer_query_data():
+    import logging
+
+    from app.core.logging import StandardLogRedactor
+
+    record = logging.LogRecord(
+        "uvicorn.access",
+        logging.INFO,
+        "test",
+        1,
+        '%s - "%s %s HTTP/%s" %s',
+        ("127.0.0.1", "GET", "/api/v1/customers?q=private@example.com", "1.1", 200),
+        None,
+    )
+    assert StandardLogRedactor().filter(record)
+    assert "private@example.com" not in record.getMessage()
+    assert "?q=" not in record.getMessage()

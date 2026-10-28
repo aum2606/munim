@@ -61,7 +61,10 @@ async def test_seeded_widget_golden_conversations_zero_invented_prices(client, s
         for slug, ctx in tenants.items():
             async with sessions() as session:
                 key = (await TenantRepository(session, ctx).get()).widget_public_key
-            response = await client.post("/api/v1/widget/session", json={"key": key})
+            response = await client.post(
+                "/api/v1/widget/session",
+                json={"key": key, "consent": True, "notice_version": "2026-10-28"},
+            )
             assert response.status_code == 201
             widgets[slug] = response.json()
         for case in cases:

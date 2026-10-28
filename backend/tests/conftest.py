@@ -43,10 +43,12 @@ async def sessions(database_url: str) -> AsyncIterator[async_sessionmaker[AsyncS
 
 
 @pytest.fixture
-async def client(database_url: str) -> AsyncIterator[httpx.AsyncClient]:
+async def client(database_url: str, redis_url: str) -> AsyncIterator[httpx.AsyncClient]:
     app = create_app(
         Settings(
             database_url=database_url,
+            redis_url=redis_url,
+            rate_limits_enabled=False,
             secret_key="test-only-key-with-at-least-32-characters",
             llm_provider="fake",
             embedding_provider="fake",
