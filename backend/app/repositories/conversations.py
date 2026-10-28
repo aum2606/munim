@@ -5,9 +5,11 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.analytics.events import emit
 from app.core.errors import DomainError
 from app.core.tenant import TenantContext
 from app.db.models import Conversation, Message, ReplyDraft
+from app.db.models.analytics import AnalyticsEventType as Event
 from app.db.models.conversation import ConversationMode, ConversationStatus, Direction, SenderType
 from app.repositories.scoped import ScopedRepository
 
@@ -77,7 +79,14 @@ class ConversationRepository(ScopedRepository[Conversation]):
             )
         )
 
-    async def receive(self, conversation_id: UUID, content: str, external_id: str) -> Message:
+    async def receive(
+        self,
+        conversation_id: UUID,
+        content: str,
+        external_id: str,
+        *,
+        received_at: datetime | None = None,
+    ) -> Message:
         conversation = await self.get(conversation_id, for_update=True)
         statement = (
             insert(Message)
@@ -85,6 +94,7 @@ class ConversationRepository(ScopedRepository[Conversation]):
                 tenant_id=self.ctx.tenant_id,
                 conversation_id=conversation_id,
                 content=content,
+                created_at=received_at or datetime.now(UTC),
                 external_id=external_id,
                 direction=Direction.IN,
                 sender_type=SenderType.CUSTOMER,
@@ -111,6 +121,14 @@ class ConversationRepository(ScopedRepository[Conversation]):
                 raise DomainError("Message ID already used for different content", 409)
         else:
             conversation.last_customer_msg_at = datetime.now(UTC)
+            await emit(
+                self.session,
+                self.ctx,
+                Event.MESSAGE_IN,
+                message.id,
+                conversation_id=conversation_id,
+                occurred_at=message.created_at,
+            )
         await self.session.flush()
         return message
 
@@ -175,4 +193,19 @@ class ConversationRepository(ScopedRepository[Conversation]):
         from app.repositories.channels import ChannelRepository
 
         await ChannelRepository(self.session, self.ctx).queue(outbound)
+        await emit(
+            self.session, self.ctx, Event.AI_REPLY, outbound.id, conversation_id=conversation_id
+        )
+        for ref in set(citations or []):
+            if ref.startswith("catalog:"):
+                catalog_id = UUID(ref.removeprefix("catalog:"))
+                await emit(
+                    self.session,
+                    self.ctx,
+                    Event.CATALOG_ENQUIRY,
+                    f"{pending[-1].id}:{catalog_id}",
+                    conversation_id=conversation_id,
+                    catalog_item_id=catalog_id,
+                    occurred_at=pending[-1].created_at,
+                )
         return outbound

@@ -1,4 +1,5 @@
 from collections.abc import Awaitable, Callable
+from datetime import UTC
 from typing import Any, ClassVar
 
 from arq import cron
@@ -9,8 +10,10 @@ from app.workers.tasks import (
     deliver_whatsapp,
     dispatch_channels,
     draft_followups,
+    generate_digest,
     ingest_document,
     process_message,
+    schedule_digests,
     schedule_followups,
     update_lead,
 )
@@ -24,15 +27,19 @@ async def heartbeat(ctx: dict[str, Any]) -> str:
 class WorkerSettings:
     functions: ClassVar[list[Callable[..., Awaitable[Any]]]] = [
         heartbeat,
+        generate_digest,
         ingest_document,
         process_message,
         update_lead,
         draft_followups,
         deliver_whatsapp,
     ]
+    timezone = UTC
     redis_settings = RedisSettings.from_dsn(Settings().redis_url)
 
     cron_jobs = [
+        # Arq schedules in UTC: Monday 03:30 UTC is Monday 09:00 IST.
+        cron(schedule_digests, weekday=0, hour=3, minute=30, microsecond=0, run_at_startup=True),
         cron(schedule_followups, minute={0, 15, 30, 45}, run_at_startup=True),
         cron(dispatch_channels, second=set(range(0, 60, 5)), run_at_startup=True),
     ]

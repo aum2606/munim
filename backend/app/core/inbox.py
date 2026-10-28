@@ -9,10 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.guardrails import check_reply
 from app.agents.handoff import HandoffAgent
+from app.analytics.events import emit
 from app.core.config import Settings
 from app.core.errors import DomainError
 from app.core.tenant import TenantContext
 from app.db.models import Handoff, Message, ReplyDraft
+from app.db.models.analytics import AnalyticsEventType as Event
 from app.db.models.conversation import ConversationMode, ConversationStatus, Direction, SenderType
 from app.llm import LLMClient
 from app.orchestrator.localized import fallback
@@ -94,10 +96,13 @@ class InboxService:
             # A failed summarizer must never prevent the deterministic safety handoff.
             structlog.get_logger().warning("handoff_summary_failed", error=type(error).__name__)
         if not await self.repository.handoffs(conversation_id):
-            await ScopedRepository(self.session, self.ctx, Handoff).create(
+            handoff = await ScopedRepository(self.session, self.ctx, Handoff).create(
                 conversation_id=conversation_id,
                 reason=reason,
                 summary=summary,
+            )
+            await emit(
+                self.session, self.ctx, Event.HANDOFF, handoff.id, conversation_id=conversation_id
             )
         tenant = await TenantRepository(self.session, self.ctx).get()
         settings = await TenantRepository(self.session, self.ctx).settings()
@@ -113,10 +118,17 @@ class InboxService:
             await self.repository.resolve(conversation_id)
             conversation.mode = mode
             if mode != ConversationMode.AI:
-                await ScopedRepository(self.session, self.ctx, Handoff).create(
+                handoff = await ScopedRepository(self.session, self.ctx, Handoff).create(
                     conversation_id=conversation_id,
                     reason="staff_takeover",
                     summary="Staff changed conversation mode.",
+                )
+                await emit(
+                    self.session,
+                    self.ctx,
+                    Event.HANDOFF,
+                    handoff.id,
+                    conversation_id=conversation_id,
                 )
         # Takeover and return consume all earlier inbound; old jobs cannot answer them later.
         for message in await self.conversations.pending(conversation_id):
@@ -172,6 +184,9 @@ class InboxService:
         from app.repositories.channels import ChannelRepository
 
         await ChannelRepository(self.session, self.ctx).queue(message)
+        await emit(
+            self.session, self.ctx, Event.STAFF_REPLY, message.id, conversation_id=conversation_id
+        )
         return message
 
     async def approve_draft(self, draft_id: UUID) -> Message:

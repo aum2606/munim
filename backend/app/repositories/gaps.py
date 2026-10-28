@@ -12,7 +12,7 @@ class KnowledgeGapRepository(ScopedRepository[KnowledgeGap]):
     def __init__(self, session: AsyncSession, ctx: TenantContext) -> None:
         super().__init__(session, ctx, KnowledgeGap)
 
-    async def record(self, question: str, message_id: UUID) -> None:
+    async def record(self, question: str, message_id: UUID | None) -> None:
         statement = insert(KnowledgeGap).values(
             tenant_id=self.ctx.tenant_id,
             question=question.strip()[:4000],

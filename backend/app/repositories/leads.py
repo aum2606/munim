@@ -4,8 +4,10 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.analytics.events import emit
 from app.core.tenant import TenantContext
 from app.db.models import Message, Quote
+from app.db.models.analytics import AnalyticsEventType as Event
 from app.db.models.conversation import Direction
 from app.db.models.lead import Lead, LeadEvent, LeadStage
 from app.repositories.conversations import ConversationRepository
@@ -86,6 +88,14 @@ class LeadRepository(ScopedRepository[Lead]):
             lead.stage_override = True
         if previous != stage:
             lead.stage = stage
+            if stage in {LeadStage.WON, LeadStage.LOST}:
+                await emit(
+                    self.session,
+                    self.ctx,
+                    Event.LEAD_WON if stage == LeadStage.WON else Event.LEAD_LOST,
+                    f"{lead.id}:{lead.updated_at.isoformat()}:{previous}",
+                    conversation_id=lead.conversation_id,
+                )
             await ScopedRepository(self.session, self.ctx, LeadEvent).create(
                 lead_id=lead.id,
                 event_type="stage",

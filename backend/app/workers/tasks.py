@@ -164,3 +164,45 @@ async def deliver_whatsapp(ctx: dict[str, Any], tenant_id: str, delivery_id: str
             )
     finally:
         await engine.dispose()
+
+
+async def schedule_digests(ctx: dict[str, Any]) -> None:
+    from datetime import UTC, datetime
+    from typing import cast
+
+    from arq.connections import ArqRedis
+
+    from app.analytics.service import digest_window
+    from app.repositories.followups import scheduled_tenants
+
+    settings = Settings()
+    engine = create_async_engine(settings.database_url, hide_parameters=True)
+    try:
+        async with async_sessionmaker(engine)() as session:
+            start, _ = digest_window(datetime.now(UTC))
+            for tenant_id in await scheduled_tenants(session):
+                await cast(ArqRedis, ctx["redis"]).enqueue_job(
+                    "generate_digest",
+                    str(tenant_id),
+                    start.isoformat(),
+                    _job_id=f"digest:{tenant_id}:{start.isoformat()}",
+                )
+    finally:
+        await engine.dispose()
+
+
+async def generate_digest(ctx: dict[str, Any], tenant_id: str, resource_id: str) -> None:
+    from datetime import datetime, timedelta
+
+    from app.analytics.service import InsightsService
+
+    settings = Settings()
+    engine = create_async_engine(settings.database_url, hide_parameters=True)
+    try:
+        async with async_sessionmaker(engine, expire_on_commit=False)() as session:
+            start = datetime.fromisoformat(resource_id)
+            await InsightsService(session, TenantContext(UUID(tenant_id))).generate_digest(
+                start, start + timedelta(days=7)
+            )
+    finally:
+        await engine.dispose()
