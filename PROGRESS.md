@@ -2,6 +2,11 @@
 
 Current phase: Phase 6 implementation complete; final production-image/browser/hosted checks in progress. Public deployment, real-model pilot targets and Phase 4 live Meta acceptance remain pending external setup.
 
+### Domain language submission — 2026-10-30
+
+- [x] Create UBIQUITOUS_LANGUAGE.md and link it from README: shared vocabulary, examples, model references, workflow states, business rules and implemented/deferred scope. Markdown formatting, local-link validation and diff checks recorded with the submission commit.
+- [ ] Group leader updates the original project Google Form response with the published GitHub file link. The form/edit-response link has not been provided; this external submission remains pending.
+
 ### Phase 0 — Foundations (week 1)
 
 - [x] Repo scaffold per §13, `uv` project, Docker Compose (api, worker, postgres+pgvector, redis), Makefile, CI (lint + test). Built: Locked uv/pnpm projects, all six runtime services plus one-shot migrations, root Make targets and GitHub CI.

@@ -5,6 +5,9 @@ catalogue and document ingestion, GST quotations, lead follow-ups, a staff inbox
 owner insights. Phase 6 adds pilot setup, privacy controls, evaluations and production
 operations assets. See PROGRESS.md for completed checks and pending live acceptance.
 
+See [Ubiquitous Language](UBIQUITOUS_LANGUAGE.md) for the shared business vocabulary,
+workflow states and rules used across Munim's requirements, dashboard and implementation.
+
 ## Run locally
 
 Install Docker Desktop, Python 3.12 + uv, Node 22 + pnpm 10.33.2, and GNU Make.
