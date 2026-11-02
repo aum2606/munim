@@ -191,3 +191,8 @@
 - Add root-level UBIQUITOUS_LANGUAGE.md as the maintained business vocabulary, with definitions, fictional examples, code references, actual lifecycle values and explicit distinctions between customer/lead, quotation/invoice and approval/delivery/acceptance. BUILD_PLAN.md remains the authoritative specification; this documentation changes no model, pricing, tenancy or agent boundaries.
 - Record current scope and deferred/live-acceptance work without presenting planned features as deployed. Group terminology review is a maintenance responsibility, not claimed completed on behalf of group members.
 - This task changes Markdown only. Validate formatting, local references and the Git diff; no application tests or migrations are needed for this documentation change. The original form submitter/group leader must update the existing Google Form response with the published file URL; no form URL or editable response was supplied.
+
+## 2026-11-02 - Team responsibility and attribution record
+
+- Record the project lead's declared roles in CONTRIBUTIONS.md: Param/backend, Yash/frontend, Panthil/testing, project lead/AI and oversight. Folder mappings are review areas, not verified historical authorship. Concrete contribution evidence and teammate confirmation remain pending; existing commit authors and dates are preserved.
+- Keep supplied personal emails out of project documentation. Any legitimate attribution correction should use the contributor's confirmed preferred GitHub-linked or no-reply email, describe the actual work and preserve accurate dates. Validate this Markdown-only change with formatting, local-reference and diff checks.

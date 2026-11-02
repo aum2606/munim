@@ -2,6 +2,11 @@
 
 Current phase: Phase 6 implementation complete; final production-image/browser/hosted checks in progress. Public deployment, real-model pilot targets and Phase 4 live Meta acceptance remain pending external setup.
 
+### Team responsibility record — 2026-11-02
+
+- [x] Add CONTRIBUTIONS.md with declared roles, folder review areas, evidence requirements and a collaboration workflow; link from README. This records responsibility allocation without changing historical authors or dates.
+- [ ] Collect specific contribution evidence and teammate confirmation before considering attribution corrections.
+
 ### Domain language submission — 2026-10-30
 
 - [x] Create UBIQUITOUS_LANGUAGE.md and link it from README: shared vocabulary, examples, model references, workflow states, business rules and implemented/deferred scope. Markdown formatting, local-link validation and diff checks recorded with the submission commit.
