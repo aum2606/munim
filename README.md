@@ -7,6 +7,8 @@ operations assets. See PROGRESS.md for completed checks and pending live accepta
 
 See [Ubiquitous Language](UBIQUITOUS_LANGUAGE.md) for the shared business vocabulary,
 workflow states and rules used across Munim's requirements, dashboard and implementation.
+See [Team contributions](CONTRIBUTIONS.md) for declared responsibilities and the
+process for documenting actual contributions.
 
 ## Run locally
 
