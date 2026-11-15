@@ -1,4 +1,4 @@
-.PHONY: dev migrate revision test test-be test-fe lint fmt
+.PHONY: dev migrate revision seed test test-be test-fe lint fmt eval
 
 dev: ## full stack: api, worker, postgres(pgvector), dashboard
 	@test -f .env || cp .env.example .env
@@ -10,6 +10,12 @@ migrate:
 revision: ## make revision m="message" (autogenerate, then review the file by hand)
 	cd backend && uv run alembic revision --autogenerate -m "$(m)"
 
+seed: ## create the demo businesses (the stack must be running); prints their logins once
+	docker compose exec api python -m seeds.load
+
+eval: ## MunimBench. CI mode by default; add LLM=real EMB=local with EVAL_USE_REAL_LLM=1 for a real model
+	cd backend && PYTHONPATH=.:.. uv run python -m benchmark.run --llm $(or $(LLM),fake) --embedder $(or $(EMB),fake)
+
 test: test-be test-fe
 
 test-be:
@@ -19,9 +25,9 @@ test-fe:
 	cd dashboard && pnpm test
 
 lint:
-	cd backend && uv run ruff check . && uv run ruff format --check . && uv run mypy
+	cd backend && uv run ruff check . ../benchmark && uv run ruff format --check . ../benchmark && uv run mypy
 	cd dashboard && pnpm lint && pnpm format:check && pnpm typecheck
 
 fmt:
-	cd backend && uv run ruff format . && uv run ruff check --fix .
+	cd backend && uv run ruff format . ../benchmark && uv run ruff check --fix . ../benchmark
 	cd dashboard && pnpm format

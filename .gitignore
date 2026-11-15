@@ -30,3 +30,6 @@ uploads/
 .vscode/
 .DS_Store
 .cache/
+
+# pnpm package cache (created by the dashboard container inside the mounted folder)
+.pnpm-store/

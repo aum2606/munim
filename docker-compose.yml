@@ -14,6 +14,13 @@ x-backend-env: &backend-env
   LLM_LARGE_CHAIN: ${LLM_LARGE_CHAIN:-}
   LLM_API_KEYS: ${LLM_API_KEYS:-}
   LLM_TIMEOUT_S: ${LLM_TIMEOUT_S:-30}
+  EMBEDDING_MODEL: ${EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+  EMBEDDING_CACHE_DIR: /data/models
+  STORAGE_DIR: /data/uploads
+  MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+  SEARCH_MAX_DISTANCE: ${SEARCH_MAX_DISTANCE:-0.65}
+  DEBOUNCE_SECONDS: ${DEBOUNCE_SECONDS:-2.5}
+  ROUTER_CONFIDENCE_THRESHOLD: ${ROUTER_CONFIDENCE_THRESHOLD:-0.6}
   JOB_POLL_SECONDS: ${JOB_POLL_SECONDS:-1.0}
   JOB_LEASE_SECONDS: ${JOB_LEASE_SECONDS:-120}
 
@@ -38,6 +45,8 @@ services:
     build: ./backend
     command: sh -c "alembic upgrade head && uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000 --no-access-log"
     environment: *backend-env
+    volumes:
+      - app_files:/data/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,6 +64,9 @@ services:
     build: ./backend
     command: python -m app.jobs.worker
     environment: *backend-env
+    volumes:
+      - app_files:/data/uploads
+      - models:/data/models # embedding model weights, downloaded once
     depends_on:
       api:
         condition: service_healthy # api runs the migrations first
@@ -67,6 +79,7 @@ services:
     command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm dev --host 0.0.0.0"
     environment:
       VITE_API_PROXY: http://api:8000
+      npm_config_store_dir: /pnpm-store # keep pnpm's cache out of the mounted project folder
     volumes:
       - ./dashboard:/app
       - dashboard_node_modules:/app/node_modules
@@ -77,4 +90,6 @@ services:
 
 volumes:
   pgdata:
+  app_files: # a named volume that is new to this project, so old data is never reused
+  models:
   dashboard_node_modules:
