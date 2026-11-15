@@ -10,6 +10,9 @@ class FakeLLM(LLMClient):
         self._replies = deque(replies)
         self.calls: list[tuple[Slot, list[ChatMessage]]] = []
 
+    def add(self, *replies: str) -> None:
+        self._replies.extend(replies)
+
     async def complete(
         self, slot: Slot, messages: list[ChatMessage], *, json_mode: bool = False
     ) -> LLMResult:
