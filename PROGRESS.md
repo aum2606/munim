@@ -3,7 +3,7 @@
 Source of truth for where we are. Tasks come from `BUILD_PLAN.md` section 15. Tick a task only when
 its tests pass; add a one-line note of what was built. Deviations go in `DECISIONS.md`.
 
-**Current phase: 0 (Foundations) is complete. Next: Phase 1, first task (models + extensions).**
+**Current phase: 1 (Knowledge + Playground) is built. Next: Phase 2 (Quotes), first task: the `requirement_schemas`, `leads` and `quotes` models.**
 
 ## Phase 0 — Foundations
 
@@ -40,17 +40,38 @@ Commands run: `cd backend && uv run pytest` (57 passed, 94% line+branch coverage
 
 ## Phase 1 — Knowledge + Playground
 
-- [ ] Models: documents, chunks, catalog_items, pricing_rules, customers, conversations, messages, knowledge_gaps (+ `pgvector` / `pg_trgm` extensions)
-- [ ] `parse_inr` price parser
-- [ ] Catalogue XLSX template, import with LLM column mapping, preview, commit
-- [ ] Document / FAQ ingestion job (parse, chunk, embed); real local `Embedder`
-- [ ] Hybrid search tool + catalogue lookup tool
-- [ ] Router, Knowledge, Responder agents; guardrails (price check first)
-- [ ] Orchestrator v1: advisory lock, debounce, dispatch, deterministic handoff, knowledge gaps
-- [ ] Playground adapter + SSE; Playground page with trace panel; Knowledge pages; read-only Inbox
-- [ ] Seeds: printing press + photographer
-- [ ] First 100 MunimBench items; `make eval` (FakeLLM) in CI
-- [ ] Acceptance: >= 20 scripted questions (English + Hinglish + Gujlish) with zero hallucinated prices; unanswerable questions create knowledge gaps; injected wrong price is blocked
+- [x] Models + migration `0002`: documents, chunks, catalog_items, customers, conversations, messages, knowledge_gaps, import_jobs, plus the `vector` and `pg_trgm` extensions and HNSW / GIN indexes. `pricing_rules` moved to Phase 2 (DECISIONS).
+- [x] `parse_inr` and `format_inr` (`pricing/inr.py` at 100% branch coverage)
+- [x] Catalogue import: XLSX template, name-based column mapping, LLM mapping fallback (checked against the real headers), preview with row errors, commit by SKU
+- [x] Document and FAQ ingestion: content sniffing, size limits, PDF/DOCX/TXT parsing, chunking, embedding in the worker; real local embedder (fastembed, 384-dim multilingual)
+- [x] Hybrid search (vector + full-text, merged with RRF) and catalogue lookup (SKU, alias, trigram, hybrid) with a relevance cutoff
+- [x] Router, Knowledge and Responder agents; guardrails (price, leak, length); prompts in `agents/prompts/*.jinja` with versioned hashes
+- [x] Orchestrator v1: advisory lock, debounce, deterministic dispatch, handoff (also when no model is available), knowledge gaps
+- [x] API: catalogue and import, documents, FAQs, knowledge gaps, playground, conversations, agent runs
+- [x] Dashboard: Knowledge (catalogue and import wizard, documents, FAQs, gaps), Playground with trace panel, read-only Inbox
+- [x] Seeds: printing press (15 items, 10 FAQs) and wedding photographer (10 items, 8 FAQs); `make seed`
+- [x] MunimBench v0.1: 100 items, datasheet, runner and an oracle model for CI; `make eval`
+- [ ] Not built yet: editing one catalogue item in the dashboard (the API supports it), SSE streaming (the Playground polls instead, see DECISIONS)
+
+### Phase 1 acceptance (BUILD_PLAN.md section 15)
+
+| Criterion | Result |
+|---|---|
+| At least 20 scripted questions (English, Hinglish, Gujlish) with zero hallucinated prices | MunimBench runs 100 items in all five languages through the full pipeline: **0 hallucinated amounts and price accuracy 100%**, with real multilingual embeddings in Docker and with fake embeddings in CI. The model is a scripted stand-in, so this proves retrieval, price rendering and guardrails. **It does not prove real-model quality, which has not been run (no model keys).** |
+| Unanswerable questions create knowledge gaps | `test_unanswerable_question_logs_a_gap_and_says_it_will_check`: repeats are counted, and answering a gap creates an FAQ |
+| An injected wrong price is blocked | `test_a_wrong_price_is_blocked_and_regenerated` (one regeneration) and `test_a_price_that_stays_wrong_is_never_sent_and_a_human_takes_over`; guardrail unit tests cover Devanagari and Gujarati digits, `k` and lakh shorthand, and sub-paisa amounts |
+| `make eval` (fake model) runs in CI | `tests/integration/test_benchmark.py` runs the harness inside `pytest`, which CI runs |
+
+Real-embedding retrieval on the benchmark (`benchmark/reports/oracle-local.md`): 97.1% of items find
+their expected catalogue item or FAQ. Two romanised-Hindi FAQ questions miss ("kitne baje tak khule
+rehte ho", "aapki dukaan kahan hai"). Cutoffs from 0.5 to 0.8 behave identically, so the limit is the
+embedding model, not the cutoff.
+
+Commands run: `cd backend && uv run pytest`, `uv run ruff check . ../benchmark`,
+`uv run ruff format --check . ../benchmark`, `uv run mypy` (strict, clean); `cd dashboard && pnpm lint &&
+pnpm typecheck && pnpm test && pnpm build`; `docker compose up -d --build`, `python -m seeds.load` and
+`python -m benchmark.run --embedder local` inside the worker; a browser run at 375px (login, catalogue,
+one Playground turn through the worker).
 
 ## Phase 2 — Quotes
 

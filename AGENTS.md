@@ -72,7 +72,7 @@ make test-fe    # dashboard: vitest
 make e2e        # playwright
 make lint       # ruff check, ruff format --check, mypy, eslint, prettier --check, tsc --noEmit
 make fmt        # ruff format + ruff check --fix + prettier --write
-make eval       # MunimBench + adversarial suite; real LLM only if EVAL_USE_REAL_LLM=1 (MODEL=...)
+make eval       # MunimBench (CI mode: oracle model). Real model: EVAL_USE_REAL_LLM=1 make eval LLM=real EMB=local
 make replay     # replay stored conversations across prompt versions (FROM=... TO=...)
 ```
 
