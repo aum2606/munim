@@ -52,6 +52,14 @@ class AgentRunRepository:
         await self._session.flush()
         return run
 
+    async def for_message(self, message_id: uuid.UUID) -> list[AgentRun]:
+        result = await self._session.scalars(
+            select(AgentRun)
+            .where(AgentRun.tenant_id == self._ctx.tenant_id, AgentRun.message_id == message_id)
+            .order_by(AgentRun.created_at)
+        )
+        return list(result)
+
     async def list_recent(self, limit: int = 50) -> list[AgentRun]:
         result = await self._session.scalars(
             select(AgentRun)

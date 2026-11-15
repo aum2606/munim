@@ -4,6 +4,7 @@ import signal
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+import httpx
 import structlog
 
 from app.core.config import get_settings
@@ -15,9 +16,6 @@ from app.jobs.queue import ClaimedJob, claim_batch, mark_done, mark_failed
 log = structlog.get_logger()
 
 Handler = Callable[[SessionMaker, TenantContext, dict[str, Any]], Awaitable[None]]
-
-# Register job handlers here as features land (ingestion, process_message, follow-ups, ...).
-HANDLERS: dict[str, Handler] = {}
 
 
 async def process_batch(
@@ -80,9 +78,16 @@ async def run_worker(
 
 
 async def main() -> None:
+    from app.jobs.handlers import build_handlers  # late: handlers import this module's Handler
+    from app.llm.embedder import LocalEmbedder
+    from app.llm.openai_compat import ChainLLMClient
+
     settings = get_settings()
     configure_logging(settings.log_level)
     engine = make_engine(settings.database_url)
+    embedder = LocalEmbedder(settings.embedding_model, settings.embedding_cache_dir)
+    http = httpx.AsyncClient()
+    llm = ChainLLMClient.from_settings(settings, http)
     stop = asyncio.Event()
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
@@ -91,12 +96,13 @@ async def main() -> None:
     try:
         await run_worker(
             make_sessionmaker(engine),
-            HANDLERS,
+            build_handlers(embedder, settings, llm),
             stop,
             poll_s=settings.job_poll_seconds,
             lease_s=settings.job_lease_seconds,
         )
     finally:
+        await http.aclose()
         await engine.dispose()
 
 

@@ -42,3 +42,10 @@ class LLMUnavailableError(DomainError):
 
     status_code = 503
     code = "llm_unavailable"
+
+
+class FileRejectedError(DomainError):
+    """An upload is the wrong type, too large, or unreadable."""
+
+    status_code = 422
+    code = "file_rejected"

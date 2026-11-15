@@ -9,6 +9,7 @@ from app.core.config import Settings
 from app.core.context import Role, TenantContext
 from app.core.errors import ForbiddenError, UnauthorizedError
 from app.core.security import decode_access_token
+from app.llm.base import LLMClient
 from app.repositories.auth import AuthRepository
 
 _bearer = HTTPBearer(auto_error=False)
@@ -28,8 +29,14 @@ def get_settings(request: Request) -> Settings:
 
 # scope="function": the commit runs before the response is sent, so a client never sees a 2xx
 # for work that failed to commit.
+def get_llm(request: Request) -> LLMClient:
+    llm: LLMClient = request.app.state.llm
+    return llm
+
+
 SessionDep = Annotated[AsyncSession, Depends(get_session, scope="function")]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+LLMDep = Annotated[LLMClient, Depends(get_llm)]
 
 
 async def get_tenant_context(

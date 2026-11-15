@@ -2,7 +2,7 @@ import enum
 import uuid
 from typing import Any
 
-from sqlalchemy import BigInteger, Index, Integer, String, Text
+from sqlalchemy import BigInteger, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,7 +24,9 @@ class AgentRun(IdentityMixin, TenantMixin, Base):
         Index("ix_agent_runs_tenant_id_message_id", "tenant_id", "message_id"),
     )
 
-    message_id: Mapped[uuid.UUID | None] = mapped_column()  # FK added when messages exist
+    message_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("messages.id", ondelete="SET NULL")
+    )  # the inbound message that triggered the run
     agent: Mapped[str] = mapped_column(String(40))
     provider: Mapped[str | None] = mapped_column(String(40))
     model: Mapped[str | None] = mapped_column(String(80))

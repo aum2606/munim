@@ -1,14 +1,54 @@
 from app.db.models.agent_run import AgentRun, AgentRunStatus
+from app.db.models.chat import (
+    Channel,
+    Conversation,
+    ConversationMode,
+    ConversationStatus,
+    Customer,
+    Direction,
+    Message,
+    SenderType,
+)
 from app.db.models.job import Job, JobStatus
+from app.db.models.knowledge import (
+    CatalogItem,
+    Chunk,
+    Document,
+    DocumentSource,
+    DocumentStatus,
+    GapStatus,
+    ImportJob,
+    ImportStatus,
+    KnowledgeGap,
+    StockStatus,
+)
 from app.db.models.tenant import Tenant, TenantSettings
 from app.db.models.user import RefreshToken, User
 
 __all__ = [
     "AgentRun",
     "AgentRunStatus",
+    "CatalogItem",
+    "Channel",
+    "Chunk",
+    "Conversation",
+    "ConversationMode",
+    "ConversationStatus",
+    "Customer",
+    "Direction",
+    "Document",
+    "DocumentSource",
+    "DocumentStatus",
+    "GapStatus",
+    "ImportJob",
+    "ImportStatus",
     "Job",
     "JobStatus",
+    "KnowledgeGap",
+    "Message",
     "RefreshToken",
+    "SenderType",
+    "StockStatus",
     "Tenant",
     "TenantSettings",
     "User",

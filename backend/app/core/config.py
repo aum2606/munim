@@ -26,6 +26,15 @@ class Settings(BaseSettings):
     llm_api_keys: str = ""
     llm_timeout_s: float = 30.0
 
+    embedding_model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    embedding_cache_dir: str = ""
+    storage_dir: str = "./uploads"
+    max_upload_mb: int = 10
+
+    search_max_distance: float = 0.65
+    debounce_seconds: float = 2.5
+    router_confidence_threshold: float = 0.6
+
     job_poll_seconds: float = 1.0
     job_lease_seconds: int = 120
 

@@ -3,6 +3,7 @@ import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
+import httpx
 import structlog
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -15,6 +16,7 @@ from app.core.config import Settings, get_settings
 from app.core.errors import DomainError
 from app.core.logging import configure_logging
 from app.db.session import make_engine, make_sessionmaker
+from app.llm.openai_compat import ChainLLMClient
 
 log = structlog.get_logger()
 
@@ -33,8 +35,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         engine = make_engine(settings.database_url)
+        http = httpx.AsyncClient()
         app.state.sessionmaker = make_sessionmaker(engine)
+        app.state.llm = ChainLLMClient.from_settings(settings, http)
         yield
+        await http.aclose()
         await engine.dispose()
 
     prod = settings.app_env == "prod"
