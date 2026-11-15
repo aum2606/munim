@@ -63,7 +63,7 @@ export function refreshSession(): Promise<boolean> {
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   body?: unknown
 }
 
@@ -72,14 +72,16 @@ export async function api<T>(
   { method = 'GET', body }: RequestOptions = {},
   canRetry = true,
 ): Promise<T> {
+  // FormData (file uploads) is sent as is so the browser sets the multipart boundary itself.
+  const isForm = body instanceof FormData
   const response = await fetch(`/api/v1${path}`, {
     method,
     credentials: 'same-origin',
     headers: {
-      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...(body === undefined || isForm ? {} : { 'Content-Type': 'application/json' }),
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
   })
 
   // Access token expired: refresh once and replay. Auth endpoints report their own 401s.
