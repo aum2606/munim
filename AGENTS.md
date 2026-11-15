@@ -7,18 +7,18 @@ Instructions for AI coding agents (Codex, etc.) working in this repository.
 
 ## 1. Project in one paragraph
 
-**Munim** is a multi-tenant, multi-agent "AI digital employee" for Indian small businesses (1–20 staff). It ingests a business's catalogue, price list, FAQs and policies. It then answers customer enquiries on a web widget, WhatsApp and Instagram, collects requirements, produces GST-correct quotations, tracks and follows up on leads, and gives the owner plain-English insights. Stack: FastAPI + PostgreSQL/pgvector + Redis/arq on the backend, React + Vite + TS for the dashboard, Preact for the embeddable widget.
+**Munim** is an open-source, multi-tenant WhatsApp AI sales agent for Indian small businesses (1–20 staff), starting with printing presses. It ingests a business's catalogue, price list and FAQs, answers enquiries by text and voice note in English/Hindi/Gujarati/Hinglish, collects requirements, produces GST-correct quotations for owner approval, and tracks leads. It ships with MunimBench, an open code-mixed Indic benchmark. Stack: FastAPI + PostgreSQL/pgvector (also the job queue — no Redis), React + Vite + TS for the dashboard. **Everything must run on free tiers or locally (`BUILD_PLAN.md` §3).**
 
 ---
 
 ## 2. Before you start any task
 
 1. Read `PROGRESS.md` to find the current phase and the next unchecked task.
-2. Re-read the relevant section of `BUILD_PLAN.md` (phases are in §14).
+2. Re-read the relevant section of `BUILD_PLAN.md` (phases are in §15).
 3. Read `DECISIONS.md` so you don't contradict an earlier decision.
 4. Work on **one task at a time**. Don't start the next phase until the current phase's acceptance criteria pass.
 
-If `PROGRESS.md` or `DECISIONS.md` doesn't exist yet, create it (Phase 0, first task). Seed `PROGRESS.md` with every task from `BUILD_PLAN.md` §14 as checkboxes.
+If `PROGRESS.md` or `DECISIONS.md` doesn't exist yet, create it (Phase 0, first task). Seed `PROGRESS.md` with every task from `BUILD_PLAN.md` §15 as checkboxes.
 
 ---
 
@@ -40,13 +40,14 @@ If `PROGRESS.md` or `DECISIONS.md` doesn't exist yet, create it (Phase 0, first 
 - Every agent input and output is a Pydantic model. Use structured/JSON-schema output, and validate it with one retry on failure.
 - Every LLM call writes an `agent_runs` row (use the provided decorator/context manager).
 - Prompts live in `backend/app/agents/prompts/*.jinja`. Don't inline prompts longer than one line in Python.
-- **Tests never call a real LLM or embedding API.** Use `FakeLLM` and `FakeEmbedder`. Real-model runs happen only via `make eval` with an explicit env flag.
+- **Tests never call a real LLM, embedding or speech-to-text model.** Use `FakeLLM`, `FakeEmbedder` and `FakeTranscriber`. Real-model runs happen only via `make eval` with `EVAL_USE_REAL_LLM=1`.
+- **No paid services.** Every provider must have a free or local option; never add a dependency on a paid API without a `DECISIONS.md` entry marked `NEEDS REVIEW`.
 - Customer text is untrusted data. Never interpolate it into the system section of a prompt. Keep it in the user/content section, clearly delimited.
 
 ### Agents
-- Agents are narrow. Each one declares an explicit tool allow-list. The Knowledge agent cannot create quotes; the Insights agent cannot read raw messages from other tenants, and so on.
+- There are four agents: Router, Knowledge, Quote, Responder. Each declares an explicit tool allow-list (e.g. the Knowledge agent cannot create quotes). Lead scoring, handoff and follow-ups are deterministic code, not agents.
 - **Dispatch between agents is deterministic Python** (`app/orchestrator/`), not an LLM deciding which agent runs next.
-- The Insights agent uses only the fixed analytics functions in `app/tools/analytics.py`. **No free-form text-to-SQL.**
+- Metrics come only from fixed functions in `app/tools/metrics.py`. **No free-form text-to-SQL.**
 - If an answer isn't grounded in tool results: log a `knowledge_gaps` row and reply with the localized "I'll confirm with the team" message. Never guess.
 
 ### Secrets & data
@@ -61,17 +62,18 @@ If `PROGRESS.md` or `DECISIONS.md` doesn't exist yet, create it (Phase 0, first 
 All of these must work from the repo root. If you add a new workflow, add a Make target.
 
 ```bash
-make dev        # docker compose up: api, worker, postgres(pgvector), redis, dashboard, widget
+make dev        # docker compose up: api, worker, postgres(pgvector), dashboard
 make migrate    # alembic upgrade head
 make revision m="message"   # new alembic migration (autogenerate, then review it by hand)
-make seed       # load demo tenants: electronics shop, wedding photographer, printing press
-make test       # backend + frontend tests (FakeLLM only)
+make seed       # load demo tenants: printing press (primary), wedding photographer
+make test       # backend + frontend tests (fakes only)
 make test-be    # backend: pytest
-make test-fe    # dashboard + widget: vitest
+make test-fe    # dashboard: vitest
 make e2e        # playwright
 make lint       # ruff check, ruff format --check, mypy, eslint, prettier --check, tsc --noEmit
 make fmt        # ruff format + ruff check --fix + prettier --write
-make eval       # golden-conversation evals; real LLM only if EVAL_USE_REAL_LLM=1
+make eval       # MunimBench + adversarial suite; real LLM only if EVAL_USE_REAL_LLM=1 (MODEL=...)
+make replay     # replay stored conversations across prompt versions (FROM=... TO=...)
 ```
 
 Backend runs with `uv` (`uv run pytest`, `uv run alembic ...`). Frontend uses `pnpm`.
@@ -87,21 +89,20 @@ backend/app/
   repositories/   the only place that talks to the DB
   schemas/        Pydantic API request/response models
   api/v1/         FastAPI routers (thin: validate → call service/repo → return)
-  llm/            LLMClient, providers, FakeLLM, Embedder, FakeEmbedder, Reranker
-  agents/         one file per agent + base.py + guardrails.py + prompts/*.jinja
-  orchestrator/   message pipeline: lock, debounce, route, dispatch, respond
-  tools/          search, catalog_lookup, analytics (deterministic, tenant-scoped)
+  llm/            LLMClient + provider fallback chain, FakeLLM, Embedder, FakeEmbedder, Transcriber, FakeTranscriber
+  agents/         router, knowledge, quote, responder + base.py + guardrails.py + prompts/*.jinja
+  orchestrator/   message pipeline: lock, debounce, route, dispatch, respond; lead scoring, handoff rules
+  tools/          search, catalog_lookup, metrics (deterministic, tenant-scoped)
   pricing/        engine, gst, inr formatting, quote numbering  ← 100% coverage
   ingestion/      parsers, chunker, catalog import, column mapper, INR price parser
-  channels/       base adapter, web, whatsapp, instagram
+  channels/       base adapter, whatsapp, playground
   quotes/         PDF rendering + Jinja/HTML templates
-  workers/        arq settings, tasks, cron jobs (follow-ups, digest)
-  analytics/      event emission helpers
+  jobs/           Postgres job queue, worker, scheduler (follow-ups)
 backend/tests/
-  unit/  integration/  evals/
+  unit/  integration/
 backend/seeds/    demo tenants, catalogues, FAQs, requirement schemas
+benchmark/        MunimBench data + datasheet, eval runner, adversarial suite, replay, reports/
 dashboard/        React + Vite + TS + Tailwind + shadcn/ui + TanStack Query
-widget/           Preact embeddable chat widget (single script bundle)
 ```
 
 Put new code where it belongs in this map. Don't create new top-level folders without a `DECISIONS.md` entry.
@@ -155,9 +156,9 @@ Every task ships with tests, and a task isn't done until they pass.
 
 Rules:
 - Never delete or skip a failing test to get green. Fix the code, or explain in `DECISIONS.md` why the test was wrong.
-- No network in tests, except to the testcontainers database and Redis.
+- No network in tests, except to the testcontainers database.
 - Fixtures for money use explicit paise integers.
-- Add new golden conversations to `backend/tests/evals/` whenever you add or change agent behaviour.
+- Add new MunimBench items to `benchmark/` whenever you add or change agent behaviour. Never put real customer data in it.
 
 ---
 
@@ -170,9 +171,9 @@ Rules:
 - [ ] New env vars are added to `.env.example`.
 - [ ] `PROGRESS.md` checkbox is ticked, with a one-line note on what was built.
 - [ ] Any assumption or deviation is logged in `DECISIONS.md` (date, decision, reason).
-- [ ] Committed with a conventional-commit message, e.g. `feat(pricing): add quantity-tier rules`, `fix(widget): ...`, `test(leads): ...`.
+- [ ] Committed with a conventional-commit message, e.g. `feat(pricing): add quantity-tier rules`, `fix(whatsapp): ...`, `test(leads): ...`.
 
-At the end of a **phase**, also verify that phase's acceptance criteria in `BUILD_PLAN.md` §14. Record the result in `PROGRESS.md`, along with the commands you ran.
+At the end of a **phase**, also verify that phase's acceptance criteria in `BUILD_PLAN.md` §15. Record the result in `PROGRESS.md`, along with the commands you ran.
 
 ---
 
@@ -181,7 +182,7 @@ At the end of a **phase**, also verify that phase's acceptance criteria in `BUIL
 - Choose the **simplest option consistent with §3** and the principles in `BUILD_PLAN.md` §2.
 - Implement it and log it in `DECISIONS.md`. Don't stall waiting for answers.
 - **Don't** silently change the data model, money handling, tenancy approach or agent boundaries. These need a `DECISIONS.md` entry marked `NEEDS REVIEW`.
-- For third-party APIs (WhatsApp Cloud API, Instagram Messaging, LLM providers), don't rely on memory for endpoints, payloads, limits or policies. Check the official docs, and leave a link in a code comment or in `DECISIONS.md`.
+- For third-party APIs (WhatsApp Cloud API, LLM/STT providers and their free-tier limits and data-use terms), don't rely on memory for endpoints, payloads, limits or policies. Check the official docs, and leave a link in a code comment or in `DECISIONS.md`.
 
 ---
 
@@ -197,14 +198,13 @@ At the end of a **phase**, also verify that phase's acceptance criteria in `BUIL
 
 ---
 
-## 11. Phase checklist (summary of `BUILD_PLAN.md` §14)
+## 11. Phase checklist (summary of `BUILD_PLAN.md` §15)
 
-0. **Foundations:** scaffold, compose, CI, auth, tenancy, LLM/embedder interfaces + fakes, `agent_runs`.
-1. **Knowledge + web chat:** catalogue import, document ingestion, hybrid search, Router/Knowledge/Responder agents, guardrails, widget, playground, seeds.
-2. **Requirements + quotations:** requirement schemas, Requirements agent, pricing engine, Quotation agent, PDF, approval flow.
-3. **Leads + follow-ups + handoff:** Lead agent, scoring, follow-up cron, Handoff agent, live inbox, conversation modes.
-4. **WhatsApp:** adapter, signature verification, 24h window, templates, document sending, idempotency.
-5. **Insights:** analytics events, analytics functions, Insights agent, weekly digest, overview dashboard.
-6. **Hardening + pilot:** eval harness, injection suite, rate limits, backups, TLS, privacy/deletion, onboarding < 30 min.
+0. **Foundations:** scaffold, compose, CI, auth, tenancy, LLM/embedder/transcriber interfaces + fakes, `agent_runs`, Postgres job queue.
+1. **Knowledge + Playground:** catalogue import, document ingestion, hybrid search, Router/Knowledge/Responder agents, guardrails, playground, seeds, first 100 MunimBench items.
+2. **Quotes:** requirement schemas, pricing engine (+ property tests), Quote agent, PDF, approval flow, lead scoring.
+3. **WhatsApp + voice + handoff:** adapter, signature verification, 24h window, voice-note transcription, live inbox, follow-up drafts.
+4. **Benchmark + red team + replay:** MunimBench 300–500 items, multi-model leaderboard, adversarial price suite, replay CI gate, cost report.
+5. **Pilot + release:** metrics page, rate limits, self-host guide, backups, privacy/deletion, 2–3 pilot businesses, README with numbers.
 
 **Start here:** Phase 0, task 1. Create `PROGRESS.md` and `DECISIONS.md`, then scaffold the repo.
