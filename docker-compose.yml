@@ -1,0 +1,80 @@
+# Local development stack. Ports bind to 127.0.0.1 only: nothing here is exposed to your network.
+# Settings come from .env (copy .env.example). For a public deployment see the self-host guide (Phase 5).
+
+x-backend-env: &backend-env
+  APP_ENV: ${APP_ENV:-dev}
+  SECRET_KEY: ${SECRET_KEY:-dev-only-secret-key-change-me-in-production}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-munim}:${POSTGRES_PASSWORD:-munim-dev-only}@postgres:5432/${POSTGRES_DB:-munim}
+  CORS_ORIGINS: ${CORS_ORIGINS:-}
+  ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
+  ACCESS_TOKEN_MINUTES: ${ACCESS_TOKEN_MINUTES:-15}
+  REFRESH_TOKEN_DAYS: ${REFRESH_TOKEN_DAYS:-7}
+  LLM_SMALL_CHAIN: ${LLM_SMALL_CHAIN:-}
+  LLM_LARGE_CHAIN: ${LLM_LARGE_CHAIN:-}
+  LLM_API_KEYS: ${LLM_API_KEYS:-}
+  LLM_TIMEOUT_S: ${LLM_TIMEOUT_S:-30}
+  JOB_POLL_SECONDS: ${JOB_POLL_SECONDS:-1.0}
+  JOB_LEASE_SECONDS: ${JOB_LEASE_SECONDS:-120}
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-munim}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-munim-dev-only}
+      POSTGRES_DB: ${POSTGRES_DB:-munim}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-munim} -d ${POSTGRES_DB:-munim}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    command: sh -c "alembic upgrade head && uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000 --no-access-log"
+    environment: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/ready')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  worker:
+    build: ./backend
+    command: python -m app.jobs.worker
+    environment: *backend-env
+    depends_on:
+      api:
+        condition: service_healthy # api runs the migrations first
+    security_opt:
+      - no-new-privileges:true
+
+  dashboard:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm dev --host 0.0.0.0"
+    environment:
+      VITE_API_PROXY: http://api:8000
+    volumes:
+      - ./dashboard:/app
+      - dashboard_node_modules:/app/node_modules
+    ports:
+      - "127.0.0.1:${DASHBOARD_PORT:-5173}:5173"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  dashboard_node_modules:

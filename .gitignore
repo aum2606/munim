@@ -1,0 +1,32 @@
+# secrets and local config
+.env
+.env.*
+!.env.example
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# node
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+
+# runtime data and models
+uploads/
+*.gguf
+*.safetensors
+
+# editors / os
+.idea/
+.vscode/
+.DS_Store
+.cache/
