@@ -89,6 +89,7 @@ backend/app/
   repositories/   the only place that talks to the DB
   schemas/        Pydantic API request/response models
   api/v1/         FastAPI routers (thin: validate → call service/repo → return)
+  services/       business logic that spans repositories (auth, users, ...)
   llm/            LLMClient + provider fallback chain, FakeLLM, Embedder, FakeEmbedder, Transcriber, FakeTranscriber
   agents/         router, knowledge, quote, responder + base.py + guardrails.py + prompts/*.jinja
   orchestrator/   message pipeline: lock, debounce, route, dispatch, respond; lead scoring, handoff rules
