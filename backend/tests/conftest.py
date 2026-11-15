@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import AsyncIterator, Iterator
+from pathlib import Path
 
 import httpx
 import pytest
@@ -12,6 +13,7 @@ from app.core.config import Settings
 from app.core.context import TenantContext
 from app.core.security import hash_password
 from app.db.session import SessionMaker, make_sessionmaker
+from app.llm.fake import FakeLLM
 from app.main import create_app
 from app.repositories.auth import AuthRepository
 
@@ -30,8 +32,15 @@ def database_url() -> Iterator[str]:
 
 
 @pytest.fixture
-def settings(database_url: str) -> Settings:
-    return Settings(app_env="test", secret_key="t" * 40, database_url=database_url)
+def settings(database_url: str, tmp_path: Path) -> Settings:
+    return Settings(
+        app_env="test", secret_key="t" * 40, database_url=database_url, storage_dir=str(tmp_path)
+    )
+
+
+@pytest.fixture
+def llm() -> FakeLLM:
+    return FakeLLM([])
 
 
 @pytest.fixture
@@ -43,10 +52,11 @@ async def sessionmaker(database_url: str) -> AsyncIterator[SessionMaker]:
 
 @pytest.fixture
 async def client(
-    settings: Settings, sessionmaker: SessionMaker
+    settings: Settings, sessionmaker: SessionMaker, llm: FakeLLM
 ) -> AsyncIterator[httpx.AsyncClient]:
     app = create_app(settings)
     app.state.sessionmaker = sessionmaker  # ASGITransport does not run lifespan
+    app.state.llm = llm
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
