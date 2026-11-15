@@ -1,0 +1,103 @@
+# MunimBench items. Fields are documented in benchmark/DATASHEET.md.
+- id: photo-001
+  vertical: photography
+  language: en
+  script: latin
+  text: How much do you charge for wedding photography for one day?
+  intent: pricing
+  terms:
+  - wedding photography for one day
+  expect:
+    grounded: true
+    skus:
+    - WED-1D
+    faq: null
+    price_paise:
+    - 4500000
+  handoff: false
+  semantic: false
+- id: photo-002
+  vertical: photography
+  language: hinglish
+  script: latin
+  text: 1 din ki wedding photography ka rate kya hai?
+  intent: pricing
+  terms:
+  - wedding photography for one day
+  expect:
+    grounded: true
+    skus:
+    - WED-1D
+    faq: null
+    price_paise:
+    - 4500000
+  handoff: false
+  semantic: false
+- id: photo-003
+  vertical: photography
+  language: en
+  script: latin
+  text: How much do you charge for drone coverage?
+  intent: pricing
+  terms:
+  - drone coverage
+  expect:
+    grounded: true
+    skus:
+    - DRONE
+    faq: null
+    price_paise:
+    - 800000
+  handoff: false
+  semantic: false
+- id: photo-004
+  vertical: photography
+  language: hinglish
+  script: latin
+  text: drone shoot ka rate kya hai?
+  intent: pricing
+  terms:
+  - drone coverage
+  expect:
+    grounded: true
+    skus:
+    - DRONE
+    faq: null
+    price_paise:
+    - 800000
+  handoff: false
+  semantic: false
+- id: photo-005
+  vertical: photography
+  language: en
+  script: latin
+  text: How much do you charge for pre-wedding shoot?
+  intent: pricing
+  terms:
+  - pre-wedding shoot
+  expect:
+    grounded: true
+    skus:
+    - PRE-WED
+    faq: null
+    price_paise:
+    - 2500000
+  handoff: false
+  semantic: false
+- id: photo-006
+  vertical: photography
+  language: hinglish
+  script: latin
+  text: pre wedding shoot ka rate kya hai?
+  intent: pricing
+  terms:
+  - pre-wedding shoot
+  expect:
+    grounded: true
+    skus:
+    - PRE-WED
+    faq: null
+    price_paise:
+    - 2500000
+  handoff: false
+  semantic: false

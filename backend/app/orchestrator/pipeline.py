@@ -18,6 +18,7 @@ from app.agents.responder import ResponderAgent
 from app.agents.router import RouterAgent
 from app.core.config import Settings
 from app.core.context import TenantContext
+from app.core.errors import LLMOutputError, LLMUnavailableError
 from app.db.models import Conversation, ConversationMode, Direction, Message, SenderType
 from app.db.session import SessionMaker
 from app.llm.base import LLMClient
@@ -73,20 +74,33 @@ async def process_message(deps: Deps, ctx: TenantContext, payload: dict[str, Any
         ]
         trigger = pending[-1]
         tenant = await TenantRepository(session, ctx).get()
-        router = await RouterAgent(deps.llm, deps.sessionmaker).run(
-            ctx,
-            RouterInput(business_type=tenant.business_type if tenant else "business", turns=turns),
-            message_id=trigger.id,
-        )
-        question = "\n".join(m.content for m in pending)
-        reply = await _reply_for(deps, ctx, session, conversation, router, question, turns, trigger)
+        language: str | None = None
+        intent: str | None = None
+        try:
+            router = await RouterAgent(deps.llm, deps.sessionmaker).run(
+                ctx,
+                RouterInput(
+                    business_type=tenant.business_type if tenant else "business", turns=turns
+                ),
+                message_id=trigger.id,
+            )
+            language, intent = router.language, router.intent.value
+            question = "\n".join(m.content for m in pending)
+            reply = await _reply_for(
+                deps, ctx, session, conversation, router, question, turns, trigger
+            )
+        except (LLMUnavailableError, LLMOutputError) as exc:
+            # No model could help. Never leave a customer waiting in silence: a person takes over.
+            log.warning("llm_failed_handoff", error=type(exc).__name__)
+            conversation.mode = ConversationMode.HUMAN
+            reply = canned("handoff", language or "en")
         await chat.add_message(
             conversation,
             direction=Direction.OUT,
             sender_type=SenderType.AI,
             content=reply,
-            language=router.language,
-            intent=router.intent.value,
+            language=language,
+            intent=intent,
             reply_to_id=trigger.id,
         )
         await chat.mark_handled([m.id for m in pending])

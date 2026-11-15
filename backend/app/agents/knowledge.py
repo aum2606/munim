@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.agents.base import BaseAgent, ToolBox
+from app.agents.guardrails import extract_amounts
 from app.agents.models import (
     ChunkEvidence,
     ItemEvidence,
@@ -58,7 +59,10 @@ class KnowledgeAgent(BaseAgent):
         )
         chunks: list[ChunkHit] = await toolbox.call("search_knowledge", query=question)
         business: BusinessInfo = await toolbox.call("get_business_info")
-        allowed = frozenset(i.base_price_paise for i in items)
+        # Prices of products come from the catalogue. Amounts the owner wrote in their own
+        # policies (a delivery threshold, an advance) may be repeated exactly as written.
+        policy_amounts = {a for c in chunks for a in extract_amounts(c.content) if a >= 0}
+        allowed = frozenset({i.base_price_paise for i in items} | policy_amounts)
 
         if not items and not chunks:  # nothing retrieved: do not even ask the model
             return KnowledgeResult(
