@@ -50,9 +50,13 @@ target-version = "py312"
 select = ["E", "F", "I", "UP", "B", "S", "ASYNC", "SIM"]
 ignore = ["S101"]  # asserts are fine in tests; app code does not use them for validation
 
+[tool.ruff.lint.isort]
+known-first-party = ["app", "seeds", "benchmark"]
+
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S105", "S106"]  # test passwords/tokens are fake
 "app/orchestrator/messages.py" = ["E501"]  # translated sentences, kept on one line each
+"seeds/data.py" = ["E501"]  # demo text
 
 [tool.mypy]
 strict = true
@@ -67,6 +71,7 @@ ignore_missing_imports = true
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
+pythonpath = [".", ".."]  # backend/ for app and seeds, repo root for benchmark
 filterwarnings = ["error::DeprecationWarning:app.*"]
 
 [tool.coverage.run]

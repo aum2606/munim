@@ -11,11 +11,15 @@ RUN uv sync --frozen --no-dev
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY app ./app
+COPY seeds ./seeds
 
 # Run as an unprivileged user.
-RUN useradd --system --no-create-home munim && chown -R munim /app
+RUN useradd --system --no-create-home munim \
+ && mkdir -p /data/uploads /data/models \
+ && chown -R munim /app /data
 USER munim
-ENV PATH="/app/.venv/bin:$PATH"
+# No home directory for this user, so point model-download caches somewhere writable.
+ENV PATH="/app/.venv/bin:$PATH" HF_HOME=/data/models/hf XDG_CACHE_HOME=/data/models/xdg
 
 EXPOSE 8000
 CMD ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
