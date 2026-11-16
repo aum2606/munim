@@ -235,3 +235,13 @@ Format: **date — decision.** Reason.
   a hand-written list (units, tens and multiples), not every number. A translated leak of the system prompt is
   not caught (only the English phrases are). The suite attacks the guardrail with synthetic replies; whether a
   real model produces anything new needs a real-model run (`make eval` with a key).
+- **2026-11-16 — Replay compares a run with a committed baseline, not with a stored database of chats.** The
+  spec said "re-run stored conversations"; the benchmark items are the stored conversations, they are
+  already in git, and a baseline is a small JSON per model (`benchmark/baselines/<name>.json`) with each
+  item's outcome and amounts plus the prompt versions. Playground chats from a real deployment are not
+  replayed (they contain customer data; Phase 5 decides how to anonymise them).
+- **2026-11-16 — The CI replay gate runs with the oracle model.** It fails on a regression, a disallowed
+  amount, lower price accuracy or an item that stopped running, and a prompt edit is listed (old and new
+  hash) but does not fail by itself. It catches an edit that stops feeding the model what the answer needs
+  (shown by a test that removes the price lines from the responder prompt); it cannot judge wording,
+  which needs a baseline from a real model. After an intended change run `make replay-save` and commit.

@@ -27,17 +27,30 @@ def sanitize_customer_text(text: str) -> str:
     return _FENCE_TAG.sub("", text)
 
 
+def prompt_version(name: str) -> str:
+    """'<name>@<sha12 of the template and the shared preamble>': changes when either does."""
+    source = (PROMPT_DIR / f"{name}.jinja").read_bytes() + (
+        PROMPT_DIR / "_preamble.jinja"
+    ).read_bytes()
+    return f"{name}@{hashlib.sha256(source).hexdigest()[:12]}"
+
+
+def all_prompt_versions() -> dict[str, str]:
+    return {
+        p.stem: prompt_version(p.stem)
+        for p in sorted(PROMPT_DIR.glob("*.jinja"))
+        if not p.stem.startswith("_")
+    }
+
+
 def render_prompt(name: str, **variables: Any) -> tuple[list[ChatMessage], str]:
-    """Returns ([system, user] messages, version). Version is '<name>@<sha12 of the template>'
-    so every agent_runs row says exactly which prompt produced it."""
+    """Returns ([system, user] messages, version), so every agent_runs row says exactly which
+    prompt produced it."""
     template = _env.get_template(f"{name}.jinja")
     context = template.new_context(variables)
     system = "".join(template.blocks["system"](context)).strip()
     user = "".join(template.blocks["user"](context)).strip()
-    source = (PROMPT_DIR / f"{name}.jinja").read_bytes() + (
-        PROMPT_DIR / "_preamble.jinja"
-    ).read_bytes()
-    version = f"{name}@{hashlib.sha256(source).hexdigest()[:12]}"  # includes the shared preamble
+    version = prompt_version(name)
     return [
         ChatMessage(role="system", content=system),
         ChatMessage(role="user", content=user),

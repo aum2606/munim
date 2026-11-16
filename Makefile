@@ -1,4 +1,4 @@
-.PHONY: dev migrate revision seed test test-be test-fe lint fmt eval adversarial
+.PHONY: dev migrate revision seed test test-be test-fe lint fmt eval adversarial replay replay-save
 
 dev: ## full stack: api, worker, postgres(pgvector), dashboard
 	@test -f .env || cp .env.example .env
@@ -18,6 +18,12 @@ eval: ## MunimBench. CI mode by default; add LLM=real EMB=local with EVAL_USE_RE
 
 adversarial: ## Adversarial price suite: every wrong amount must be blocked (no keys, no database)
 	cd backend && PYTHONPATH=.:.. uv run python -m benchmark.adversarial
+
+replay: ## Replay the benchmark against benchmark/baselines/<FROM>.json; fails on any regression (needs DATABASE_URL)
+	cd backend && PYTHONPATH=.:.. uv run python -m benchmark.replay --from $(or $(FROM),oracle)
+
+replay-save: ## Accept the current prompts and code as the new baseline
+	cd backend && PYTHONPATH=.:.. uv run python -m benchmark.replay --from $(or $(FROM),oracle) --save
 
 test: test-be test-fe
 

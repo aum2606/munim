@@ -134,7 +134,7 @@ pnpm typecheck && pnpm test` (39 passed) `&& pnpm build`; the Docker run above.
 - [ ] MunimBench to 300–500 items + ~50 audio clips, datasheet, CC BY 4.0
 - [ ] Eval runner + multi-model leaderboard
 - [x] Adversarial price suite (`make adversarial`, `benchmark/adversarial.py`): 1,384 price attacks, 100 leak attacks and 51 honest replies; the first run found **23 of 35 hand-written disguises getting through** (e.g. `200₹`, "two hundred rupees", "do sau rupaye", "price is 200", `$2.50`, `Rs 25,0` read as 250), so `app/agents/amounts.py` was rewritten; now 0 / 1,384 missed, 0 leaks, 0 honest replies blocked, and the old misses are replayed from `benchmark/regressions/price_attacks.txt`. Runs in `pytest`, so CI enforces it. Not yet run against a real model.
-- [ ] Prompt versioning + `make replay` + CI gate on price accuracy
+- [x] Prompt versioning + `make replay` + CI gate on price accuracy: every prompt has a `<name>@<hash>` version (also on `agent_runs`); `benchmark/replay.py` diffs a run against `benchmark/baselines/oracle.json` (87 items) and fails on a regression, a disallowed amount, a price-accuracy drop or a dropped item. `tests/integration/test_replay.py` proves a responder prompt that stops passing the price lines is caught (price accuracy falls, the gate says FAIL) and a wording-only edit passes but is reported. Oracle-only for now: wording quality needs a baseline from a real model.
 - [ ] Cost / latency report from `agent_runs`
 
 ## Phase 5 — Pilot + release

@@ -11,6 +11,8 @@ import asyncio
 import dataclasses
 import json
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -197,6 +199,31 @@ async def evaluate(
     ]
 
 
+@asynccontextmanager
+async def runtime(
+    llm_mode: str, embedder_mode: str
+) -> AsyncIterator[tuple[SessionMaker, Settings, Embedder, LLMClient]]:
+    """Database, embedder and model for a run. A real model needs EVAL_USE_REAL_LLM=1."""
+    if llm_mode == "real" and os.environ.get("EVAL_USE_REAL_LLM") != "1":
+        raise SystemExit("Refusing to call a real model: set EVAL_USE_REAL_LLM=1 to allow it.")
+    settings = get_settings()
+    engine = make_engine(settings.database_url)
+    embedder: Embedder = (
+        LocalEmbedder(settings.embedding_model, settings.embedding_cache_dir)
+        if embedder_mode == "local"
+        else FakeEmbedder()
+    )
+    http = httpx.AsyncClient()
+    llm: LLMClient = (
+        ChainLLMClient.from_settings(settings, http) if llm_mode == "real" else OracleLLM()
+    )
+    try:
+        yield make_sessionmaker(engine), settings, embedder, llm
+    finally:
+        await http.aclose()
+        await engine.dispose()
+
+
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Run MunimBench")
     parser.add_argument("--llm", choices=["fake", "real"], default="fake")
@@ -204,32 +231,15 @@ async def main() -> None:
     parser.add_argument("--name", default=None, help="report name (defaults to the llm mode)")
     parser.add_argument("--reports-dir", type=Path, default=REPORTS, help="where to write reports")
     args = parser.parse_args()
-    if args.llm == "real" and os.environ.get("EVAL_USE_REAL_LLM") != "1":
-        raise SystemExit("Refusing to call a real model: set EVAL_USE_REAL_LLM=1 to allow it.")
-
-    settings = get_settings()
-    engine = make_engine(settings.database_url)
-    embedder: Embedder = (
-        LocalEmbedder(settings.embedding_model, settings.embedding_cache_dir)
-        if args.embedder == "local"
-        else FakeEmbedder()
-    )
-    http = httpx.AsyncClient()
-    llm: LLMClient = (
-        ChainLLMClient.from_settings(settings, http) if args.llm == "real" else OracleLLM()
-    )
-    try:
+    async with runtime(args.llm, args.embedder) as (sessionmaker, settings, embedder, llm):
         outcomes = await evaluate(
-            make_sessionmaker(engine),
+            sessionmaker,
             settings,
             embedder,
             llm,
             load_items(),
             include_semantic=args.embedder == "local",
         )
-    finally:
-        await http.aclose()
-        await engine.dispose()
 
     name = args.name or args.llm
     summary = summarize(outcomes, oracle=args.llm == "fake")
