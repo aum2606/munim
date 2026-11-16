@@ -14,13 +14,19 @@ _HANDOFF = {Intent.COMPLAINT, Intent.HUMAN_REQUEST, Intent.NEGOTIATION}
 _OFF_TOPIC = {Intent.SPAM, Intent.OFF_TOPIC}
 
 
-def route_for(router: RouterOutput, confidence_threshold: float) -> Route:
+def route_for(
+    router: RouterOutput, confidence_threshold: float, quote_flow_active: bool = False
+) -> Route:
     """Plain Python decides which agent runs next, never the model (BUILD_PLAN.md section 5.1).
 
     Complaints, requests for a person, and haggling go to a human; so does anything the router
     is not sure about.
     """
-    if router.confidence < confidence_threshold or router.intent in _HANDOFF:
+    if router.intent in _HANDOFF:
+        return Route.HANDOFF
+    if quote_flow_active:  # a short answer like "500" is a reply to our question, not a new topic
+        return Route.QUOTE
+    if router.confidence < confidence_threshold:
         return Route.HANDOFF
     if router.intent in _OFF_TOPIC:
         return Route.OFF_TOPIC

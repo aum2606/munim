@@ -2,7 +2,7 @@
 
 import enum
 import uuid
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -98,3 +98,66 @@ class ResponderInput(BaseModel):
 
 class ResponderOutput(BaseModel):
     reply: str
+
+
+class SlotSchema(BaseModel):
+    """One question a quote needs answered, as shown to the model."""
+
+    name: str
+    type: str
+    description: str = ""
+    options: list[str] = Field(default_factory=list)
+    required: bool = False
+    hint: str = ""
+
+
+class CategoryView(BaseModel):
+    category: str
+    slots: list[SlotSchema]
+
+
+class RequirementsInput(BaseModel):
+    categories: list[CategoryView]
+    category: str | None  # already chosen earlier in the conversation
+    filled: dict[str, Any]
+    turns: list[Turn]
+
+
+class RequirementsOutput(BaseModel):
+    category: str | None = None
+    filled: dict[str, Any] = Field(default_factory=dict)  # only what the customer actually said
+    unknown_slots: list[str] = Field(default_factory=list)  # the customer said they don't know
+    questions: list[str] = Field(default_factory=list)
+
+
+class AddonView(BaseModel):
+    code: str
+    name: str
+
+
+class CandidateItem(BaseModel):
+    sku: str
+    name: str
+    unit: str
+    aliases: list[str]
+    addons: list[AddonView]
+
+
+class MappingInput(BaseModel):
+    category: str
+    requirements: dict[str, Any]
+    candidates: list[CandidateItem]
+
+
+class ProposedLineOut(BaseModel):
+    sku: str | None = None  # a SKU from the candidate list, or null if nothing matches
+    description: str = ""
+    quantity: str | int | float = 1  # pieces as the customer said it; never a price
+    width: str | int | float | None = None
+    height: str | int | float | None = None
+    addon_codes: list[str] = Field(default_factory=list)
+
+
+class MappingOutput(BaseModel):
+    lines: list[ProposedLineOut] = Field(default_factory=list)
+    unmapped: list[str] = Field(default_factory=list)

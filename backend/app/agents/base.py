@@ -55,10 +55,11 @@ class BaseAgent:
         *,
         message_id: uuid.UUID | None = None,
         toolbox: ToolBox | None = None,
+        template: str | None = None,
         **prompt_variables: Any,
     ) -> O:
         """Render the prompt, call the model for validated output, and log an agent_runs row."""
-        messages, version = render_prompt(self.template, **prompt_variables)
+        messages, version = render_prompt(template or self.template, **prompt_variables)
         async with agent_run(
             self._sessionmaker,
             ctx,

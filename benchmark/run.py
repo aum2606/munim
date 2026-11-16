@@ -27,7 +27,8 @@ from app.llm.embedder import Embedder, FakeEmbedder, LocalEmbedder
 from app.llm.openai_compat import ChainLLMClient
 from app.orchestrator.dispatch import Route, route_for
 from app.orchestrator.messages import canned
-from app.orchestrator.pipeline import Deps, process_message
+from app.orchestrator.pipeline import process_message
+from app.orchestrator.pipeline_types import Deps
 from app.repositories.agent_runs import AgentRunRepository
 from app.repositories.auth import AuthRepository
 from app.repositories.chat import ChatRepository

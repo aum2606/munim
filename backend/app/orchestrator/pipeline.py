@@ -4,27 +4,24 @@ Deterministic Python wires the agents together (AGENTS.md: agents never call age
 """
 
 import uuid
-from dataclasses import dataclass
 from typing import Any
 
 import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agents.guardrails import check_reply
 from app.agents.knowledge import KnowledgeAgent
-from app.agents.models import ResponderInput, RouterInput, RouterOutput, Turn
-from app.agents.responder import ResponderAgent
+from app.agents.models import Intent, RouterInput, RouterOutput, Turn
 from app.agents.router import RouterAgent
-from app.core.config import Settings
 from app.core.context import TenantContext
 from app.core.errors import LLMOutputError, LLMUnavailableError
 from app.db.models import Conversation, ConversationMode, Direction, Message, SenderType
-from app.db.session import SessionMaker
-from app.llm.base import LLMClient
-from app.llm.embedder import Embedder
+from app.orchestrator.compose import compose_reply
 from app.orchestrator.dispatch import Route, route_for
+from app.orchestrator.leads import sync_lead
 from app.orchestrator.messages import canned
+from app.orchestrator.pipeline_types import Deps
+from app.orchestrator.quote_flow import flow_is_active, quote_reply
 from app.repositories.catalog import CatalogRepository
 from app.repositories.chat import ChatRepository
 from app.repositories.documents import DocumentRepository
@@ -37,16 +34,6 @@ from app.tools.search import search_knowledge
 log = structlog.get_logger()
 
 HISTORY_TURNS = 8
-MAX_CHARS = {"playground": 1500, "whatsapp": 1000}
-MAX_REGENERATIONS = 1  # one retry with the violation fed back, then hand off
-
-
-@dataclass(frozen=True)
-class Deps:
-    llm: LLMClient
-    embedder: Embedder
-    settings: Settings
-    sessionmaker: SessionMaker
 
 
 async def process_message(deps: Deps, ctx: TenantContext, payload: dict[str, Any]) -> None:
@@ -80,7 +67,9 @@ async def process_message(deps: Deps, ctx: TenantContext, payload: dict[str, Any
             router = await RouterAgent(deps.llm, deps.sessionmaker).run(
                 ctx,
                 RouterInput(
-                    business_type=tenant.business_type if tenant else "business", turns=turns
+                    business_type=tenant.business_type if tenant else "business",
+                    turns=turns,
+                    quote_flow_active=flow_is_active(conversation),
                 ),
                 message_id=trigger.id,
             )
@@ -89,6 +78,17 @@ async def process_message(deps: Deps, ctx: TenantContext, payload: dict[str, Any
             reply = await _reply_for(
                 deps, ctx, session, conversation, router, question, turns, trigger
             )
+            if (
+                route_for(router, deps.settings.router_confidence_threshold, False)
+                != Route.OFF_TOPIC
+            ):
+                await sync_lead(
+                    session,
+                    ctx,
+                    conversation,
+                    sentiment=router.sentiment,
+                    negotiating=router.intent == Intent.NEGOTIATION,
+                )
         except (LLMUnavailableError, LLMOutputError) as exc:
             # No model could help. Never leave a customer waiting in silence: a person takes over.
             log.warning("llm_failed_handoff", error=type(exc).__name__)
@@ -117,15 +117,17 @@ async def _reply_for(
     turns: list[Turn],
     trigger: Message,
 ) -> str:
-    route = route_for(router, deps.settings.router_confidence_threshold)
+    route = route_for(
+        router, deps.settings.router_confidence_threshold, flow_is_active(conversation)
+    )
     log.info("route", route=route.value, intent=router.intent.value, confidence=router.confidence)
     if route == Route.HANDOFF:
         conversation.mode = ConversationMode.HUMAN
         return canned("handoff", router.language)
     if route == Route.OFF_TOPIC:
         return canned("off_topic", router.language)
-    if route == Route.QUOTE:  # Phase 2 replaces this with the Quote agent
-        return canned("quote_pending", router.language)
+    if route == Route.QUOTE:
+        return await quote_reply(deps, ctx, session, conversation, router, turns, trigger)
 
     max_distance = deps.settings.search_max_distance
     knowledge = KnowledgeAgent(deps.llm, deps.sessionmaker)
@@ -150,31 +152,16 @@ async def _reply_for(
         )
         return canned("confirm", router.language)
 
-    settings = await TenantRepository(session, ctx).get_settings()
-    channel = conversation.channel.value
-    limit = MAX_CHARS.get(channel, 1000)
-    responder = ResponderAgent(deps.llm, deps.sessionmaker)
-    feedback: str | None = None
-    for _ in range(MAX_REGENERATIONS + 1):
-        reply = await responder.run(
-            ctx,
-            ResponderInput(
-                language=router.language,
-                script=router.script,
-                tone=settings.tone if settings else "friendly",
-                channel=channel,
-                max_chars=limit,
-                answer_points=result.answer.answer_points,
-                price_lines=result.price_lines,
-                violation_feedback=feedback,
-            ),
-            message_id=trigger.id,
-        )
-        violations = check_reply(reply, result.allowed_paise, limit)
-        if not violations:
-            return reply
-        log.warning("guardrail_blocked", rules=[v.rule for v in violations])
-        feedback = "; ".join(v.detail for v in violations)
-    # Still failing after the retry: never send it. A person takes over.
-    conversation.mode = ConversationMode.HUMAN
-    return canned("handoff", router.language)
+    return await compose_reply(
+        deps.llm,
+        deps.sessionmaker,
+        deps.settings,
+        ctx,
+        session,
+        conversation,
+        router,
+        trigger,
+        answer_points=result.answer.answer_points,
+        price_lines=result.price_lines,
+        allowed_paise=result.allowed_paise,
+    )

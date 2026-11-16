@@ -23,6 +23,13 @@ _CANNED: dict[str, dict[str, str]] = {
         "hinglish": "Thanks! Aapki requirements note kar li hain, team jaldi hi exact quotation bhejegi.",
         "gujlish": "Aabhar! Tamari requirements note kari lidhi chhe, team jaldi j exact quotation mokalshe.",
     },
+    "quote_sent": {
+        "en": "Your quotation {number} is ready. Total: {total} (including GST). Valid until {valid}.",
+        "hi": "आपका कोटेशन {number} तैयार है। कुल: {total} (GST सहित)। {valid} तक मान्य।",
+        "gu": "તમારું ક્વોટેશન {number} તૈયાર છે. કુલ: {total} (GST સહિત). {valid} સુધી માન્ય.",
+        "hinglish": "Aapka quotation {number} ready hai. Total: {total} (GST ke saath). {valid} tak valid.",
+        "gujlish": "Tamaru quotation {number} ready chhe. Total: {total} (GST sathe). {valid} sudhi valid.",
+    },
     "off_topic": {
         "en": "Sorry, I can only help with questions about our products and services.",
         "hi": "माफ़ कीजिए, मैं सिर्फ़ हमारे प्रोडक्ट्स और सेवाओं के बारे में सवालों में मदद कर सकता हूँ।",
@@ -36,3 +43,8 @@ _CANNED: dict[str, dict[str, str]] = {
 def canned(key: str, language: str) -> str:
     """The fixed message for `key` in the customer's language (English for anything else)."""
     return _CANNED[key].get(language, _CANNED[key]["en"])
+
+
+def quote_sent_message(language: str, number: str, total: str, valid: str) -> str:
+    """The message that delivers an approved quotation. Every figure is passed in by code."""
+    return canned("quote_sent", language).format(number=number, total=total, valid=valid)

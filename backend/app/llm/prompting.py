@@ -17,7 +17,9 @@ _env = Environment(
     autoescape=False,  # noqa: S701  (prompts are plain text, not HTML)
     keep_trailing_newline=False,
 )
-_FENCE_TAG = re.compile(r"</?\s*(customer_message|catalogue|knowledge)[^>]*>", re.IGNORECASE)
+_FENCE_TAG = re.compile(
+    r"</?\s*(customer_message|catalogue|knowledge|requirements)[^>]*>", re.IGNORECASE
+)
 
 
 def sanitize_customer_text(text: str) -> str:
