@@ -9,7 +9,13 @@ from app.core.errors import LLMOutputError, LLMUnavailableError
 from app.llm.base import ChatMessage
 from app.llm.embedder import FakeEmbedder
 from app.llm.fake import FakeLLM
-from app.llm.openai_compat import ChainLLMClient, ProviderSpec, parse_chain, provider_keys
+from app.llm.openai_compat import (
+    ChainLLMClient,
+    ProviderSpec,
+    _error_code,
+    parse_chain,
+    provider_keys,
+)
 from app.llm.transcriber import FakeTranscriber, Transcription
 
 
@@ -200,3 +206,34 @@ async def test_a_provider_that_keeps_limiting_is_tried_three_times_then_skipped(
     with pytest.raises(LLMUnavailableError):
         await _chain(httpx.MockTransport(handler), "a").complete("small", USER)
     assert calls == ["a.test"] * 3
+
+
+def test_only_the_providers_short_error_code_is_read() -> None:
+    body = {"error": {"code": "json_validate_failed", "message": "echoes: secret customer text"}}
+    assert _error_code(httpx.Response(400, json=body)) == "json_validate_failed"
+    assert _error_code(httpx.Response(400, json={"error": "plain string"})) is None
+    assert _error_code(httpx.Response(502, text="<html>")) is None
+    assert _error_code(None) is None
+
+
+async def test_a_model_that_breaks_json_mode_is_asked_again_at_once() -> None:
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.host)
+        if len(calls) == 1:
+            return httpx.Response(400, json={"error": {"code": "json_validate_failed"}})
+        return _ok()
+
+    result = await _chain(httpx.MockTransport(handler), "a", "b").complete("small", USER)
+    assert (result.provider, calls) == ("a", ["a.test", "a.test"])
+    other = httpx.MockTransport(
+        lambda r: (
+            httpx.Response(400, json={"error": {"code": "invalid_request_error"}})
+            if r.url.host == "a.test"
+            else _ok()
+        )
+    )
+    assert (
+        await _chain(other, "a", "b").complete("small", USER)
+    ).provider == "b"  # other 400s move on
