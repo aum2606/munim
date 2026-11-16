@@ -178,7 +178,7 @@ it('downloads the PDF with the signed-in token rather than a bare link', async (
   const fetchMock = vi.fn(async (url: string) =>
     url === '/api/v1/quotes/q1'
       ? new Response(JSON.stringify(quote()), { status: 200 })
-      : new Response(new Blob(['%PDF-1.4']), { status: 200 }),
+      : new Response('%PDF-1.4', { status: 200 }),
   )
   vi.stubGlobal('fetch', fetchMock)
   renderAt(<Routed />, '/quotes/q1')
