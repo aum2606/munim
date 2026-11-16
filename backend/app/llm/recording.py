@@ -9,6 +9,7 @@ from app.core.context import TenantContext
 from app.db.models import AgentRunStatus
 from app.db.session import SessionMaker
 from app.llm.base import LLMResult
+from app.llm.costs import estimate_cost_micros
 from app.repositories.agent_runs import AgentRunRepository
 
 
@@ -59,6 +60,11 @@ async def agent_run(
                 model=result.model if result else None,
                 prompt_tokens=result.prompt_tokens if result else 0,
                 completion_tokens=result.completion_tokens if result else 0,
+                cost_estimate_micros=estimate_cost_micros(
+                    result.model if result else None,
+                    result.prompt_tokens if result else 0,
+                    result.completion_tokens if result else 0,
+                ),
                 latency_ms=round((time.perf_counter() - started) * 1000),
                 message_id=handle.message_id,
             )

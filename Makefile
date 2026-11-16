@@ -1,4 +1,4 @@
-.PHONY: dev migrate revision seed test test-be test-fe lint fmt eval adversarial replay replay-save
+.PHONY: dev migrate revision seed test test-be test-fe lint fmt eval adversarial replay replay-save cost
 
 dev: ## full stack: api, worker, postgres(pgvector), dashboard
 	@test -f .env || cp .env.example .env
@@ -24,6 +24,9 @@ replay: ## Replay the benchmark against benchmark/baselines/<FROM>.json; fails o
 
 replay-save: ## Accept the current prompts and code as the new baseline
 	cd backend && PYTHONPATH=.:.. uv run python -m benchmark.replay --from $(or $(FROM),oracle) --save
+
+cost: ## Cost and latency of the last benchmark run, from agent_runs (needs DATABASE_URL)
+	cd backend && PYTHONPATH=.:.. uv run python -m benchmark.cost
 
 test: test-be test-fe
 
