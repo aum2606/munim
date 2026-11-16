@@ -28,6 +28,7 @@ class MessageOut(BaseModel):
     language: str | None
     intent: str | None
     reply_to_id: uuid.UUID | None
+    quote_id: uuid.UUID | None  # set when this message delivers a quotation
     created_at: datetime
 
 

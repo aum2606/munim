@@ -30,7 +30,13 @@ async def load_business(
     """Returns the new tenant's context, or None if the demo owner already exists."""
     async with sessionmaker() as session:
         auth = AuthRepository(session)
-        if await auth.get_user_by_email(business.owner_email):
+        existing = await auth.get_user_by_email(business.owner_email)
+        if existing is not None:
+            # A demo business made before quoting existed: add its quote setup if it has none.
+            ctx = TenantContext.system(existing.tenant_id)
+            if not await RequirementSchemaRepository(session, ctx).browse():
+                await _configure_quotes(session, ctx, CatalogRepository(session, ctx), business)
+                await session.commit()
             return None
         owner = await auth.create_tenant_with_owner(
             business_name=business.name,
