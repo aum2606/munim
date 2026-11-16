@@ -22,6 +22,18 @@ from app.db.models.knowledge import (
     KnowledgeGap,
     StockStatus,
 )
+from app.db.models.quote import (
+    Lead,
+    LeadEvent,
+    LeadStage,
+    PricingRule,
+    Quote,
+    QuoteItem,
+    QuoteSequence,
+    QuoteStatus,
+    RequirementSchema,
+    RuleType,
+)
 from app.db.models.tenant import Tenant, TenantSettings
 from app.db.models.user import RefreshToken, User
 
@@ -45,8 +57,18 @@ __all__ = [
     "Job",
     "JobStatus",
     "KnowledgeGap",
+    "Lead",
+    "LeadEvent",
+    "LeadStage",
     "Message",
+    "PricingRule",
+    "Quote",
+    "QuoteItem",
+    "QuoteSequence",
+    "QuoteStatus",
     "RefreshToken",
+    "RequirementSchema",
+    "RuleType",
     "SenderType",
     "StockStatus",
     "Tenant",

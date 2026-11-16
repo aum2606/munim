@@ -7,13 +7,19 @@ Passwords are random and printed once here: they are never stored in the reposit
 import asyncio
 import secrets
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.config import Settings, get_settings
 from app.core.context import TenantContext
 from app.core.security import hash_password
+from app.db.models import RuleType
 from app.db.session import SessionMaker, make_engine, make_sessionmaker
 from app.jobs.queue import enqueue
+from app.pricing.gst import state_code_of
 from app.repositories.auth import AuthRepository
 from app.repositories.catalog import CatalogRepository
+from app.repositories.pricing_rules import PricingRuleRepository, RequirementSchemaRepository
+from app.repositories.tenant import TenantRepository
 from app.services.documents import DocumentService
 from seeds.data import BUSINESSES, DemoBusiness
 
@@ -34,13 +40,44 @@ async def load_business(
             password_hash=hash_password(password),
         )
         ctx = TenantContext(tenant_id=owner.tenant_id, user_id=owner.id)
-        await CatalogRepository(session, ctx).upsert_many(business.items)
+        catalog = CatalogRepository(session, ctx)
+        await catalog.upsert_many(business.items)
+        await _configure_quotes(session, ctx, catalog, business)
         await enqueue(session, ctx, "embed_catalog_items")
         documents = DocumentService(session, ctx, settings)
         for question, answer in business.faqs:
             await documents.create_faq(question, answer)  # also queues its embedding
         await session.commit()
         return ctx
+
+
+async def _configure_quotes(
+    session: AsyncSession, ctx: TenantContext, catalog: CatalogRepository, business: DemoBusiness
+) -> None:
+    """Business profile (for the PDF), pricing rules and what to ask before quoting."""
+    tenants = TenantRepository(session, ctx)
+    await tenants.update_profile(
+        gstin=business.gstin,
+        state_code=state_code_of(business.gstin),
+        address=business.address,
+        phone=business.phone,
+    )
+    settings = await tenants.get_settings()
+    if settings is not None:
+        settings.quote_terms = business.quote_terms
+    rules = PricingRuleRepository(session, ctx)
+    for rule in business.rules:
+        item = await catalog.by_sku(rule.sku)
+        if item is not None:
+            await rules.add(
+                rule_type=RuleType(rule.rule_type),
+                params=rule.params,
+                catalog_item_id=item.id,
+                category=None,
+            )
+    schemas = RequirementSchemaRepository(session, ctx)
+    for seed in business.schemas:
+        await schemas.upsert(seed.category, seed.json_schema, seed.defaults, seed.question_hints)
 
 
 async def main() -> None:

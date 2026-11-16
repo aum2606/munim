@@ -17,3 +17,12 @@ class TenantRepository:
         return await self._session.scalar(
             select(TenantSettings).where(TenantSettings.tenant_id == self._ctx.tenant_id)
         )
+
+    async def update_profile(self, **fields: str | None) -> Tenant:
+        tenant = await self.get()
+        if tenant is None:
+            raise LookupError("tenant not found")
+        for name, value in fields.items():
+            setattr(tenant, name, value)
+        await self._session.flush()
+        return tenant

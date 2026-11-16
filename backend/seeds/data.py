@@ -1,10 +1,26 @@
 """Demo businesses. Every name, price and policy here is invented for demos and tests.
 GST rates are illustrative: check current rates before using any of this for real invoices."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
+from typing import Any
 
 from app.db.models import StockStatus
 from app.repositories.catalog import CatalogRow
+
+
+@dataclass(frozen=True)
+class RuleSeed:
+    sku: str  # the catalogue item the rule belongs to
+    rule_type: str  # qty_tier | addon | min_order
+    params: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class SchemaSeed:
+    category: str
+    json_schema: dict[str, Any]
+    defaults: dict[str, Any]
+    question_hints: dict[str, str]
 
 
 @dataclass(frozen=True)
@@ -15,6 +31,16 @@ class DemoBusiness:
     owner_email: str
     items: list[CatalogRow]
     faqs: list[tuple[str, str]]
+    rules: list[RuleSeed] = field(default_factory=list)
+    schemas: list[SchemaSeed] = field(default_factory=list)
+    # Invented, but GSTIN-shaped so the profile validators and quote PDFs can be shown off.
+    gstin: str = "24ABCDE1234F1Z5"
+    address: str = "Shop 12, Ring Road, Surat, Gujarat 395002"
+    phone: str = "+91 90000 00001"
+    quote_terms: str = (
+        "50 percent advance with the order, balance before delivery. "
+        "Prices are valid until the date shown. GST is extra as shown."
+    )
 
 
 def _item(
@@ -229,6 +255,90 @@ PRINTING = DemoBusiness(
     ],
 )
 
+PRINTING_RULES = [
+    # Visiting cards are priced per 100; 500 cards is 5 units.
+    RuleSeed(
+        "VC-STD",
+        "qty_tier",
+        {
+            "tiers": [
+                {"min_qty": "5", "unit_price_paise": 23500, "discount_pct": None},
+                {"min_qty": "10", "unit_price_paise": 22000, "discount_pct": None},
+            ]
+        },
+    ),
+    RuleSeed(
+        "VC-STD",
+        "addon",
+        {"code": "LAM-MATT", "name": "Matt lamination", "price_paise": 4500, "per_unit": True},
+    ),
+    RuleSeed(
+        "VC-STD",
+        "addon",
+        {"code": "LAM-GLOSS", "name": "Gloss lamination", "price_paise": 4500, "per_unit": True},
+    ),
+    RuleSeed("VC-STD", "min_order", {"min_qty": "1"}),
+    RuleSeed(
+        "FLEX-STD",
+        "qty_tier",
+        {"tiers": [{"min_qty": "100", "unit_price_paise": 1600, "discount_pct": None}]},
+    ),
+    RuleSeed(
+        "FLEX-STD",
+        "addon",
+        {
+            "code": "EYELETS",
+            "name": "Eyelets and stitching",
+            "price_paise": 10000,
+            "per_unit": False,
+        },
+    ),
+    RuleSeed(
+        "BRO-A4",
+        "qty_tier",
+        {"tiers": [{"min_qty": "10", "unit_price_paise": None, "discount_pct": "10"}]},
+    ),
+    RuleSeed(
+        "BRO-A4",
+        "addon",
+        {"code": "FOLD", "name": "Folding", "price_paise": 20000, "per_unit": True},
+    ),
+]
+
+PRINTING_SCHEMA = SchemaSeed(
+    category="printing",
+    json_schema={
+        "properties": {
+            "item_type": {
+                "type": "string",
+                "description": "what to print, e.g. visiting card, flex banner, brochure",
+            },
+            "quantity": {"type": "integer", "description": "how many pieces"},
+            "size": {
+                "type": "string",
+                "description": "size or dimensions; for flex banners width x height in feet",
+            },
+            "sides": {"type": "string", "enum": ["single", "double"]},
+            "finishing": {
+                "type": "string",
+                "enum": ["none", "matt lamination", "gloss lamination"],
+            },
+            "deadline": {"type": "string", "description": "when they need it"},
+        },
+        "required": ["item_type", "quantity"],
+    },
+    defaults={"size": "standard", "sides": "double", "finishing": "none"},
+    question_hints={
+        "item_type": "What would you like to print?",
+        "quantity": "How many pieces do you need?",
+        "size": "What size do you need?",
+        "finishing": "Do you want lamination (matt or gloss)?",
+        "deadline": "By when do you need it?",
+    },
+)
+
+PRINTING = replace(PRINTING, rules=PRINTING_RULES, schemas=[PRINTING_SCHEMA])
+
 PHOTOGRAPHER = DemoBusiness(
     key="photographer",
     name="Moments by Meera Photography",
@@ -371,5 +481,53 @@ PHOTOGRAPHER = DemoBusiness(
         ),
     ],
 )
+
+PHOTOGRAPHER_RULES = [
+    RuleSeed(
+        "WED-2D",
+        "addon",
+        {"code": "DRONE-ADD", "name": "Drone coverage", "price_paise": 800000, "per_unit": False},
+    ),
+    RuleSeed(
+        "WED-1D",
+        "addon",
+        {"code": "DRONE-ADD", "name": "Drone coverage", "price_paise": 800000, "per_unit": False},
+    ),
+    RuleSeed(
+        "PRODUCT",
+        "qty_tier",
+        {"tiers": [{"min_qty": "20", "unit_price_paise": 40000, "discount_pct": None}]},
+    ),
+]
+
+PHOTOGRAPHER_SCHEMA = SchemaSeed(
+    category="photography",
+    json_schema={
+        "properties": {
+            "event_type": {
+                "type": "string",
+                "description": "wedding, pre-wedding shoot, birthday, maternity, portfolio, product",
+            },
+            "event_date": {"type": "string", "description": "date or month of the event"},
+            "city": {"type": "string", "description": "where the event is"},
+            "days": {"type": "integer", "description": "how many days of coverage"},
+            "deliverables": {
+                "type": "array",
+                "items": {"enum": ["photos", "video", "album", "drone"]},
+            },
+        },
+        "required": ["event_type", "event_date", "city"],
+    },
+    defaults={"days": 1, "deliverables": ["photos"]},
+    question_hints={
+        "event_type": "What kind of event is it?",
+        "event_date": "What is the date of the event?",
+        "city": "Which city is it in?",
+        "days": "How many days do you need us for?",
+        "deliverables": "Do you want photos, video, an album or drone coverage?",
+    },
+)
+
+PHOTOGRAPHER = replace(PHOTOGRAPHER, rules=PHOTOGRAPHER_RULES, schemas=[PHOTOGRAPHER_SCHEMA])
 
 BUSINESSES = {b.key: b for b in (PRINTING, PHOTOGRAPHER)}

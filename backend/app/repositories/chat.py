@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import ColumnElement, and_, select, update
+from sqlalchemy import ColumnElement, and_, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import TenantContext
@@ -67,6 +67,7 @@ class ChatRepository:
         language: str | None = None,
         intent: str | None = None,
         reply_to_id: uuid.UUID | None = None,
+        quote_id: uuid.UUID | None = None,
     ) -> Message:
         now = datetime.now(UTC)
         message = Message(
@@ -78,6 +79,7 @@ class ChatRepository:
             language=language,
             intent=intent,
             reply_to_id=reply_to_id,
+            quote_id=quote_id,
             # Outbound messages need no processing; inbound ones are marked once answered.
             handled_at=now if direction == Direction.OUT else None,
         )
@@ -127,4 +129,34 @@ class ChatRepository:
             update(Message)
             .where(self._mine(Message), Message.id.in_(message_ids))
             .values(handled_at=datetime.now(UTC))
+        )
+
+    async def get_customer(self, customer_id: uuid.UUID) -> Customer | None:
+        return await self._session.scalar(
+            select(Customer).where(self._mine(Customer), Customer.id == customer_id)
+        )
+
+    async def count_inbound(self, conversation_id: uuid.UUID) -> int:
+        count = await self._session.scalar(
+            select(func.count())
+            .select_from(Message)
+            .where(
+                self._mine(Message),
+                Message.conversation_id == conversation_id,
+                Message.direction == Direction.IN,
+            )
+        )
+        return int(count or 0)
+
+    async def last_language(self, conversation_id: uuid.UUID) -> str | None:
+        """The language the assistant last replied in, i.e. what the customer writes in."""
+        return await self._session.scalar(
+            select(Message.language)
+            .where(
+                self._mine(Message),
+                Message.conversation_id == conversation_id,
+                Message.language.is_not(None),
+            )
+            .order_by(Message.created_at.desc())
+            .limit(1)
         )

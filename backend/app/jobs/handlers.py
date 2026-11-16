@@ -16,8 +16,8 @@ from app.ingestion.uploads import read_upload
 from app.jobs.worker import Handler
 from app.llm.base import LLMClient
 from app.llm.embedder import Embedder
-from app.orchestrator.pipeline import Deps
 from app.orchestrator.pipeline import process_message as run_pipeline
+from app.orchestrator.pipeline_types import Deps
 from app.repositories.catalog import CatalogRepository
 from app.repositories.documents import DocumentRepository
 

@@ -24,6 +24,8 @@ dependencies = [
   "jinja2>=3.1.6",
   "python-multipart>=0.0.33",
   "pyyaml>=6.0.3",
+  "tzdata>=2026.6",
+  "reportlab>=5.1.0",
 ]
 
 [dependency-groups]
@@ -37,6 +39,7 @@ dev = [
   "mypy>=1.11",
   "types-pyyaml>=6.0.12.20261113",
   "types-openpyxl>=3.1.5.20261017",
+  "hypothesis>=6.170.15",
 ]
 
 [tool.uv]
@@ -64,7 +67,7 @@ plugins = ["pydantic.mypy"]
 files = ["app"]
 
 [[tool.mypy.overrides]]
-module = ["asyncpg.*", "testcontainers.*", "fastembed.*", "docx.*"]
+module = ["asyncpg.*", "testcontainers.*", "fastembed.*", "docx.*", "reportlab.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

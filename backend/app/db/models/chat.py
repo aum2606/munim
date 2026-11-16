@@ -95,5 +95,7 @@ class Message(IdentityMixin, TenantMixin, Base):
     reply_to_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("messages.id", ondelete="SET NULL")
     )
+    # Set on the message that delivers a quotation to the customer.
+    quote_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("quotes.id", ondelete="SET NULL"))
     # Set once an inbound message has been answered (or deliberately skipped).
     handled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
