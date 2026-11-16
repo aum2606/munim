@@ -22,7 +22,9 @@ def test_prod_rejects_weak_or_placeholder_secret() -> None:
         Settings(app_env="prod", secret_key="short")
     with pytest.raises(ValidationError):
         Settings(app_env="prod", secret_key="please-change-me-" + "x" * 30)
-    assert Settings(app_env="prod", secret_key="k" * 40).secure_cookies
+    assert Settings(
+        app_env="prod", secret_key="k" * 40, credentials_encryption_key="k"
+    ).secure_cookies
 
 
 def test_cors_origins_parsing() -> None:
