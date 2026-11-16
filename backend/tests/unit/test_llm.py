@@ -4,11 +4,12 @@ import httpx
 import pytest
 from pydantic import BaseModel
 
+from app.core.config import Settings
 from app.core.errors import LLMOutputError, LLMUnavailableError
 from app.llm.base import ChatMessage
 from app.llm.embedder import FakeEmbedder
 from app.llm.fake import FakeLLM
-from app.llm.openai_compat import ChainLLMClient, ProviderSpec, parse_chain
+from app.llm.openai_compat import ChainLLMClient, ProviderSpec, parse_chain, provider_keys
 from app.llm.transcriber import FakeTranscriber, Transcription
 
 
@@ -47,19 +48,45 @@ async def test_structured_gives_up_after_one_retry() -> None:
 
 
 def test_parse_chain() -> None:
-    specs = parse_chain("a|https://x.example/v1/|m1, b|http://localhost:11434/v1|m2", "a=KEY")
+    specs = parse_chain("a|https://x.example/v1/|m1, b|http://localhost:11434/v1|m2", {"a": "KEY"})
     assert [(s.name, s.base_url, s.model, s.api_key) for s in specs] == [
         ("a", "https://x.example/v1", "m1", "KEY"),
         ("b", "http://localhost:11434/v1", "m2", None),
     ]
-    assert parse_chain("", "") == []
+    assert parse_chain("", {}) == []
     assert "KEY" not in repr(specs[0])
 
 
-@pytest.mark.parametrize("bad", ["a|b", "a|ftp://x|m", "a||m"])
+def test_a_known_provider_needs_only_its_name_and_a_model() -> None:
+    (groq, router) = parse_chain("groq|llama-x, openrouter|vendor/model:free", {"groq": "G"})
+    assert (groq.base_url, groq.model, groq.api_key) == (
+        "https://api.groq.com/openai/v1",
+        "llama-x",
+        "G",
+    )
+    assert (router.base_url, router.model, router.api_key) == (
+        "https://openrouter.ai/api/v1",
+        "vendor/model:free",
+        None,
+    )
+
+
+def test_each_provider_reads_its_own_key_variable() -> None:
+    settings = Settings(
+        _env_file=None,  # a developer's own .env must not leak into a test
+        app_env="test",
+        groq_api_key="G",
+        OPEN_ROUTER_API_KEY="O",  # type: ignore[call-arg]  # the spelling used in .env
+        llm_api_keys="groq=old,custom=C",
+    )
+    assert provider_keys(settings) == {"groq": "G", "openrouter": "O", "custom": "C"}
+    assert Settings(_env_file=None, OPENROUTER_API_KEY="P").openrouter_api_key == "P"  # type: ignore[call-arg]
+
+
+@pytest.mark.parametrize("bad", ["a|b", "a|ftp://x|m", "a||m", "mystery|model", "groq|"])
 def test_parse_chain_rejects_malformed_entries(bad: str) -> None:
     with pytest.raises(ValueError):
-        parse_chain(bad, "")
+        parse_chain(bad, {})
 
 
 def _chain(handler: httpx.MockTransport, *names: str) -> ChainLLMClient:
@@ -114,3 +141,62 @@ async def test_fake_transcriber_returns_scripted_results() -> None:
     transcriber = FakeTranscriber([result])
     assert await transcriber.transcribe(b"audio", "audio/ogg") == result
     assert transcriber.calls == 1
+
+
+def _ok() -> httpx.Response:
+    return httpx.Response(200, json={"choices": [{"message": {"content": "hi"}}]})
+
+
+async def test_a_short_rate_limit_waits_and_retries_the_same_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    waits: list[float] = []
+
+    async def fake_sleep(seconds: float) -> None:
+        waits.append(seconds)
+
+    monkeypatch.setattr("app.llm.openai_compat.asyncio.sleep", fake_sleep)
+    hosts: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        hosts.append(request.url.host)
+        if len(hosts) == 1:
+            return httpx.Response(429, headers={"retry-after": "2"})
+        return _ok()
+
+    result = await _chain(httpx.MockTransport(handler), "a", "b").complete("small", USER)
+    assert (result.provider, hosts, waits) == ("a", ["a.test", "a.test"], [2.0])
+
+
+@pytest.mark.parametrize("headers", [{}, {"retry-after": "soon"}, {"retry-after": "120"}])
+async def test_a_long_or_unhinted_rate_limit_moves_on_without_waiting(
+    monkeypatch: pytest.MonkeyPatch, headers: dict[str, str]
+) -> None:
+    async def never(_: float) -> None:
+        raise AssertionError("should not wait")
+
+    monkeypatch.setattr("app.llm.openai_compat.asyncio.sleep", never)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(429, headers=headers) if request.url.host == "a.test" else _ok()
+
+    result = await _chain(httpx.MockTransport(handler), "a", "b").complete("small", USER)
+    assert result.provider == "b"
+
+
+async def test_a_provider_that_keeps_limiting_is_tried_three_times_then_skipped(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fast(_: float) -> None:
+        return None
+
+    monkeypatch.setattr("app.llm.openai_compat.asyncio.sleep", fast)
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.host)
+        return httpx.Response(429, headers={"retry-after": "1"})
+
+    with pytest.raises(LLMUnavailableError):
+        await _chain(httpx.MockTransport(handler), "a").complete("small", USER)
+    assert calls == ["a.test"] * 3

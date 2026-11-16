@@ -173,6 +173,21 @@ async def test_price_question_is_answered_with_the_catalogue_price(chat: Chat) -
     assert "<customer_message>" in llm.calls[0][1][2].content
 
 
+async def test_an_item_id_in_the_wrong_citation_list_is_still_a_real_citation(chat: Chat) -> None:
+    # A real model (gpt-oss-120b) answered with the item id in cited_chunk_ids and none in
+    # cited_item_ids. The id is a genuine retrieved item, so the answer is grounded.
+    swapped = knowledge(chat.item_id, cited_item_ids=[], cited_chunk_ids=[str(chat.item_id)])
+    _, messages = await chat.say(
+        "visiting card ka rate?",
+        [
+            router(mentioned_catalog_terms=["visiting card"]),
+            swapped,
+            responder("Visiting card (100 pcs): ₹250.00 per 100 + 18% GST"),
+        ],
+    )
+    assert "₹250.00" in messages[-1].content
+
+
 async def test_a_wrong_price_is_blocked_and_regenerated(chat: Chat) -> None:
     llm, messages = await chat.say(
         "price of visiting card?",
