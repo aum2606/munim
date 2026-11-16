@@ -37,6 +37,13 @@ _CANNED: dict[str, dict[str, str]] = {
         "hinglish": "Sorry, main sirf hamare products aur services ke baare mein sawaalon mein madad kar sakta hoon.",
         "gujlish": "Maaf karjo, hu fakt amara products ane services vishe na sawalo ma madad kari shaku chhu.",
     },
+    "greeting": {
+        "en": "Hello! How can I help you today? Ask about our products and prices, or tell us what you need and we will prepare a quotation.",
+        "hi": "नमस्ते! मैं आपकी क्या मदद कर सकता हूँ? हमारे प्रोडक्ट्स और कीमतों के बारे में पूछिए, या अपनी ज़रूरत बताइए, हम कोटेशन तैयार करेंगे।",
+        "gu": "નમસ્તે! હું તમને કેવી રીતે મદદ કરી શકું? અમારા પ્રોડક્ટ્સ અને ભાવ વિશે પૂછો, અથવા તમારી જરૂરિયાત જણાવો, અમે ક્વોટેશન તૈયાર કરીશું.",
+        "hinglish": "Namaste! Main aapki kya madad kar sakta hoon? Hamare products aur prices ke baare mein puchiye, ya apni zaroorat bataiye, hum quotation taiyaar karenge.",
+        "gujlish": "Namaste! Hu tamne kevi rite madad kari shaku? Amara products ane bhav vishe puchho, athva tamari jarurat janavo, ame quotation taiyar karishu.",
+    },
     "followup": {
         "en": "Hello! Just checking in on quotation {number}. Happy to answer any questions or make changes.",
         "hi": "नमस्ते! कोटेशन {number} के बारे में पूछ रहे थे। कोई सवाल हो या बदलाव चाहिए तो बताइए।",

@@ -78,9 +78,9 @@ async def process_message(deps: Deps, ctx: TenantContext, payload: dict[str, Any
             reply = await _reply_for(
                 deps, ctx, session, conversation, router, question, turns, trigger
             )
-            if (
-                route_for(router, deps.settings.router_confidence_threshold, False)
-                != Route.OFF_TOPIC
+            if route_for(router, deps.settings.router_confidence_threshold, False) not in (
+                Route.OFF_TOPIC,
+                Route.GREETING,
             ):
                 await sync_lead(
                     session,
@@ -126,6 +126,8 @@ async def _reply_for(
         return canned("handoff", router.language)
     if route == Route.OFF_TOPIC:
         return canned("off_topic", router.language)
+    if route == Route.GREETING:
+        return canned("greeting", router.language)
     if route == Route.QUOTE:
         return await quote_reply(deps, ctx, session, conversation, router, turns, trigger)
 

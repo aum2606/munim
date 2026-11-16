@@ -252,3 +252,18 @@ Format: **date — decision.** Reason.
   `LLM_API_KEYS=name=key` list, which still works (the per-provider variables win). Chosen for the usual
   reasons: matches each provider's docs, an empty key is visible, and one secret per variable works with
   Docker and CI secrets. Tests load settings with `_env_file=None` so a developer's `.env` never leaks in.
+- **2026-11-17 — A greeting is a fixed reply, and an order-status question goes to a person.** "hi" used to go
+  to the Knowledge agent, find nothing, log a knowledge gap and answer "let me confirm with the team", and
+  create a lead. It now routes to `Route.GREETING` (a canned welcome in five languages, no gap, no lead).
+  `order_followup` joins the hand-off intents: with no order system there is nothing to look up, so a
+  person answers it from the inbox. Found while writing benchmark items for every intent.
+- **2026-11-17 — NEEDS REVIEW: Hindi and Gujarati script retrieval is weak (about 65%).** With the 367-item
+  benchmark and real embeddings, the right FAQ or product reaches the model for 95% of English but 65%
+  (Devanagari) and 64% (Gujarati script) questions; romanised text is fine (91-94%). The current model,
+  `paraphrase-multilingual-MiniLM-L12-v2`, is the only multilingual 384-dim model fastembed lists, and
+  the column is 384-dim. Options: a larger multilingual model with a migration and re-embedding, or a
+  query rewrite (the router already extracts product names in Latin letters; a model could also
+  restate the question in English for search). Decide before the pilot.
+- **2026-11-17 — Benchmark wording is drafted by an AI.** The 267 items added in v0.2 are written in
+  `benchmark/generate_items.py`; Hindi, Gujarati and romanised text need a native speaker's review before the
+  per-language numbers are quoted. Labels come from the seed data, so they cannot disagree with the shop.

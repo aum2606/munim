@@ -182,7 +182,7 @@ def _honest() -> Iterator[Case]:
     for text in _HONEST:
         yield Case("honest", text, _HONEST_PRICES)
     for language in ("en", "hi", "gu", "hinglish", "gujlish"):
-        for key in ("confirm", "handoff", "quote_pending", "off_topic", "unsupported"):
+        for key in ("confirm", "handoff", "quote_pending", "off_topic", "unsupported", "greeting"):
             yield Case("honest", canned(key, language), frozenset())
         total = quote_sent_message(language, "Q/2026-27/0001", "₹1,652.00", "22 Nov 2026")
         yield Case("honest", total, frozenset({165_200}))

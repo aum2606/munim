@@ -9,8 +9,10 @@
     "router": "router@25288421905e"
   },
   "summary": {
-    "items": 87,
+    "items": 279,
     "intent_accuracy": null,
+    "route_accuracy": null,
+    "model_errors": 0,
     "handoff_accuracy": 100.0,
     "groundedness": 100.0,
     "retrieval_hit_rate": 100.0,
@@ -19,6 +21,598 @@
     "unrequested_prices": 0
   },
   "items": {
+    "photo-101": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        4500000
+      ],
+      "hallucinated": 0
+    },
+    "photo-102": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        4500000
+      ],
+      "hallucinated": 0
+    },
+    "photo-103": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        4500000
+      ],
+      "hallucinated": 0
+    },
+    "photo-104": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        8000000
+      ],
+      "hallucinated": 0
+    },
+    "photo-105": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        8000000
+      ],
+      "hallucinated": 0
+    },
+    "photo-106": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        8000000
+      ],
+      "hallucinated": 0
+    },
+    "photo-107": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        8000000
+      ],
+      "hallucinated": 0
+    },
+    "photo-108": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        8000000
+      ],
+      "hallucinated": 0
+    },
+    "photo-109": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        3000000
+      ],
+      "hallucinated": 0
+    },
+    "photo-110": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        3000000
+      ],
+      "hallucinated": 0
+    },
+    "photo-111": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        3000000
+      ],
+      "hallucinated": 0
+    },
+    "photo-112": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        3000000
+      ],
+      "hallucinated": 0
+    },
+    "photo-113": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        3000000
+      ],
+      "hallucinated": 0
+    },
+    "photo-114": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        2500000
+      ],
+      "hallucinated": 0
+    },
+    "photo-115": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        2500000
+      ],
+      "hallucinated": 0
+    },
+    "photo-116": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        2500000
+      ],
+      "hallucinated": 0
+    },
+    "photo-117": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        800000
+      ],
+      "hallucinated": 0
+    },
+    "photo-118": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        800000
+      ],
+      "hallucinated": 0
+    },
+    "photo-119": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        800000
+      ],
+      "hallucinated": 0
+    },
+    "photo-120": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        800000
+      ],
+      "hallucinated": 0
+    },
+    "photo-121": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        800000
+      ],
+      "hallucinated": 0
+    },
+    "photo-122": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        800000
+      ],
+      "hallucinated": 0
+    },
+    "photo-123": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        800000
+      ],
+      "hallucinated": 0
+    },
+    "photo-124": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        800000
+      ],
+      "hallucinated": 0
+    },
+    "photo-125": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        1200000
+      ],
+      "hallucinated": 0
+    },
+    "photo-126": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        1200000
+      ],
+      "hallucinated": 0
+    },
+    "photo-127": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        1200000
+      ],
+      "hallucinated": 0
+    },
+    "photo-128": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        1200000
+      ],
+      "hallucinated": 0
+    },
+    "photo-129": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        1200000
+      ],
+      "hallucinated": 0
+    },
+    "photo-130": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        900000
+      ],
+      "hallucinated": 0
+    },
+    "photo-131": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        900000
+      ],
+      "hallucinated": 0
+    },
+    "photo-132": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        900000
+      ],
+      "hallucinated": 0
+    },
+    "photo-133": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        900000
+      ],
+      "hallucinated": 0
+    },
+    "photo-134": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        900000
+      ],
+      "hallucinated": 0
+    },
+    "photo-135": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        600000
+      ],
+      "hallucinated": 0
+    },
+    "photo-136": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        600000
+      ],
+      "hallucinated": 0
+    },
+    "photo-137": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        600000
+      ],
+      "hallucinated": 0
+    },
+    "photo-138": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        600000
+      ],
+      "hallucinated": 0
+    },
+    "photo-139": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        600000
+      ],
+      "hallucinated": 0
+    },
+    "photo-140": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        50000
+      ],
+      "hallucinated": 0
+    },
+    "photo-141": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        50000
+      ],
+      "hallucinated": 0
+    },
+    "photo-142": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        50000
+      ],
+      "hallucinated": 0
+    },
+    "photo-143": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        50000
+      ],
+      "hallucinated": 0
+    },
+    "photo-144": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        50000
+      ],
+      "hallucinated": 0
+    },
+    "photo-180": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "photo-181": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "photo-182": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "photo-183": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "photo-184": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "photo-185": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "photo-186": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "photo-187": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "photo-188": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "photo-189": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "photo-190": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "photo-191": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
     "photo-001": {
       "intent_ok": true,
       "handoff_ok": true,
@@ -83,6 +677,1314 @@
       "amounts": [
         2500000
       ],
+      "hallucinated": 0
+    },
+    "print-101": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        45000
+      ],
+      "hallucinated": 0
+    },
+    "print-102": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        45000
+      ],
+      "hallucinated": 0
+    },
+    "print-103": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        45000
+      ],
+      "hallucinated": 0
+    },
+    "print-104": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        45000
+      ],
+      "hallucinated": 0
+    },
+    "print-105": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        45000
+      ],
+      "hallucinated": 0
+    },
+    "print-106": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        2800
+      ],
+      "hallucinated": 0
+    },
+    "print-107": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        2800
+      ],
+      "hallucinated": 0
+    },
+    "print-108": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        2800
+      ],
+      "hallucinated": 0
+    },
+    "print-109": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        2800
+      ],
+      "hallucinated": 0
+    },
+    "print-110": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        2800
+      ],
+      "hallucinated": 0
+    },
+    "print-111": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        110000
+      ],
+      "hallucinated": 0
+    },
+    "print-112": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        110000
+      ],
+      "hallucinated": 0
+    },
+    "print-113": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        110000
+      ],
+      "hallucinated": 0
+    },
+    "print-114": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        110000
+      ],
+      "hallucinated": 0
+    },
+    "print-115": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        110000
+      ],
+      "hallucinated": 0
+    },
+    "print-116": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        65000
+      ],
+      "hallucinated": 0
+    },
+    "print-117": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        65000
+      ],
+      "hallucinated": 0
+    },
+    "print-118": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        65000
+      ],
+      "hallucinated": 0
+    },
+    "print-119": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        65000
+      ],
+      "hallucinated": 0
+    },
+    "print-120": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        65000
+      ],
+      "hallucinated": 0
+    },
+    "print-121": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        35000
+      ],
+      "hallucinated": 0
+    },
+    "print-122": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        35000
+      ],
+      "hallucinated": 0
+    },
+    "print-123": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        35000
+      ],
+      "hallucinated": 0
+    },
+    "print-124": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        35000
+      ],
+      "hallucinated": 0
+    },
+    "print-125": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        35000
+      ],
+      "hallucinated": 0
+    },
+    "print-126": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        150000
+      ],
+      "hallucinated": 0
+    },
+    "print-127": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        150000
+      ],
+      "hallucinated": 0
+    },
+    "print-128": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        150000
+      ],
+      "hallucinated": 0
+    },
+    "print-129": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        150000
+      ],
+      "hallucinated": 0
+    },
+    "print-130": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        150000
+      ],
+      "hallucinated": 0
+    },
+    "print-131": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        250000
+      ],
+      "hallucinated": 0
+    },
+    "print-132": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        250000
+      ],
+      "hallucinated": 0
+    },
+    "print-133": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        250000
+      ],
+      "hallucinated": 0
+    },
+    "print-134": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        250000
+      ],
+      "hallucinated": 0
+    },
+    "print-135": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        250000
+      ],
+      "hallucinated": 0
+    },
+    "print-176": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-177": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-178": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-179": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-180": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-181": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-182": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-183": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-184": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-185": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-186": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-187": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-188": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-189": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-190": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-191": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-192": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-193": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-194": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-195": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-196": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-197": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-198": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-199": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-200": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-201": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-202": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-203": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-204": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-205": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-206": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-207": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-208": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-209": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-210": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-211": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-212": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-213": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-214": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-215": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-216": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-217": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-218": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-219": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-220": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-221": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-222": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-223": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-224": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-225": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-226": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-227": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-228": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-229": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-230": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-231": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-232": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-233": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-234": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-235": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-236": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-237": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-238": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-239": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-240": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-241": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-242": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-243": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-244": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-245": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-246": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-247": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-248": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-249": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-250": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-251": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-252": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-253": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-254": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-255": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-256": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-257": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-258": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-259": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-260": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-261": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-262": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        1800
+      ],
+      "hallucinated": 0
+    },
+    "print-263": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        180000
+      ],
+      "hallucinated": 0
+    },
+    "print-264": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        90000
+      ],
+      "hallucinated": 0
+    },
+    "print-265": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        22000
+      ],
+      "hallucinated": 0
+    },
+    "print-266": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        25000
+      ],
+      "hallucinated": 0
+    },
+    "print-267": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        25000
+      ],
+      "hallucinated": 0
+    },
+    "print-268": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": true,
+      "retrieval_ok": true,
+      "price_ok": true,
+      "amounts": [
+        6000
+      ],
+      "hallucinated": 0
+    },
+    "print-269": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-270": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-271": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-272": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-273": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-274": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-275": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
+      "hallucinated": 0
+    },
+    "print-276": {
+      "intent_ok": true,
+      "handoff_ok": true,
+      "grounded_ok": null,
+      "retrieval_ok": null,
+      "price_ok": null,
+      "amounts": [],
       "hallucinated": 0
     },
     "print-001": {

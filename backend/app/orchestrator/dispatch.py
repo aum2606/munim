@@ -8,9 +8,11 @@ class Route(enum.StrEnum):
     QUOTE = "quote"
     HANDOFF = "handoff"
     OFF_TOPIC = "off_topic"
+    GREETING = "greeting"
 
 
-_HANDOFF = {Intent.COMPLAINT, Intent.HUMAN_REQUEST, Intent.NEGOTIATION}
+# Order status needs a person: there is no order system to look it up in.
+_HANDOFF = {Intent.COMPLAINT, Intent.HUMAN_REQUEST, Intent.NEGOTIATION, Intent.ORDER_FOLLOWUP}
 _OFF_TOPIC = {Intent.SPAM, Intent.OFF_TOPIC}
 
 
@@ -30,6 +32,8 @@ def route_for(
         return Route.HANDOFF
     if router.intent in _OFF_TOPIC:
         return Route.OFF_TOPIC
+    if router.intent == Intent.GREETING:  # a fixed welcome, not a lookup that finds nothing
+        return Route.GREETING
     if router.intent == Intent.QUOTE_REQUEST:
         return Route.QUOTE
     return Route.KNOWLEDGE
