@@ -27,7 +27,8 @@ from app.db.session import SessionMaker
 from app.jobs.handlers import build_handlers
 from app.llm.embedder import FakeEmbedder
 from app.llm.fake import FakeLLM
-from app.orchestrator.pipeline import Deps, process_message
+from app.orchestrator.pipeline import process_message
+from app.orchestrator.pipeline_types import Deps
 from app.repositories.agent_runs import AgentRunRepository
 from app.repositories.catalog import CatalogRepository, CatalogRow
 from app.repositories.chat import ChatRepository
