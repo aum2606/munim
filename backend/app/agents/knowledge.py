@@ -119,8 +119,11 @@ class KnowledgeAgent(BaseAgent):
         answer that cites nothing real as ungrounded."""
         by_item = {i.item_id: i for i in items}
         real_chunks = {c.chunk_id for c in chunks}
-        answer.cited_chunk_ids = [c for c in answer.cited_chunk_ids if c in real_chunks]
-        answer.cited_item_ids = [i for i in answer.cited_item_ids if i in by_item]
+        # Real models put an item id in cited_chunk_ids and the reverse, so look each claimed id up
+        # in both sets. Only ids we actually retrieved survive, so nothing invented gets through.
+        claimed = [*answer.cited_item_ids, *answer.cited_chunk_ids, *answer.price_item_ids]
+        answer.cited_item_ids = list(dict.fromkeys(i for i in claimed if i in by_item))
+        answer.cited_chunk_ids = list(dict.fromkeys(c for c in claimed if c in real_chunks))
         answer.price_item_ids = [i for i in answer.price_item_ids if i in by_item]
         if answer.grounded and not (answer.cited_chunk_ids or answer.cited_item_ids):
             answer.grounded = False

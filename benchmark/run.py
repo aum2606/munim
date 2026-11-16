@@ -53,7 +53,8 @@ class Outcome:
     grounded_ok: bool | None  # None: not a knowledge question
     retrieval_ok: bool | None  # None: nothing specific was expected to be found
     price_ok: bool | None  # None: no price expected and none shown
-    hallucinated: list[int]  # amounts in the reply that were not allowed
+    hallucinated: list[int]  # amounts in the reply that are not a price this business has
+    unrequested: list[int]  # real prices of this business that this question did not ask for
 
 
 async def prepare(
@@ -105,7 +106,11 @@ async def run_item(
 
     amounts = extract_amounts(reply.content)
     allowed = set(item.expect.price_paise)
-    hallucinated = [a for a in amounts if a not in allowed]
+    # A hallucination is an amount the business never charged. Naming another real catalogue
+    # price ("Premium card: Rs 450" next to the standard card) is a precision issue, counted apart.
+    known = known_amounts(item.vertical)
+    hallucinated = [a for a in amounts if a not in known]
+    unrequested = [a for a in amounts if a in known and a not in allowed]
     pricing = item.intent.value == "pricing" and item.expect.grounded
     price_ok = (
         None
@@ -140,7 +145,17 @@ async def run_item(
         retrieval_ok=retrieval_ok,
         price_ok=price_ok,
         hallucinated=hallucinated,
+        unrequested=unrequested,
     )
+
+
+def known_amounts(vertical: str) -> set[int]:
+    """Every amount this business legitimately has: catalogue prices and amounts in its FAQs."""
+    business = BUSINESSES[_VERTICAL[vertical]]
+    amounts = {i.base_price_paise for i in business.items}
+    for _, answer in business.faqs:
+        amounts |= {a for a in extract_amounts(answer) if a >= 0}
+    return amounts
 
 
 def route_for_gold(item: BenchItem, threshold: float) -> Route:
@@ -165,6 +180,7 @@ def summarize(outcomes: list[Outcome], *, oracle: bool) -> dict[str, object]:
         "retrieval_hit_rate": rate("retrieval_ok"),
         "price_accuracy": rate("price_ok"),
         "hallucinated_amounts": sum(len(o.hallucinated) for o in outcomes),
+        "unrequested_prices": sum(len(o.unrequested) for o in outcomes),
     }
 
 
@@ -199,6 +215,13 @@ async def evaluate(
     ]
 
 
+def sample(items: list[BenchItem], limit: int | None) -> list[BenchItem]:
+    """An evenly spread subset, so a small real-model run still covers every language and intent."""
+    if not limit or limit >= len(items):
+        return items
+    return [items[i * len(items) // limit] for i in range(limit)]
+
+
 @asynccontextmanager
 async def runtime(
     llm_mode: str, embedder_mode: str
@@ -229,6 +252,7 @@ async def main() -> None:
     parser.add_argument("--llm", choices=["fake", "real"], default="fake")
     parser.add_argument("--embedder", choices=["fake", "local"], default="fake")
     parser.add_argument("--name", default=None, help="report name (defaults to the llm mode)")
+    parser.add_argument("--limit", type=int, help="run an evenly spread sample of this many items")
     parser.add_argument("--reports-dir", type=Path, default=REPORTS, help="where to write reports")
     args = parser.parse_args()
     async with runtime(args.llm, args.embedder) as (sessionmaker, settings, embedder, llm):
@@ -237,7 +261,7 @@ async def main() -> None:
             settings,
             embedder,
             llm,
-            load_items(),
+            sample(load_items(), args.limit),
             include_semantic=args.embedder == "local",
         )
 
@@ -255,6 +279,7 @@ async def main() -> None:
                         "id": o.item.id,
                         "reply": o.reply,
                         "hallucinated": o.hallucinated,
+                        "unrequested": o.unrequested,
                         "handoff_ok": o.handoff_ok,
                         "grounded_ok": o.grounded_ok,
                         "retrieval_ok": o.retrieval_ok,

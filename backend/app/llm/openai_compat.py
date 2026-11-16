@@ -4,6 +4,7 @@ Free tiers rate-limit and disappear, so each slot has an ordered chain (BUILD_PL
 a failing provider falls through to the next, ending at a local model (e.g. Ollama) if configured.
 """
 
+import asyncio
 import time
 from dataclasses import dataclass
 
@@ -28,16 +29,56 @@ class ProviderSpec:
         return f"ProviderSpec({self.name}, {self.base_url}, {self.model})"
 
 
-def parse_chain(chain: str, api_keys: str) -> list[ProviderSpec]:
-    """chain: "name|base_url|model,name2|base_url2|model2"; api_keys: "name=key,name2=key2"."""
-    keys = dict(pair.split("=", 1) for pair in api_keys.split(",") if "=" in pair)
+# Known OpenAI-compatible endpoints, so a chain entry can be just "groq|<model>".
+# Checked against each provider's docs on 2026-11-16 (see .env.example).
+KNOWN_BASE_URLS = {
+    "groq": "https://api.groq.com/openai/v1",
+    "openrouter": "https://openrouter.ai/api/v1",
+    "gemini": "https://generativelanguage.googleapis.com/v1beta/openai",
+    "ollama": "http://localhost:11434/v1",
+}
+
+
+def provider_keys(settings: Settings) -> dict[str, str]:
+    """API key per provider name. GROQ_API_KEY and friends win over the older LLM_API_KEYS list."""
+    keys = dict(pair.split("=", 1) for pair in settings.llm_api_keys.split(",") if "=" in pair)
+    named = {
+        "groq": settings.groq_api_key,
+        "openrouter": settings.openrouter_api_key,
+        "gemini": settings.gemini_api_key,
+    }
+    return {**keys, **{name: key for name, key in named.items() if key}}
+
+
+def parse_chain(chain: str, keys: dict[str, str]) -> list[ProviderSpec]:
+    """Comma-separated entries: "name|model" for a known provider, else "name|https://base|model"."""
     specs = []
     for entry in filter(None, (e.strip() for e in chain.split(","))):
         parts = [p.strip() for p in entry.split("|")]
+        if len(parts) == 2 and parts[0] in KNOWN_BASE_URLS:
+            parts = [parts[0], KNOWN_BASE_URLS[parts[0]], parts[1]]
         if len(parts) != 3 or not all(parts) or not parts[1].startswith(("http://", "https://")):
-            raise ValueError("LLM chain entries must look like name|https://base_url|model")
+            raise ValueError(
+                "LLM chain entries must look like name|model (groq, openrouter, gemini, ollama) "
+                "or name|https://base_url|model"
+            )
         specs.append(ProviderSpec(parts[0], parts[1].rstrip("/"), parts[2], keys.get(parts[0])))
     return specs
+
+
+MAX_RATE_LIMIT_WAIT_S = 30.0
+MAX_ATTEMPTS = 3  # per provider; only a 429 with a short Retry-After earns another try
+
+
+def _rate_limit_wait(response: httpx.Response | None) -> float | None:
+    """Seconds the provider asks us to wait after a 429, if it is short enough to be worth it."""
+    if response is None or response.status_code != 429:
+        return None
+    try:
+        wait = float(response.headers.get("retry-after", ""))
+    except ValueError:
+        return None  # no hint: fall through to the next provider at once
+    return wait if 0 <= wait <= MAX_RATE_LIMIT_WAIT_S else None
 
 
 class ChainLLMClient(LLMClient):
@@ -53,9 +94,10 @@ class ChainLLMClient(LLMClient):
 
     @classmethod
     def from_settings(cls, settings: Settings, http: httpx.AsyncClient) -> "ChainLLMClient":
+        keys = provider_keys(settings)
         chains: dict[Slot, list[ProviderSpec]] = {
-            "small": parse_chain(settings.llm_small_chain, settings.llm_api_keys),
-            "large": parse_chain(settings.llm_large_chain, settings.llm_api_keys),
+            "small": parse_chain(settings.llm_small_chain, keys),
+            "large": parse_chain(settings.llm_large_chain, keys),
         }
         return cls(chains, http, settings.llm_timeout_s)
 
@@ -63,11 +105,23 @@ class ChainLLMClient(LLMClient):
         self, slot: Slot, messages: list[ChatMessage], *, json_mode: bool = False
     ) -> LLMResult:
         for spec in self._chains[slot]:
-            try:
-                return await self._call(spec, messages, json_mode)
-            except (httpx.HTTPError, KeyError, ValueError, IndexError) as exc:
-                # Log the provider and error class only; bodies may contain customer text.
-                log.warning("llm_provider_failed", provider=spec.name, error=type(exc).__name__)
+            for attempt in range(MAX_ATTEMPTS):
+                try:
+                    return await self._call(spec, messages, json_mode)
+                except (httpx.HTTPError, KeyError, ValueError, IndexError) as exc:
+                    # Provider, error class and HTTP status only; bodies may hold customer text.
+                    response = exc.response if isinstance(exc, httpx.HTTPStatusError) else None
+                    log.warning(
+                        "llm_provider_failed",
+                        provider=spec.name,
+                        error=type(exc).__name__,
+                        status=response.status_code if response else None,
+                    )
+                    wait = _rate_limit_wait(response)
+                    if attempt < MAX_ATTEMPTS - 1 and wait is not None:
+                        await asyncio.sleep(wait)  # a short free-tier limit: wait, don't give up
+                        continue
+                    break
         raise LLMUnavailableError("No language model is available right now")
 
     async def _call(

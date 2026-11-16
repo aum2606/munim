@@ -2,7 +2,7 @@
   "name": "oracle",
   "prompts": {
     "column_mapper": "column_mapper@43b50b3357d0",
-    "knowledge": "knowledge@6c30a23e4230",
+    "knowledge": "knowledge@9fabcb52d919",
     "quote_mapping": "quote_mapping@bc0ec0321e26",
     "quote_requirements": "quote_requirements@0ed0c71ff1b6",
     "responder": "responder@3e6676667220",
@@ -15,7 +15,8 @@
     "groundedness": 100.0,
     "retrieval_hit_rate": 100.0,
     "price_accuracy": 100.0,
-    "hallucinated_amounts": 0
+    "hallucinated_amounts": 0,
+    "unrequested_prices": 0
   },
   "items": {
     "photo-001": {

@@ -245,3 +245,10 @@ Format: **date — decision.** Reason.
   hash) but does not fail by itself. It catches an edit that stops feeding the model what the answer needs
   (shown by a test that removes the price lines from the responder prompt); it cannot judge wording,
   which needs a baseline from a real model. After an intended change run `make replay-save` and commit.
+- **2026-11-16 — Provider keys are one variable per provider, and chain entries can be `name|model`.**
+  `GROQ_API_KEY`, `GEMINI_API_KEY` and `OPENROUTER_API_KEY` (also accepted as `OPEN_ROUTER_API_KEY`); the
+  provider name in a chain entry picks the key. Known providers (groq, openrouter, gemini, ollama) have
+  their base URL built in; any other endpoint still uses `name|https://base|model` with its key in the older
+  `LLM_API_KEYS=name=key` list, which still works (the per-provider variables win). Chosen for the usual
+  reasons: matches each provider's docs, an empty key is visible, and one secret per variable works with
+  Docker and CI secrets. Tests load settings with `_env_file=None` so a developer's `.env` never leaks in.
