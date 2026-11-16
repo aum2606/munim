@@ -27,12 +27,14 @@ from app.db.session import SessionMaker
 from app.jobs.handlers import build_handlers
 from app.llm.embedder import FakeEmbedder
 from app.llm.fake import FakeLLM
+from app.orchestrator.messages import canned
 from app.orchestrator.pipeline import process_message
 from app.orchestrator.pipeline_types import Deps
 from app.repositories.agent_runs import AgentRunRepository
 from app.repositories.catalog import CatalogRepository, CatalogRow
 from app.repositories.chat import ChatRepository
 from app.repositories.gaps import KnowledgeGapRepository
+from app.repositories.leads import LeadRepository
 from app.services.documents import DocumentService
 from tests.conftest import make_tenant
 
@@ -241,6 +243,21 @@ async def test_a_model_that_claims_grounding_without_evidence_is_not_trusted(cha
         ],
     )
     assert "confirm this with the team" in messages[-1].content
+
+
+async def test_a_greeting_gets_a_fixed_welcome_and_leaves_no_gap_or_lead(chat: Chat) -> None:
+    llm, messages = await chat.say("namaste", [router("greeting", language="hinglish")])
+    assert messages[-1].content == canned("greeting", "hinglish")
+    assert len(llm.calls) == 1  # only the router ran: no search, no knowledge, no responder
+    async with chat.sm() as session:
+        assert await KnowledgeGapRepository(session, chat.ctx).browse() == []
+        assert await LeadRepository(session, chat.ctx).browse() == []
+
+
+async def test_asking_about_an_order_goes_to_a_person(chat: Chat) -> None:
+    _, messages = await chat.say("mera order kab aayega?", [router("order_followup")])
+    assert messages[-1].content == canned("handoff", "en")
+    assert await chat.mode() == ConversationMode.HUMAN
 
 
 async def test_complaint_hands_off_and_ai_then_stays_silent(chat: Chat) -> None:

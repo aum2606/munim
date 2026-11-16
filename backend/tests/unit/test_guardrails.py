@@ -72,7 +72,8 @@ def _router(intent: Intent, confidence: float = 0.9) -> RouterOutput:
     ("intent", "confidence", "route"),
     [
         (Intent.PRICING, 0.9, Route.KNOWLEDGE),
-        (Intent.GREETING, 0.9, Route.KNOWLEDGE),
+        (Intent.GREETING, 0.9, Route.GREETING),
+        (Intent.ORDER_FOLLOWUP, 0.9, Route.HANDOFF),
         (Intent.POLICY, 0.7, Route.KNOWLEDGE),
         (Intent.QUOTE_REQUEST, 0.9, Route.QUOTE),
         (Intent.COMPLAINT, 0.99, Route.HANDOFF),

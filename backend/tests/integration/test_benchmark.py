@@ -17,12 +17,23 @@ from seeds.data import BUSINESSES
 
 def test_dataset_is_valid_and_covers_what_phase_1_needs() -> None:
     items = load_items()
-    assert len(items) >= 100
+    assert len(items) >= 350
     assert {i.language for i in items} == {"en", "hi", "gu", "hinglish", "gujlish"}
     assert {i.vertical for i in items} == {"printing", "photography"}
-    assert Counter(i.intent.value for i in items)["pricing"] >= 40
-    assert sum(1 for i in items if i.note == "injection") >= 8
-    assert sum(1 for i in items if i.handoff) >= 10
+    assert Counter(i.intent.value for i in items)["pricing"] >= 120
+    assert {sku for i in items for sku in i.expect.skus} == {
+        item.sku for b in BUSINESSES.values() for item in b.items
+    }  # every catalogue item has a question
+    assert sum(1 for i in items if i.note == "injection") >= 20
+    # every intent the router can return is exercised at least a few times
+    assert Counter(i.intent.value for i in items).keys() >= {
+        "greeting", "order_followup", "availability", "complaint", "negotiation", "spam",
+    }  # fmt: skip
+    assert all(
+        sum(1 for i in items if i.language == lang) >= 50
+        for lang in ("en", "hinglish", "hi", "gujlish", "gu")
+    )
+    assert sum(1 for i in items if i.handoff) >= 40
     assert sum(1 for i in items if not i.expect.grounded and not i.handoff) >= 10
 
 
@@ -60,4 +71,4 @@ async def test_harness_with_oracle_meets_the_phase_1_gates(
     assert summary["hallucinated_amounts"] == 0
     assert summary["price_accuracy"] == 100.0
     assert summary["handoff_accuracy"] == 100.0
-    assert len(outcomes) >= 80  # the semantic (multilingual-embedding) items are skipped here
+    assert len(outcomes) >= 250  # the semantic (multilingual-embedding) items are skipped here
