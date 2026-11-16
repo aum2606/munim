@@ -37,6 +37,34 @@ _CANNED: dict[str, dict[str, str]] = {
         "hinglish": "Sorry, main sirf hamare products aur services ke baare mein sawaalon mein madad kar sakta hoon.",
         "gujlish": "Maaf karjo, hu fakt amara products ane services vishe na sawalo ma madad kari shaku chhu.",
     },
+    "followup": {
+        "en": "Hello! Just checking in on quotation {number}. Happy to answer any questions or make changes.",
+        "hi": "नमस्ते! कोटेशन {number} के बारे में पूछ रहे थे। कोई सवाल हो या बदलाव चाहिए तो बताइए।",
+        "gu": "નમસ્તે! ક્વોટેશન {number} વિશે પૂછી રહ્યા હતા. કોઈ પ્રશ્ન હોય કે ફેરફાર જોઈએ તો જણાવો.",
+        "hinglish": "Namaste! Quotation {number} ke baare mein pooch rahe the. Koi sawaal ho ya change chahiye to bataiye.",
+        "gujlish": "Namaste! Quotation {number} vishe puchhi rahya hata. Koi sawal hoy ke fer-far joiye to janavjo.",
+    },
+    "unsupported": {
+        "en": "Sorry, I can only read text messages and voice notes. Please type your question.",
+        "hi": "माफ़ कीजिए, मैं सिर्फ़ टेक्स्ट मैसेज और वॉइस नोट समझ सकता हूँ। कृपया अपना सवाल लिखें।",
+        "gu": "માફ કરશો, હું ફક્ત ટેક્સ્ટ મેસેજ અને વૉઇસ નોટ સમજી શકું છું. કૃપા કરી તમારો પ્રશ્ન લખો.",
+        "hinglish": "Sorry, main sirf text message aur voice note samajh sakta hoon. Please apna sawaal type karein.",
+        "gujlish": "Maaf karjo, hu fakt text message ane voice note samji shaku chhu. Krupa kari tamaro sawal lakho.",
+    },
+    "voice_failed": {
+        "en": "Sorry, I could not understand that voice note. Could you type your message?",
+        "hi": "माफ़ कीजिए, मैं यह वॉइस नोट समझ नहीं पाया। क्या आप अपना मैसेज लिख सकते हैं?",
+        "gu": "માફ કરશો, હું આ વૉઇસ નોટ સમજી શક્યો નહીં. શું તમે તમારો સંદેશ લખી શકો?",
+        "hinglish": "Sorry, main yeh voice note samajh nahi paaya. Kya aap apna message type kar sakte hain?",
+        "gujlish": "Maaf karjo, hu aa voice note samji shakyo nahi. Shu tame tamaro message lakhi shako?",
+    },
+    "voice_confirm": {
+        "en": 'I heard: "{heard}". Is that right? Reply yes, or type your message.',
+        "hi": 'मैंने सुना: "{heard}"। क्या यह सही है? हाँ लिखें, या अपना मैसेज टाइप करें।',
+        "gu": 'મેં સાંભળ્યું: "{heard}". શું આ સાચું છે? હા લખો, અથવા તમારો સંદેશ ટાઇપ કરો.',
+        "hinglish": 'Maine suna: "{heard}". Kya yeh sahi hai? Haan likhein, ya apna message type karein.',
+        "gujlish": 'Me sambhalyu: "{heard}". Shu aa sachu chhe? Ha lakho, athva tamaro message type karo.',
+    },
 }
 
 
@@ -48,3 +76,8 @@ def canned(key: str, language: str) -> str:
 def quote_sent_message(language: str, number: str, total: str, valid: str) -> str:
     """The message that delivers an approved quotation. Every figure is passed in by code."""
     return canned("quote_sent", language).format(number=number, total=total, valid=valid)
+
+
+def voice_confirm_message(language: str, heard: str) -> str:
+    """Echo what a voice note sounded like so the customer can confirm it. The words are theirs."""
+    return canned("voice_confirm", language).format(heard=heard)

@@ -3,7 +3,7 @@
 Source of truth for where we are. Tasks come from `BUILD_PLAN.md` section 15. Tick a task only when
 its tests pass; add a one-line note of what was built. Deviations go in `DECISIONS.md`.
 
-**Current phase: 2 (Quotes) is built. Next: a real-model check of the quote flow, then Phase 3 (WhatsApp + voice + handoff), first task: `channel_accounts` with encrypted credentials.**
+**Current phase: 3 (WhatsApp + voice + handoff) is built and tested against a fake Meta and a fake speech model. Not yet run against a real Meta test number or real audio, and the Phase 2 real-model check of the quote flow is still pending (needs a provider key). Next: Phase 4.**
 
 ## Phase 0 — Foundations
 
@@ -105,11 +105,29 @@ browser run: Quotes list, detail with the Rs 1,652.00 breakdown, priced the open
 
 ## Phase 3 — WhatsApp + voice + handoff
 
-- [ ] `channel_accounts` (encrypted credentials), WhatsApp adapter, idempotency, retries, dead letters
-- [ ] 24h window logic; templates off by default
-- [ ] `faster-whisper` Transcriber; voice notes through the pipeline; low-confidence confirmation
-- [ ] Live inbox with take-over; follow-up drafts; owner WhatsApp notifications
-- [ ] Acceptance: Hinglish voice note to approved PDF on a WhatsApp test number; duplicate webhooks ignored
+- [x] Migration `0004`: `channel_accounts` (token Fernet-encrypted), message delivery and voice columns with a unique `(tenant_id, external_id)` index, `follow_ups`. API `GET/PUT/DELETE /channels/whatsapp` (owner-only writes, token never returned)
+- [x] WhatsApp adapter (`app/channels/`): webhook verification, constant-time HMAC check of the raw body, defensive parsing (text, voice, statuses), text and PDF-document sending, two-step media download with a size cap
+- [x] Idempotent inbound (a duplicate webhook stores one message), routing by phone number id, delivery statuses that only move forward, one `deliver_message` job for every outbound path, retries and dead letters from the existing queue, 24-hour window enforced (templates not built)
+- [x] Voice notes: local `faster-whisper` transcriber; the transcript is treated like typed text; low confidence asks the customer to confirm; empty or failed asks for text
+- [x] Live inbox: customer, preview, take over, staff reply (also takes over), hand back to AI, delivery status per message; the AI is silent while a person owns the chat
+- [x] Follow-up drafts: deterministic, one per unanswered quote; the owner sends, edits or dismisses; worker scheduler tick every 10 minutes
+- [x] Dashboard: inbox actions and delivery marks, WhatsApp connection form, Follow-ups page
+- [ ] Not built: owner WhatsApp notifications and message templates (both need Meta-approved templates, see DECISIONS), customers who hid their phone number (WhatsApp usernames)
+- [ ] Not verified: a real Meta test number end to end, and `faster-whisper` on real Hindi/Gujarati audio (the model is a large download; tests use a fake)
+
+### Phase 3 acceptance (BUILD_PLAN.md section 15)
+
+| Criterion | Result |
+|---|---|
+| Hinglish voice note to approved PDF on WhatsApp | `test_voice_note_to_approved_quotation_pdf_delivered_on_whatsapp`: a signed voice-note webhook, transcript, requirements, quote created (the customer is told only that a quote is coming), the owner approves, the PDF is uploaded and sent as a WhatsApp document with the engine's total (Rs 1,652.00) in the caption. Fake Meta and fake speech model: this proves our side, **not Meta's or Whisper's real behaviour** |
+| Duplicate webhooks do not duplicate messages | `test_a_webhook_delivered_twice_is_stored_and_answered_once`; the same id in two businesses is not a duplicate |
+| A complaint stops AI replies | `test_a_complaint_hands_over_and_the_ai_stays_silent_afterwards`: the next customer message gets no model call and no reply |
+| Bad signature refused | `test_a_webhook_with_a_bad_or_missing_signature_is_refused`, plus unit tests for a tampered body, wrong secret and no secret |
+| Running stack | `docker compose up -d --build` (migration `0004` applied) and a signed webhook from a script: bad signature 403, good 200, duplicate 200, the inbox shows the customer, the worker handed off (no model keys) and tried the real Graph API, which refused the fake token, so the message shows `failed` with `OAuthException 190` |
+
+Commands run: `cd backend && uv run pytest` (356 passed, 97% coverage, `pricing/` 100%), `uv run ruff check . ../benchmark`,
+`uv run ruff format --check . ../benchmark`, `uv run mypy` (strict, clean); `cd dashboard && pnpm lint &&
+pnpm typecheck && pnpm test` (39 passed) `&& pnpm build`; the Docker run above.
 
 ## Phase 4 — Benchmark, red team, replay
 

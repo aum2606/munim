@@ -166,3 +166,53 @@ Format: **date — decision.** Reason.
   and some free tiers use prompts to improve products, so they are deliberately not hard-coded.
 - **2026-11-16 — The dashboard container now runs pnpm non-interactively (`CI=true`) with its cache outside
   the mounted folder,** after the pnpm cache was committed by mistake in Phase 0.
+
+## Phase 3 — WhatsApp, voice, handoff
+
+- **2026-11-16 — Meta behaviour was checked against the official docs** (links in `app/channels/whatsapp.py`):
+  the webhook check echoes `hub.challenge`; POSTs are signed with `X-Hub-Signature-256` (HMAC-SHA256 of the
+  raw body, keyed with the app secret); media is fetched in two steps with the same bearer token; a free-form
+  reply is allowed for 24 hours after the customer's last message.
+- **2026-11-16 — One Meta app for the whole deployment, one number per business.** The verify token and app
+  secret are server settings; each business saves only its phone number id and access token
+  (`channel_accounts`, token Fernet-encrypted with `CREDENTIALS_ENCRYPTION_KEY`, required in prod; outside
+  prod a key is derived from `SECRET_KEY`). The token is write-only: no endpoint returns it. A phone number
+  id can belong to one business only. With no verify token or app secret the webhook refuses everything.
+- **2026-11-16 — Webhooks are idempotent through a unique `(tenant_id, external_id)` index on messages,**
+  not an in-memory check, so a retry or two simultaneous deliveries store one message (a savepoint wraps
+  the insert). Delivery statuses only move forward: a late "sent" never undoes "read".
+- **2026-11-16 — Every outbound customer message is delivered by one job, created in
+  `ChatRepository.add_message`.** AI replies, staff replies, quote approvals and follow-ups all pass through
+  it, so no path can forget to deliver. The job is safe to run twice (a message that has Meta's id is never
+  sent again); permanent errors (bad token, bad number) mark the message `failed` with Meta's error code,
+  temporary ones retry with backoff. An approved quotation goes as a PDF document with the approval text as
+  its caption.
+- **2026-11-16 — Message timestamps are set in Python, not by the database.** `now()` is the transaction's
+  start, so a customer message and our reply stored in one transaction tied and could swap places.
+- **2026-11-16 — Message templates are not built, so nothing is sent after the 24-hour window.** Such a
+  message is stored as `window_closed` and shown as not sent; the inbox hides the reply box and replying
+  through the API returns 409. This also means follow-ups (due after 2 days) cannot be sent from the
+  dashboard on WhatsApp: the draft offers "Copy text" and the owner messages the customer themself. Revisit
+  when a business has an approved template (`BUILD_PLAN.md` section 3 keeps templates off by default).
+- **2026-11-16 — NEEDS REVIEW: owner WhatsApp notifications are not built.** They would message the
+  owner's own number, which is outside the 24-hour window unless the owner wrote recently, so they need
+  approved templates. The inbox shows who needs a person and refreshes every 10 seconds instead.
+- **2026-11-16 — Customers who hid their phone number (WhatsApp usernames) are skipped for now.** Their
+  webhooks carry a user id but no phone, and replying needs the `recipient` field. Skipped and logged, not
+  stored.
+- **2026-11-16 — Voice notes are transcribed locally with faster-whisper** (`STT_MODEL`, default `small`,
+  CPU, int8; weights download on first use into `STT_CACHE_DIR`). Confidence is the geometric mean token
+  probability, a heuristic. At or above `STT_CONFIDENCE_THRESHOLD` (0.6) the transcript is treated like
+  typed text; below it nothing is acted on and the customer is shown what we heard and asked to confirm or
+  type; an empty transcript or a failed download asks for text. Fixed replies to a voice note use
+  Roman-script Hinglish/Gujlish for Hindi/Gujarati speech and English otherwise; the normal turn still
+  detects the real language. NEEDS REVIEW: the confirmation echoes the customer's own words, which can
+  contain an amount; it is a fixed reply, not a quote, so it skips the price guardrail.
+- **2026-11-16 — A person takes over by button or by replying.** Either sets the chat to human; the
+  pipeline then stores new customer messages as handled and says nothing, with no model call. A complaint
+  or request for a person already did this in Phase 1. "Hand back to AI" is explicit.
+- **2026-11-16 — Follow-up drafts are deterministic and never sent automatically.** A sent quote with no
+  customer message since, older than `FOLLOWUP_AFTER_DAYS` (2), gets one fixed localized draft per quote
+  (no amount in it). The worker checks every 10 minutes and queues one job per business that needs it.
+- **2026-11-16 — `httpx` request logging is switched off.** It logged full URLs, and Meta's media URLs carry
+  signed query strings.
