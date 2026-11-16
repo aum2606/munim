@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 
 import { useProfile, useSaveProfile, type Profile } from '../api/profile'
 import { Field } from '../components/Form'
+import { WhatsAppSettings } from '../components/WhatsAppSettings'
 import { t } from '../i18n/en'
 
 interface Form {
@@ -26,7 +27,13 @@ const toForm = (p: Profile): Form => ({
 
 export function SettingsPage() {
   const profile = useProfile()
-  return profile.data ? <ProfileForm profile={profile.data} /> : null
+  if (!profile.data) return null
+  return (
+    <>
+      <ProfileForm profile={profile.data} />
+      <WhatsAppSettings />
+    </>
+  )
 }
 
 function ProfileForm({ profile }: { profile: Profile }) {
