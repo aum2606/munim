@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _PLACEHOLDER = "change-me"
@@ -23,7 +23,13 @@ class Settings(BaseSettings):
 
     llm_small_chain: str = ""
     llm_large_chain: str = ""
-    llm_api_keys: str = ""
+    # One key per provider; the name in a chain entry picks the key (groq -> GROQ_API_KEY).
+    groq_api_key: str = ""
+    gemini_api_key: str = ""
+    openrouter_api_key: str = Field(
+        default="", validation_alias=AliasChoices("OPENROUTER_API_KEY", "OPEN_ROUTER_API_KEY")
+    )
+    llm_api_keys: str = ""  # older "name=key,name2=key2" form, for providers not listed above
     llm_timeout_s: float = 30.0
 
     embedding_model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
