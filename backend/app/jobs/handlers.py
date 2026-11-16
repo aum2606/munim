@@ -4,6 +4,7 @@ run twice: a crashed worker's job is retried."""
 import uuid
 from typing import Any
 
+import httpx
 import structlog
 
 from app.core.config import Settings
@@ -16,16 +17,26 @@ from app.ingestion.uploads import read_upload
 from app.jobs.worker import Handler
 from app.llm.base import LLMClient
 from app.llm.embedder import Embedder
+from app.llm.transcriber import Transcriber
 from app.orchestrator.pipeline import process_message as run_pipeline
 from app.orchestrator.pipeline_types import Deps
 from app.repositories.catalog import CatalogRepository
 from app.repositories.documents import DocumentRepository
+from app.services.delivery import deliver_message as send_message
+from app.services.followups import FollowUpService
+from app.services.voice import transcribe_message as run_transcription
 
 log = structlog.get_logger()
 _BATCH = 32
 
 
-def build_handlers(embedder: Embedder, settings: Settings, llm: LLMClient) -> dict[str, Handler]:
+def build_handlers(
+    embedder: Embedder,
+    settings: Settings,
+    llm: LLMClient,
+    http: httpx.AsyncClient | None = None,
+    transcriber: Transcriber | None = None,
+) -> dict[str, Handler]:
     async def embed_catalog_items(
         sm: SessionMaker, ctx: TenantContext, payload: dict[str, Any]
     ) -> None:
@@ -92,9 +103,41 @@ def build_handlers(embedder: Embedder, settings: Settings, llm: LLMClient) -> di
     ) -> None:
         await run_pipeline(Deps(llm, embedder, settings, sm), ctx, payload)
 
+    async def deliver_message(
+        sm: SessionMaker, ctx: TenantContext, payload: dict[str, Any]
+    ) -> None:
+        assert http is not None  # noqa: S101 (registered only when http is given)
+        async with sm() as session:
+            await send_message(session, ctx, settings, http, payload["message_id"])
+            await session.commit()
+
+    async def transcribe_message(
+        sm: SessionMaker, ctx: TenantContext, payload: dict[str, Any]
+    ) -> None:
+        assert http is not None and transcriber is not None  # noqa: S101
+        async with sm() as session:
+            await run_transcription(
+                session, ctx, settings, http, transcriber, payload["message_id"]
+            )
+            await session.commit()
+
+    async def create_follow_ups(
+        sm: SessionMaker, ctx: TenantContext, payload: dict[str, Any]
+    ) -> None:
+        async with sm() as session:
+            await FollowUpService(session, ctx, settings).generate()
+            await session.commit()
+
     return {
+        "create_follow_ups": create_follow_ups,
         "process_message": process_message,
         "embed_catalog_items": embed_catalog_items,
         "embed_document": embed_document,
         "ingest_document": ingest_document,
+        # WhatsApp jobs need an HTTP client and a speech model; callers without them skip these.
+        **(
+            {"deliver_message": deliver_message, "transcribe_message": transcribe_message}
+            if http is not None and transcriber is not None
+            else {}
+        ),
     }

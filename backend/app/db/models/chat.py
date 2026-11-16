@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text, text
+from sqlalchemy import DateTime, Float, ForeignKey, Index, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -82,6 +82,13 @@ class Message(IdentityMixin, TenantMixin, Base):
             "conversation_id",
             "created_at",
         ),
+        Index(
+            "uq_messages_tenant_id_external_id",
+            "tenant_id",
+            "external_id",
+            unique=True,
+            postgresql_where=text("external_id IS NOT NULL"),
+        ),
     )
 
     conversation_id: Mapped[uuid.UUID] = mapped_column(
@@ -99,3 +106,13 @@ class Message(IdentityMixin, TenantMixin, Base):
     quote_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("quotes.id", ondelete="SET NULL"))
     # Set once an inbound message has been answered (or deliberately skipped).
     handled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # WhatsApp. external_id is Meta's message id: unique per business, which is what makes a
+    # webhook Meta delivers twice (it retries) a no-op.
+    external_id: Mapped[str | None] = mapped_column(String(128))
+    kind: Mapped[str] = mapped_column(String(12), default="text", server_default="text")
+    media_id: Mapped[str | None] = mapped_column(String(128))  # a voice note awaiting transcription
+    transcript_confidence: Mapped[float | None] = mapped_column(Float)  # a score, not money
+    # Outbound only: sent, delivered, read, failed, or window_closed (never sent).
+    delivery_status: Mapped[str | None] = mapped_column(String(16))
+    delivery_error: Mapped[str | None] = mapped_column(String(200))

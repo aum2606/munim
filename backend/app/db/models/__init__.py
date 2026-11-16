@@ -1,4 +1,5 @@
 from app.db.models.agent_run import AgentRun, AgentRunStatus
+from app.db.models.channel import ChannelAccount
 from app.db.models.chat import (
     Channel,
     Conversation,
@@ -9,6 +10,7 @@ from app.db.models.chat import (
     Message,
     SenderType,
 )
+from app.db.models.followup import FollowUp, FollowUpStatus
 from app.db.models.job import Job, JobStatus
 from app.db.models.knowledge import (
     CatalogItem,
@@ -42,6 +44,7 @@ __all__ = [
     "AgentRunStatus",
     "CatalogItem",
     "Channel",
+    "ChannelAccount",
     "Chunk",
     "Conversation",
     "ConversationMode",
@@ -51,6 +54,8 @@ __all__ = [
     "Document",
     "DocumentSource",
     "DocumentStatus",
+    "FollowUp",
+    "FollowUpStatus",
     "GapStatus",
     "ImportJob",
     "ImportStatus",

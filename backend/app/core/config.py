@@ -38,12 +38,34 @@ class Settings(BaseSettings):
     job_poll_seconds: float = 1.0
     job_lease_seconds: int = 120
 
+    # Channel credentials are encrypted at rest with this Fernet key. Outside prod an empty value
+    # derives a key from SECRET_KEY so local setups work without extra steps.
+    credentials_encryption_key: str = ""
+    # One Meta app serves every business: its verify token and app secret live here, while each
+    # business stores only its own phone number id and access token (encrypted, in the database).
+    # With either empty the WhatsApp webhook refuses everything.
+    whatsapp_verify_token: str = ""
+    whatsapp_app_secret: str = ""
+    whatsapp_api_version: str = "v24.0"
+
+    stt_model: str = "small"  # faster-whisper model name
+    stt_device: str = "cpu"
+    stt_cache_dir: str = ""
+    # Below this the bot asks the customer to confirm what it heard instead of acting on it.
+    stt_confidence_threshold: float = 0.6
+    max_voice_note_mb: int = 16
+
+    # A sent quote with no customer reply for this long gets a follow-up draft for the owner.
+    followup_after_days: int = 2
+
     @model_validator(mode="after")
     def _reject_weak_secret_in_prod(self) -> "Settings":
         if self.app_env == "prod" and (
             len(self.secret_key) < 32 or _PLACEHOLDER in self.secret_key.lower()
         ):
             raise ValueError("SECRET_KEY must be a random value of at least 32 characters in prod")
+        if self.app_env == "prod" and not self.credentials_encryption_key:
+            raise ValueError("CREDENTIALS_ENCRYPTION_KEY is required in prod")
         return self
 
     @property

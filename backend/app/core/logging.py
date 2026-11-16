@@ -29,6 +29,8 @@ def _redact_processor(
 
 def configure_logging(level: str = "INFO") -> None:
     logging.basicConfig(format="%(message)s", level=level.upper(), force=True)
+    # httpx logs every request URL; media URLs from Meta carry signed query strings.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,

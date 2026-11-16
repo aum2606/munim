@@ -5,7 +5,7 @@ from fastapi import APIRouter, Query, status
 
 from app.core.deps import CtxDep, SessionDep, SettingsDep
 from app.core.errors import NotFoundError
-from app.db.models import AgentRun, Conversation, ConversationMode, Message
+from app.db.models import AgentRun, ConversationMode, Message
 from app.repositories.agent_runs import AgentRunRepository
 from app.repositories.chat import ChatRepository
 from app.schemas.chat import (
@@ -14,7 +14,9 @@ from app.schemas.chat import (
     MessageOut,
     PlaygroundSend,
     PlaygroundSent,
+    StaffReply,
 )
+from app.services.conversations import ConversationService
 from app.services.playground import PlaygroundService
 
 router = APIRouter(tags=["chat"])
@@ -34,8 +36,31 @@ async def list_conversations(
     ctx: CtxDep,
     session: SessionDep,
     mode: Annotated[ConversationMode | None, Query()] = None,
-) -> list[Conversation]:
-    return await ChatRepository(session, ctx).list_conversations(mode)
+) -> list[ConversationOut]:
+    return await ConversationService(session, ctx).inbox(mode)
+
+
+@router.post("/conversations/{conversation_id}/take-over", status_code=status.HTTP_204_NO_CONTENT)
+async def take_over(conversation_id: uuid.UUID, ctx: CtxDep, session: SessionDep) -> None:
+    await ConversationService(session, ctx).take_over(conversation_id)
+
+
+@router.post(
+    "/conversations/{conversation_id}/return-to-ai", status_code=status.HTTP_204_NO_CONTENT
+)
+async def return_to_ai(conversation_id: uuid.UUID, ctx: CtxDep, session: SessionDep) -> None:
+    await ConversationService(session, ctx).return_to_ai(conversation_id)
+
+
+@router.post(
+    "/conversations/{conversation_id}/replies",
+    response_model=MessageOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def staff_reply(
+    conversation_id: uuid.UUID, body: StaffReply, ctx: CtxDep, session: SessionDep
+) -> Message:
+    return await ConversationService(session, ctx).staff_reply(conversation_id, body.text)
 
 
 @router.get("/conversations/{conversation_id}/messages", response_model=list[MessageOut])

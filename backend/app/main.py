@@ -10,7 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import health
+from app.api import health, webhooks
 from app.api.v1 import router as v1_router
 from app.core.config import Settings, get_settings
 from app.core.errors import DomainError
@@ -106,5 +106,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
 
     app.include_router(health.router)
+    app.include_router(webhooks.router)
     app.include_router(v1_router, prefix="/api/v1")
     return app

@@ -2,6 +2,8 @@ import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import ColumnElement, and_, func, select, update
+from sqlalchemy.dialects.postgresql import distinct_on
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import TenantContext
@@ -9,11 +11,15 @@ from app.db.models import (
     Channel,
     Conversation,
     ConversationMode,
+    ConversationStatus,
     Customer,
     Direction,
     Message,
     SenderType,
 )
+from app.jobs.queue import enqueue
+
+_RANK = {"failed": 1, "sent": 1, "delivered": 2, "read": 3}
 
 
 class ChatRepository:
@@ -40,6 +46,81 @@ class ChatRepository:
         self._session.add(conversation)
         await self._session.flush()
         return conversation
+
+    async def whatsapp_conversation(self, phone: str, name: str | None) -> Conversation:
+        """The customer's open WhatsApp conversation; created with the customer on first contact."""
+        customer = await self._session.scalar(
+            select(Customer).where(self._mine(Customer), Customer.phone == phone)
+        )
+        if customer is None:
+            customer = Customer(tenant_id=self._ctx.tenant_id, phone=phone, name=name)
+            self._session.add(customer)
+            await self._session.flush()
+        elif name and not customer.name:
+            customer.name = name
+        conversation = await self._session.scalar(
+            select(Conversation)
+            .where(
+                self._mine(Conversation),
+                Conversation.customer_id == customer.id,
+                Conversation.channel == Channel.WHATSAPP,
+                Conversation.status == ConversationStatus.OPEN,
+            )
+            .order_by(Conversation.created_at.desc())
+            .limit(1)
+        )
+        if conversation is None:
+            conversation = Conversation(
+                tenant_id=self._ctx.tenant_id, customer_id=customer.id, channel=Channel.WHATSAPP
+            )
+            self._session.add(conversation)
+            await self._session.flush()
+        return conversation
+
+    async def add_inbound_once(
+        self,
+        conversation: Conversation,
+        *,
+        external_id: str,
+        content: str,
+        kind: str,
+        media_id: str | None = None,
+    ) -> Message | None:
+        """Store a customer message unless this external id was already stored (a webhook that
+        Meta delivered twice). Returns None for the duplicate."""
+        try:
+            async with (
+                self._session.begin_nested()
+            ):  # savepoint: a duplicate must not poison the transaction
+                return await self.add_message(
+                    conversation,
+                    direction=Direction.IN,
+                    sender_type=SenderType.CUSTOMER,
+                    content=content,
+                    external_id=external_id,
+                    kind=kind,
+                    media_id=media_id,
+                )
+        except IntegrityError:
+            return None
+
+    async def get_message(self, message_id: uuid.UUID) -> Message | None:
+        return await self._session.scalar(
+            select(Message).where(self._mine(Message), Message.id == message_id)
+        )
+
+    async def set_delivery_by_external_id(
+        self, external_id: str, status: str, error: str | None
+    ) -> None:
+        """Delivery progress from Meta. It only moves forward: a late 'sent' never undoes 'read'."""
+        message = await self._session.scalar(
+            select(Message).where(self._mine(Message), Message.external_id == external_id)
+        )
+        if message is not None and _RANK.get(status, 0) >= _RANK.get(
+            message.delivery_status or "", 0
+        ):
+            message.delivery_status = status
+            message.delivery_error = error
 
     async def get_conversation(self, conversation_id: uuid.UUID) -> Conversation | None:
         return await self._session.scalar(
@@ -68,6 +149,9 @@ class ChatRepository:
         intent: str | None = None,
         reply_to_id: uuid.UUID | None = None,
         quote_id: uuid.UUID | None = None,
+        external_id: str | None = None,
+        kind: str = "text",
+        media_id: str | None = None,
     ) -> Message:
         now = datetime.now(UTC)
         message = Message(
@@ -80,6 +164,12 @@ class ChatRepository:
             intent=intent,
             reply_to_id=reply_to_id,
             quote_id=quote_id,
+            # Explicit, not the server's now() (the transaction's start): two messages stored in one
+            # transaction, a customer message and our reply, would tie and reorder.
+            created_at=now,
+            external_id=external_id,
+            kind=kind,
+            media_id=media_id,
             # Outbound messages need no processing; inbound ones are marked once answered.
             handled_at=now if direction == Direction.OUT else None,
         )
@@ -89,6 +179,11 @@ class ChatRepository:
         else:
             conversation.last_business_msg_at = now
         await self._session.flush()
+        if direction == Direction.OUT and conversation.channel == Channel.WHATSAPP:
+            # Every path that speaks to a customer ends here, so none can forget to deliver.
+            await enqueue(
+                self._session, self._ctx, "deliver_message", {"message_id": str(message.id)}
+            )
         return message
 
     async def messages(self, conversation_id: uuid.UUID, *, limit: int = 200) -> list[Message]:
@@ -160,3 +255,19 @@ class ChatRepository:
             .order_by(Message.created_at.desc())
             .limit(1)
         )
+
+    async def customers_by_id(self, customer_ids: list[uuid.UUID]) -> dict[uuid.UUID, Customer]:
+        result = await self._session.scalars(
+            select(Customer).where(self._mine(Customer), Customer.id.in_(customer_ids))
+        )
+        return {c.id: c for c in result}
+
+    async def last_messages(self, conversation_ids: list[uuid.UUID]) -> dict[uuid.UUID, Message]:
+        """The latest message of each conversation, for the inbox preview."""
+        result = await self._session.scalars(
+            select(Message)
+            .where(self._mine(Message), Message.conversation_id.in_(conversation_ids))
+            .ext(distinct_on(Message.conversation_id))
+            .order_by(Message.conversation_id, Message.created_at.desc(), Message.id.desc())
+        )
+        return {m.conversation_id: m for m in result}

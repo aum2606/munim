@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import signal
+import time
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -65,8 +66,17 @@ async def run_worker(
     *,
     poll_s: float = 1.0,
     lease_s: int = 120,
+    periodic: Callable[[], Awaitable[object]] | None = None,
+    periodic_s: float = 600.0,
 ) -> None:
+    next_periodic = 0.0
     while not stop.is_set():
+        if periodic is not None and time.monotonic() >= next_periodic:
+            next_periodic = time.monotonic() + periodic_s
+            try:
+                await periodic()
+            except Exception:
+                log.error("periodic_failed", exc_info=True)
         try:
             claimed = await process_batch(sessionmaker, handlers, lease_s=lease_s)
         except Exception:
@@ -79,14 +89,17 @@ async def run_worker(
 
 async def main() -> None:
     from app.jobs.handlers import build_handlers  # late: handlers import this module's Handler
+    from app.jobs.scheduler import enqueue_due_follow_ups
     from app.llm.embedder import LocalEmbedder
     from app.llm.openai_compat import ChainLLMClient
+    from app.llm.transcriber import WhisperTranscriber
 
     settings = get_settings()
     configure_logging(settings.log_level)
     engine = make_engine(settings.database_url)
     embedder = LocalEmbedder(settings.embedding_model, settings.embedding_cache_dir)
     http = httpx.AsyncClient()
+    sessionmaker = make_sessionmaker(engine)
     llm = ChainLLMClient.from_settings(settings, http)
     stop = asyncio.Event()
     loop = asyncio.get_running_loop()
@@ -95,11 +108,18 @@ async def main() -> None:
     log.info("worker_started")
     try:
         await run_worker(
-            make_sessionmaker(engine),
-            build_handlers(embedder, settings, llm),
+            sessionmaker,
+            build_handlers(
+                embedder,
+                settings,
+                llm,
+                http,
+                WhisperTranscriber(settings.stt_model, settings.stt_device, settings.stt_cache_dir),
+            ),
             stop,
             poll_s=settings.job_poll_seconds,
             lease_s=settings.job_lease_seconds,
+            periodic=lambda: enqueue_due_follow_ups(sessionmaker, settings),
         )
     finally:
         await http.aclose()
