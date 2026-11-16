@@ -10,6 +10,7 @@ export interface ChatMessage {
   language: string | null
   intent: string | null
   reply_to_id: string | null
+  quote_id: string | null
   created_at: string
 }
 

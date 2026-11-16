@@ -5,9 +5,11 @@ import { t, type MessageKey } from '../i18n/en'
 
 const LINKS: { to: string; label: MessageKey }[] = [
   { to: '/', label: 'nav.home' },
+  { to: '/quotes', label: 'nav.quotes' },
   { to: '/knowledge', label: 'nav.knowledge' },
   { to: '/playground', label: 'nav.playground' },
   { to: '/inbox', label: 'nav.inbox' },
+  { to: '/settings', label: 'nav.settings' },
 ]
 
 /** Header and navigation for every signed-in page. Scrolls sideways on a phone. */

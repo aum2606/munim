@@ -7,7 +7,9 @@ import { InboxPage } from './pages/InboxPage'
 import { KnowledgePage } from './pages/KnowledgePage'
 import { LoginPage } from './pages/LoginPage'
 import { PlaygroundPage } from './pages/PlaygroundPage'
+import { QuotesPage } from './pages/QuotesPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { SettingsPage } from './pages/SettingsPage'
 
 export function App() {
   return (
@@ -20,6 +22,8 @@ export function App() {
           <Route path="/knowledge/*" element={<KnowledgePage />} />
           <Route path="/playground" element={<PlaygroundPage />} />
           <Route path="/inbox/*" element={<InboxPage />} />
+          <Route path="/quotes/*" element={<QuotesPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>
     </Routes>

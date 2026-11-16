@@ -105,3 +105,17 @@ export async function api<T>(
   }
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T)
 }
+
+/** Fetch a file with the signed-in user's token (a plain link cannot send it) and open it. */
+export async function openPdf(path: string): Promise<void> {
+  if (!accessToken) await refreshSession()
+  const response = await fetch(`/api/v1${path}`, {
+    credentials: 'same-origin',
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+  })
+  if (!response.ok) throw new ApiError(response.status, 'download_failed', response.statusText)
+  const blob = await response.blob()
+  const url = URL.createObjectURL(blob)
+  window.open(url, '_blank', 'noopener')
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}

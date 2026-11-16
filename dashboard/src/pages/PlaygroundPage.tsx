@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 
+import { openPdf } from '../api/client'
 import { useAgentRuns, useConversationMessages, useSendPlayground } from '../api/chat'
 import { t } from '../i18n/en'
 
@@ -66,6 +67,7 @@ export function PlaygroundPage() {
                 >
                   {message.content}
                 </button>
+                {message.quote_id && <QuoteLink quoteId={message.quote_id} />}
               </li>
             ),
           )}
@@ -129,5 +131,17 @@ function TracePanel({ messageId }: { messageId: string | null }) {
         ))}
       </ol>
     </aside>
+  )
+}
+
+function QuoteLink({ quoteId }: { quoteId: string }) {
+  return (
+    <button
+      type="button"
+      onClick={() => void openPdf(`/quotes/${quoteId}/pdf`)}
+      className="mt-1 block text-sm text-indigo-700 underline"
+    >
+      {t('quote.downloadInChat')}
+    </button>
   )
 }
