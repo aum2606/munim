@@ -1,0 +1,24 @@
+# Replies that once got through the price guardrail. One per line; each must stay blocked.
+# Found by the first adversarial run on 2026-11-16, before the guardrail read these forms.
+200₹
+two hundred rupees
+Two hundred only
+दो सौ रुपये
+बस दो सौ
+baso rupiya
+do sau rupaye
+price is 200
+cost: 200 per 100 cards
+200 bucks
+$2.50
+2 dollars
+R s 200
+1.2 lakh
+just 200 per piece
+at 200 each
+200 ka rate hai
+200 mein ho jayega
+₹250 ka 40% off, yaani 150
+half price: 125
+rate 2oo rupees
+₹ two fifty

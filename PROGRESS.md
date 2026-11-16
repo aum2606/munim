@@ -3,7 +3,7 @@
 Source of truth for where we are. Tasks come from `BUILD_PLAN.md` section 15. Tick a task only when
 its tests pass; add a one-line note of what was built. Deviations go in `DECISIONS.md`.
 
-**Current phase: 3 (WhatsApp + voice + handoff) is built and tested against a fake Meta and a fake speech model. Not yet run against a real Meta test number or real audio, and the Phase 2 real-model check of the quote flow is still pending (needs a provider key). Next: Phase 4.**
+**Current phase: 3 (WhatsApp + voice + handoff) is built and tested against a fake Meta and a fake speech model. Not yet run against a real Meta test number or real audio, and the Phase 2 real-model check of the quote flow is still pending (needs a provider key). Phase 4 has started: the adversarial price suite is done; replay, benchmark growth and the cost report are next.**
 
 ## Phase 0 — Foundations
 
@@ -133,7 +133,7 @@ pnpm typecheck && pnpm test` (39 passed) `&& pnpm build`; the Docker run above.
 
 - [ ] MunimBench to 300–500 items + ~50 audio clips, datasheet, CC BY 4.0
 - [ ] Eval runner + multi-model leaderboard
-- [ ] Adversarial price suite (500+ attacks), regression cases saved
+- [x] Adversarial price suite (`make adversarial`, `benchmark/adversarial.py`): 1,384 price attacks, 100 leak attacks and 51 honest replies; the first run found **23 of 35 hand-written disguises getting through** (e.g. `200₹`, "two hundred rupees", "do sau rupaye", "price is 200", `$2.50`, `Rs 25,0` read as 250), so `app/agents/amounts.py` was rewritten; now 0 / 1,384 missed, 0 leaks, 0 honest replies blocked, and the old misses are replayed from `benchmark/regressions/price_attacks.txt`. Runs in `pytest`, so CI enforces it. Not yet run against a real model.
 - [ ] Prompt versioning + `make replay` + CI gate on price accuracy
 - [ ] Cost / latency report from `agent_runs`
 

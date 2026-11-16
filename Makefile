@@ -1,4 +1,4 @@
-.PHONY: dev migrate revision seed test test-be test-fe lint fmt eval
+.PHONY: dev migrate revision seed test test-be test-fe lint fmt eval adversarial
 
 dev: ## full stack: api, worker, postgres(pgvector), dashboard
 	@test -f .env || cp .env.example .env
@@ -15,6 +15,9 @@ seed: ## create the demo businesses (the stack must be running); prints their lo
 
 eval: ## MunimBench. CI mode by default; add LLM=real EMB=local with EVAL_USE_REAL_LLM=1 for a real model
 	cd backend && PYTHONPATH=.:.. uv run python -m benchmark.run --llm $(or $(LLM),fake) --embedder $(or $(EMB),fake)
+
+adversarial: ## Adversarial price suite: every wrong amount must be blocked (no keys, no database)
+	cd backend && PYTHONPATH=.:.. uv run python -m benchmark.adversarial
 
 test: test-be test-fe
 

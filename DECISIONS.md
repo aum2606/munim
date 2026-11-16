@@ -216,3 +216,22 @@ Format: **date — decision.** Reason.
   (no amount in it). The worker checks every 10 minutes and queues one job per business that needs it.
 - **2026-11-16 — `httpx` request logging is switched off.** It logged full URLs, and Meta's media URLs carry
   signed query strings.
+
+## Phase 4 — Red team
+
+- **2026-11-16 — The price guardrail now reads amounts from `app/agents/amounts.py`, and is stricter.** The
+  adversarial suite showed the Phase 1 regex only caught an amount with a currency sign or word in the usual
+  place. It now also catches: `₹` after the number, `$`/`€`/dollars, "1.2 lakh" and "2 hazaar", a bare number
+  next to a price cue ("price is 200", "200 ka rate hai", "200 में हो जाएगा"), numbers spelled out with a
+  currency word or a price cue ("two hundred rupees", "do sau rupaye", "બસો રૂપિયા"), and obfuscation (zero-width
+  characters, full-width digits, `₨`, `2oo`). Malformed grouping such as `25,0` was read as 250 and is now
+  UNREADABLE. Spelled-out and foreign amounts are always UNREADABLE (never equal to a real price), because
+  honest replies write prices as digits.
+- **2026-11-16 — Quantities, dates, percentages and "per 100" are deliberately not prices,** so "500 cards",
+  "3 days", "22 Nov", "18% GST" and "₹250 per 100" pass. The suite's honest set (51 replies, including every
+  fixed reply in five languages) and MunimBench both show 0 honest replies blocked.
+- **2026-11-16 — NEEDS REVIEW: known limits of the guardrail.** A spelled-out amount with no price cue and no
+  currency word ("five hundred") looks like a quantity and is not flagged. Hindi and Gujarati number words are
+  a hand-written list (units, tens and multiples), not every number. A translated leak of the system prompt is
+  not caught (only the English phrases are). The suite attacks the guardrail with synthetic replies; whether a
+  real model produces anything new needs a real-model run (`make eval` with a key).
