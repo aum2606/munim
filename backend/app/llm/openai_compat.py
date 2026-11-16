@@ -70,9 +70,27 @@ MAX_RATE_LIMIT_WAIT_S = 30.0
 MAX_ATTEMPTS = 3  # per provider; only a 429 with a short Retry-After earns another try
 
 
+def _error_code(response: httpx.Response | None) -> str | None:
+    """The provider's short error code (e.g. json_validate_failed). Never the message: it can echo
+    the prompt."""
+    if response is None:
+        return None
+    try:
+        code = response.json()["error"]["code"]
+    except (ValueError, KeyError, TypeError):
+        return None
+    return code[:60] if isinstance(code, str) else None
+
+
 def _rate_limit_wait(response: httpx.Response | None) -> float | None:
-    """Seconds the provider asks us to wait after a 429, if it is short enough to be worth it."""
-    if response is None or response.status_code != 429:
+    """Seconds to wait before trying the same provider again, or None to move on: a 429 with a
+    short Retry-After, or a model that broke JSON mode (Groq's 400 json_validate_failed), which
+    usually answers correctly the next time."""
+    if response is None:
+        return None
+    if response.status_code == 400 and _error_code(response) == "json_validate_failed":
+        return 0.0
+    if response.status_code != 429:
         return None
     try:
         wait = float(response.headers.get("retry-after", ""))
@@ -116,6 +134,7 @@ class ChainLLMClient(LLMClient):
                         provider=spec.name,
                         error=type(exc).__name__,
                         status=response.status_code if response else None,
+                        code=_error_code(response),
                     )
                     wait = _rate_limit_wait(response)
                     if attempt < MAX_ATTEMPTS - 1 and wait is not None:

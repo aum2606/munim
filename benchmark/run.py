@@ -19,9 +19,10 @@ from pathlib import Path
 import httpx
 
 from app.agents.guardrails import extract_amounts
+from app.agents.models import Intent, RouterOutput
 from app.core.config import Settings, get_settings
 from app.core.context import TenantContext
-from app.db.models import Channel, ConversationMode, Direction, SenderType
+from app.db.models import AgentRunStatus, Channel, ConversationMode, Direction, SenderType
 from app.db.session import SessionMaker, make_engine, make_sessionmaker
 from app.jobs.handlers import build_handlers
 from app.llm.base import LLMClient
@@ -49,6 +50,8 @@ class Outcome:
     item: BenchItem
     reply: str
     intent_ok: bool
+    route_ok: bool  # the intent sent the message to the same place as the gold intent would
+    model_error: bool  # a model call failed (rate limit, bad output): not the model's judgement
     handoff_ok: bool
     grounded_ok: bool | None  # None: not a knowledge question
     retrieval_ok: bool | None  # None: nothing specific was expected to be found
@@ -140,6 +143,9 @@ async def run_item(
         item=item,
         reply=reply.content,
         intent_ok=reply.intent == item.intent.value,
+        route_ok=_route_of(reply.intent, deps.settings.router_confidence_threshold)
+        == route_for_gold(item, deps.settings.router_confidence_threshold),
+        model_error=any(r.status == AgentRunStatus.ERROR for r in runs),
         handoff_ok=(conversation.mode == ConversationMode.HUMAN) == item.handoff,
         grounded_ok=grounded_ok,
         retrieval_ok=retrieval_ok,
@@ -158,9 +164,14 @@ def known_amounts(vertical: str) -> set[int]:
     return amounts
 
 
-def route_for_gold(item: BenchItem, threshold: float) -> Route:
-    from app.agents.models import RouterOutput
+def _route_of(intent: str | None, threshold: float) -> Route | None:
+    """Where an intent sends a message; None when the router never produced one."""
+    if intent is None:
+        return None
+    return route_for(RouterOutput(intent=Intent(intent), confidence=1.0), threshold)
 
+
+def route_for_gold(item: BenchItem, threshold: float) -> Route:
     return route_for(RouterOutput(intent=item.intent, confidence=1.0), threshold)
 
 
@@ -175,6 +186,10 @@ def summarize(outcomes: list[Outcome], *, oracle: bool) -> dict[str, object]:
     return {
         "items": len(outcomes),
         "intent_accuracy": None if oracle else rate("intent_ok"),  # an oracle proves nothing here
+        # Several intents (policy, availability, product_info, general_faq, pricing) lead to the
+        # same place, so this is the one that decides what the customer experiences.
+        "route_accuracy": None if oracle else rate("route_ok"),
+        "model_errors": sum(o.model_error for o in outcomes),  # items where a model call failed
         "handoff_accuracy": rate("handoff_ok"),
         "groundedness": rate("grounded_ok"),
         "retrieval_hit_rate": rate("retrieval_ok"),
@@ -285,6 +300,8 @@ async def main() -> None:
                         "retrieval_ok": o.retrieval_ok,
                         "price_ok": o.price_ok,
                         "intent_ok": o.intent_ok,
+                        "route_ok": o.route_ok,
+                        "model_error": o.model_error,
                     }
                     for o in outcomes
                 ],
