@@ -116,3 +116,53 @@ Format: **date — decision.** Reason.
 - **2026-11-16 — MunimBench v0.1 phrasings are templated per language.** They are cleaner than real
   messages; v0.2 adds messier ones. The CI run uses an oracle model that answers from gold labels, so it
   checks retrieval, pricing and guardrails around the model, not the model itself.
+
+## Phase 2
+
+- **2026-11-16 — Quote PDFs use reportlab, not WeasyPrint (deviation from BUILD_PLAN.md section 4).**
+  WeasyPrint needs GTK/Pango system libraries, which the Windows dev machines here do not have, so the
+  PDF could not be tested locally. reportlab is pure Python and runs everywhere. Quote text is escaped
+  before it reaches the PDF, so customer or owner text can never be interpreted as markup.
+- **2026-11-16 — PDFs print "Rs. 1,652.00", not the rupee sign.** The built-in PDF fonts have no rupee
+  glyph and bundling a font file would add an asset for no gain. `format_inr` still produces the sign
+  everywhere else.
+- **2026-11-16 — The model proposes items and quantities only; code does all quantity maths and pricing.**
+  The mapping step returns SKU, pieces, optional width/height and add-on codes. `billable_qty` turns pieces
+  into priced units ("per 100" means 500 cards is 5 units; "per sq ft" multiplies the size), every SKU
+  and add-on code is checked against the catalogue, and any "price" field the model adds is ignored.
+  An item that cannot be priced becomes a zero-price line flagged `needs_owner_pricing`, and approval is
+  blocked until the owner prices it.
+- **2026-11-16 — "per N" is a pack size only when N counts pieces.** "per 100" and "per 100 pcs" are pack
+  sizes; "per 2 days" or "per event" are not (a 2-day wedding package is one unit). A unit written
+  another way is treated as one unit, so check imported units.
+- **2026-11-16 — Customers never see a price before the owner approves.** While a quote is prepared the
+  customer is told the team will send it; on approval a message with the total and the quotation link
+  is added to the chat (sender `staff`). The price guardrail still checks every question the assistant asks.
+- **2026-11-16 — Tax rules.** Same state, or either state unknown, means CGST + SGST; otherwise IGST. The
+  seller's state comes from the GSTIN in the business profile. Each half of intra-state tax is rounded on
+  its own, so CGST + SGST can differ from IGST by a paisa per rate (a property test bounds it). The total
+  is rounded to the nearest rupee, with the round-off shown. GSTIN is checked for format only, not for
+  existence.
+- **2026-11-16 — Pricing rules are tiers, add-ons and minimum order, stored as JSON per item or category.**
+  Tiers give a fixed unit price or a percent off (percent as a Decimal string, never a float). An add-on
+  becomes its own line, taxed like the item it belongs to. Rules are validated when saved; there is no
+  screen for them yet (API and seeds only).
+- **2026-11-16 — Quote numbers use an upsert counter per tenant per financial year.** `Q/2026-27/0001`;
+  concurrent quotes cannot collide (tested with 8 at once) and April starts a new sequence.
+- **2026-11-16 — An active quote conversation keeps short replies in the flow.** While requirements are
+  being collected, an answer like "500" stays with the quote even if the router is unsure or calls it
+  off-topic. Complaints, requests for a person and haggling still go to a human.
+- **2026-11-16 — Lead stage and score are rule-based, never model-decided.** Stages only move forward;
+  won, lost and dormant are never changed automatically; only an accepted quote wins a lead. The score
+  formula is in the docstring of `lead_score`. The router's sentiment is the only model input (plus 5 or
+  minus 10 points).
+- **2026-11-16 — NEEDS REVIEW: unknown "don't know" answers do not block a quote.** A slot the customer
+  skips gets the schema default, or "not specified" if there is none, so the quote is still prepared and
+  the owner sees the gap. Decide whether some details (a deadline, a size) should be mandatory.
+- **2026-11-16 — Seller state unknown means CGST + SGST.** A business that has not entered a GSTIN yet
+  still gets quotes, taxed as same-state. The settings page says the GSTIN decides this.
+- **2026-11-16 — Provider endpoints were checked against official docs on 2026-11-16** (Groq, OpenRouter
+  and Gemini OpenAI-compatible URLs are in `.env.example`). Model names and free-tier limits change often
+  and some free tiers use prompts to improve products, so they are deliberately not hard-coded.
+- **2026-11-16 — The dashboard container now runs pnpm non-interactively (`CI=true`) with its cache outside
+  the mounted folder,** after the pnpm cache was committed by mistake in Phase 0.

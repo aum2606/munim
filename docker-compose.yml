@@ -80,6 +80,7 @@ services:
     environment:
       VITE_API_PROXY: http://api:8000
       npm_config_store_dir: /pnpm-store # keep pnpm's cache out of the mounted project folder
+      CI: "true" # pnpm may rebuild node_modules without asking, there is no terminal here
     volumes:
       - ./dashboard:/app
       - dashboard_node_modules:/app/node_modules

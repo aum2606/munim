@@ -3,7 +3,7 @@
 Source of truth for where we are. Tasks come from `BUILD_PLAN.md` section 15. Tick a task only when
 its tests pass; add a one-line note of what was built. Deviations go in `DECISIONS.md`.
 
-**Current phase: 1 (Knowledge + Playground) is built. Next: Phase 2 (Quotes), first task: the `requirement_schemas`, `leads` and `quotes` models.**
+**Current phase: 2 (Quotes) is built. Next: a real-model check of the quote flow, then Phase 3 (WhatsApp + voice + handoff), first task: `channel_accounts` with encrypted credentials.**
 
 ## Phase 0 — Foundations
 
@@ -75,11 +75,33 @@ one Playground turn through the worker).
 
 ## Phase 2 — Quotes
 
-- [ ] `requirement_schemas` (printing + photography), `leads`, `lead_events`, `quotes`, `quote_items`
-- [ ] Pricing engine: 100% branch coverage + Hypothesis property tests
-- [ ] Quote agent (slot filling + mapping), FY quote numbering, PDF
-- [ ] Approval queue; approve sends to customer; rule-based lead scoring + stages
-- [ ] Acceptance: printing and photography conversations end in a PDF with hand-calculated totals
+- [x] Models + migration `0003`: `requirement_schemas`, `pricing_rules`, `leads`, `lead_events`, `quotes`, `quote_items`, `quote_sequences`; business profile on `tenants` (GSTIN, state, address, phone) and quote terms on settings
+- [x] Pricing engine (`app/pricing/`): quantity tiers, add-ons, minimum order, line discount, GST (CGST+SGST or IGST), round-off, `amount_in_words`, Indian financial-year quote numbers. **100% branch coverage** plus Hypothesis property tests (totals always add up, round-off within 50 paise, more quantity never raises the unit price)
+- [x] Quote agent: slot filling against the owner's requirement schema (at most 2 questions per turn, values validated by code, "don't know" uses defaults), then matching to catalogue items. The model never produces a price: quantities are converted and priced by code
+- [x] Quote service: create (unpriced lines flagged for the owner), edit before approval (engine recomputes), approve (freezes the PDF, messages the customer the total), reject, mark accepted; PDF with reportlab
+- [x] Leads: rule-based score (documented in `orchestrator/leads.py`) and forward-only stages; events logged; accepting a quote wins the lead
+- [x] API: quotes (list, detail, edit, approve, reject, accept, PDF), business profile `GET/PUT /tenant`, pricing rules, requirement schemas
+- [x] Dashboard: Quotes (review, edit rupees as paise, approve, PDF), Business profile settings, quotation link in chat
+- [x] Seeds: printing and photography now come with pricing rules, requirement schemas and a demo GSTIN profile
+- [ ] Not built yet: Leads page and kanban (Phase 3), pricing-rule and requirement-schema screens (the API and seeds exist), quote scenarios in MunimBench, a real-model run of the quote flow (needs provider keys)
+
+### Phase 2 acceptance (BUILD_PLAN.md section 15)
+
+| Criterion | Result |
+|---|---|
+| Printing conversation ends in a PDF with hand-calculated totals | `test_printing_conversation_ends_in_the_hand_calculated_quote`: "500 visiting cards, matt lamination" gives 5 x Rs 235 + 5 x Rs 45 = Rs 1,400, GST Rs 252, total **Rs 1,652.00**. The customer is told nothing about price until the owner approves. |
+| Photography conversation likewise | `test_photography_conversation_ends_in_the_hand_calculated_quote`: wedding 2 days + video = Rs 1,10,000, GST Rs 19,800, total **Rs 1,29,800.00**; PDF shows the amount in words |
+| Owner approves and the customer receives it | approval writes a message with the total and the quotation link (`quote_id`); verified in Docker and a browser run (priced the last line, approved, lead moved to "quoted") |
+| Model cannot affect a price | `test_made_up_items_bad_addons_and_prices_from_the_model_are_ignored`: invented SKUs, unreadable quantities and "price" fields change nothing; unpriced lines block approval |
+
+The conversations use a scripted model, so these prove the logic around it, **not how well a real model
+extracts requirements or picks items**. That needs a real-model run (OpenRouter, Groq or Gemini keys).
+
+Commands run: `cd backend && uv run pytest` (286 passed, 96% coverage; `pricing/` 100%),
+`uv run ruff check . ../benchmark`, `uv run ruff format --check . ../benchmark`, `uv run mypy` (strict, clean);
+`cd dashboard && pnpm lint && pnpm typecheck && pnpm test` (30 passed) `&& pnpm build`;
+`docker compose up -d --build` (migration `0003` applied on top of existing data), `python -m seeds.load`, and a
+browser run: Quotes list, detail with the Rs 1,652.00 breakdown, priced the open line, approved, PDF downloaded.
 
 ## Phase 3 — WhatsApp + voice + handoff
 
