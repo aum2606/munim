@@ -46,6 +46,9 @@ class RouterOutput(BaseModel):
     script: Script = "latin"
     entities: dict[str, str] = Field(default_factory=dict)
     mentioned_catalog_terms: list[str] = Field(default_factory=list)
+    # The question restated in plain English, only used to search the shop's FAQs: the embedding
+    # model finds Hindi and Gujarati script questions far less often than English ones.
+    search_query_en: str = Field(default="", max_length=300)
     sentiment: Literal["positive", "neutral", "negative"] = "neutral"
     confidence: float = Field(ge=0, le=1)
 

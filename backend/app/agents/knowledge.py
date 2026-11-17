@@ -57,7 +57,9 @@ class KnowledgeAgent(BaseAgent):
         items: list[CatalogHit] = await toolbox.call(
             "lookup_catalog", terms=router.mentioned_catalog_terms or [question]
         )
-        chunks: list[ChunkHit] = await toolbox.call("search_knowledge", query=question)
+        chunks: list[ChunkHit] = await toolbox.call(
+            "search_knowledge", query=question, also=router.search_query_en
+        )
         business: BusinessInfo = await toolbox.call("get_business_info")
         # Prices of products come from the catalogue. Amounts the owner wrote in their own
         # policies (a delivery threshold, an advance) may be repeated exactly as written.

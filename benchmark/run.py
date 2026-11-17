@@ -17,12 +17,21 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
+from sqlalchemy import update
 
 from app.agents.guardrails import extract_amounts
 from app.agents.models import Intent, RouterOutput
 from app.core.config import Settings, get_settings
 from app.core.context import TenantContext
-from app.db.models import AgentRunStatus, Channel, ConversationMode, Direction, SenderType
+from app.db.models import (
+    AgentRunStatus,
+    CatalogItem,
+    Channel,
+    Chunk,
+    ConversationMode,
+    Direction,
+    SenderType,
+)
 from app.db.session import SessionMaker, make_engine, make_sessionmaker
 from app.jobs.handlers import build_handlers
 from app.llm.base import LLMClient
@@ -74,6 +83,14 @@ async def prepare(
                 owner = await AuthRepository(session).get_user_by_email(business.owner_email)
             assert owner is not None
             ctx = TenantContext(tenant_id=owner.tenant_id, user_id=owner.id)
+        # The tenants outlive a run. Vectors left by a different embedder (the fake one in CI, say)
+        # would silently be searched instead of the chosen one, so start every run from none.
+        async with sessionmaker() as session:
+            for table in (CatalogItem, Chunk):
+                await session.execute(
+                    update(table).where(table.tenant_id == ctx.tenant_id).values(embedding=None)
+                )
+            await session.commit()
         await handlers["embed_catalog_items"](sessionmaker, ctx, {})
         async with sessionmaker() as session:
             faqs = await DocumentRepository(session, ctx).browse(faq=True)

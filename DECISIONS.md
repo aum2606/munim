@@ -257,13 +257,18 @@ Format: **date — decision.** Reason.
   create a lead. It now routes to `Route.GREETING` (a canned welcome in five languages, no gap, no lead).
   `order_followup` joins the hand-off intents: with no order system there is nothing to look up, so a
   person answers it from the inbox. Found while writing benchmark items for every intent.
-- **2026-11-17 — NEEDS REVIEW: Hindi and Gujarati script retrieval is weak (about 65%).** With the 367-item
-  benchmark and real embeddings, the right FAQ or product reaches the model for 95% of English but 65%
-  (Devanagari) and 64% (Gujarati script) questions; romanised text is fine (91-94%). The current model,
-  `paraphrase-multilingual-MiniLM-L12-v2`, is the only multilingual 384-dim model fastembed lists, and
-  the column is 384-dim. Options: a larger multilingual model with a migration and re-embedding, or a
-  query rewrite (the router already extracts product names in Latin letters; a model could also
-  restate the question in English for search). Decide before the pilot.
+- **2026-11-17 — CORRECTION: Hindi and Gujarati script retrieval is not weak.** An earlier entry here said
+  about 65%. It was a measurement bug: benchmark tenants outlive a run, and `prepare()` only embedded rows
+  that had no vector, so a real-embedder run after a fake-embedder run searched the stale fake vectors.
+  `prepare()` now clears the vectors first (tested). Clean numbers, real embeddings: English 98%, Hindi 96%,
+  Hinglish 94%, Gujarati 93%, Gujlish 91%, overall 94.7%. Lesson: a benchmark must never reuse state that
+  depends on the thing being compared.
+- **2026-11-17 — The router also restates the question in English for search (`search_query_en`).** The
+  Knowledge search runs on the question and on the restatement and fuses the rankings (RRF), so a Hindi or
+  Gujarati question can still find an English FAQ. It is only a search query: never shown to the customer, and
+  quoted in the FAQ search with the same quoting as any customer text. On a small real-model sample it fixed 4
+  of 31 Hindi/Gujarati FAQ questions and broke none. The CI oracle leaves it empty (it cannot translate), so
+  CI does not measure it; only a real-model run does.
 - **2026-11-17 — Benchmark wording is drafted by an AI.** The 267 items added in v0.2 are written in
   `benchmark/generate_items.py`; Hindi, Gujarati and romanised text need a native speaker's review before the
   per-language numbers are quoted. Labels come from the seed data, so they cannot disagree with the shop.

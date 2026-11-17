@@ -135,8 +135,8 @@ async def _reply_for(
     knowledge = KnowledgeAgent(deps.llm, deps.sessionmaker)
     toolbox = knowledge.toolbox(
         {
-            "search_knowledge": lambda query: search_knowledge(
-                DocumentRepository(session, ctx), deps.embedder, query, max_distance
+            "search_knowledge": lambda query, also="": search_knowledge(
+                DocumentRepository(session, ctx), deps.embedder, query, max_distance, also=also
             ),
             "lookup_catalog": lambda terms: lookup_catalog(
                 CatalogRepository(session, ctx), deps.embedder, terms, max_distance

@@ -41,10 +41,19 @@ def rrf[T](rank_lists: list[list[T]], key: Callable[[T], Hashable], k: int = 60)
 
 
 async def search_knowledge(
-    repo: DocumentRepository, embedder: Embedder, query: str, max_distance: float, limit: int = 5
+    repo: DocumentRepository,
+    embedder: Embedder,
+    query: str,
+    max_distance: float,
+    limit: int = 5,
+    also: str = "",
 ) -> list[ChunkHit]:
-    (vector,) = await embedder.embed([query])
-    by_vector = await repo.by_vector(vector, limit * 2, max_distance)
-    tsquery = build_tsquery(query)
-    by_text = await repo.by_text(tsquery, limit * 2) if tsquery else []
-    return rrf([by_vector, by_text], key=lambda hit: hit.chunk_id)[:limit]
+    """`also` is an English restatement of the question (from the router): it is searched as well
+    and the rankings are fused, so a Hindi question can still find an English FAQ."""
+    queries = list(dict.fromkeys(q.strip() for q in (query, also) if q.strip()))
+    rank_lists: list[list[ChunkHit]] = []
+    for text, vector in zip(queries, await embedder.embed(queries), strict=True):
+        rank_lists.append(await repo.by_vector(vector, limit * 2, max_distance))
+        tsquery = build_tsquery(text)
+        rank_lists.append(await repo.by_text(tsquery, limit * 2) if tsquery else [])
+    return rrf(rank_lists, key=lambda hit: hit.chunk_id)[:limit]
