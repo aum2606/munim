@@ -5,12 +5,14 @@ nothing about real model quality: `make eval` with a real model does."""
 from collections import Counter
 
 import pytest
+from sqlalchemy import select
 
 from app.core.config import Settings
+from app.db.models import Chunk
 from app.db.session import SessionMaker
 from app.llm.embedder import FakeEmbedder
 from benchmark.oracle import OracleLLM
-from benchmark.run import evaluate, summarize
+from benchmark.run import evaluate, prepare, summarize
 from benchmark.schema import load_items
 from seeds.data import BUSINESSES
 
@@ -47,6 +49,35 @@ def test_every_expected_price_and_sku_exists_in_the_seed_catalogue() -> None:
                 assert catalogue[sku] in item.expect.price_paise, item.id
         if item.expect.faq:
             assert item.expect.faq in faqs, item.id
+
+
+class OtherEmbedder(FakeEmbedder):
+    """A different embedder: same text, different vector."""
+
+    def _one(self, text: str) -> list[float]:
+        return super()._one(text + "!")
+
+
+async def test_switching_embedder_re_embeds_instead_of_searching_stale_vectors(
+    sessionmaker: SessionMaker, settings: Settings
+) -> None:
+    llm = OracleLLM()
+    contexts = await prepare(sessionmaker, settings, FakeEmbedder(), llm)
+    ctx = contexts["printing"]
+    async with sessionmaker() as session:
+        before = (
+            await session.execute(select(Chunk.embedding).where(Chunk.tenant_id == ctx.tenant_id))
+        ).first()
+    await prepare(sessionmaker, settings, OtherEmbedder(), llm)
+    async with sessionmaker() as session:
+        rows = (
+            await session.execute(
+                select(Chunk.content, Chunk.embedding).where(Chunk.tenant_id == ctx.tenant_id)
+            )
+        ).all()
+    assert before is not None and rows
+    expected = await OtherEmbedder().embed([rows[0][0]])
+    assert list(rows[0][1]) == pytest.approx(expected[0])  # the new embedder's vector, not the old
 
 
 @pytest.mark.parametrize("include_semantic", [False])

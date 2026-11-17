@@ -170,6 +170,31 @@ async def test_faq_becomes_searchable_once_embedded(
         )
 
 
+async def test_an_english_restatement_lets_a_hindi_question_find_an_english_faq(
+    sessionmaker: SessionMaker, storage: Settings
+) -> None:
+    ctx = await make_tenant(sessionmaker)
+    handlers = build_handlers(EMBEDDER, storage, FakeLLM([]))
+    async with sessionmaker() as session:
+        faq = await DocumentService(session, ctx, storage).create_faq(
+            "What are your working hours?", "We are open 10 to 7, Monday to Saturday."
+        )
+        await session.commit()
+    await handlers["embed_document"](sessionmaker, ctx, {"document_id": str(faq.id)})
+    hindi = "आप कब खुले रहते हैं"
+    async with sessionmaker() as session:
+        repo = DocumentRepository(session, ctx)
+        assert await search_knowledge(repo, EMBEDDER, hindi, MAXD) == []  # the words do not match
+        found = await search_knowledge(repo, EMBEDDER, hindi, MAXD, also="working hours")
+        assert [h.title for h in found] == ["What are your working hours?"]
+        # an unrelated restatement finds nothing, and an empty one changes nothing
+        assert await search_knowledge(repo, EMBEDDER, hindi, MAXD, also="pizza toppings") == []
+        assert await search_knowledge(repo, EMBEDDER, hindi, MAXD, also="  ") == []
+        # the same question twice is searched once and returns each chunk once
+        twice = await search_knowledge(repo, EMBEDDER, "working hours", MAXD, also="working hours")
+        assert len(twice) == 1
+
+
 async def test_text_upload_is_ingested_chunked_and_embedded(
     sessionmaker: SessionMaker, storage: Settings
 ) -> None:

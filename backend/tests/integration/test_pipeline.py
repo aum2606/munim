@@ -245,6 +245,21 @@ async def test_a_model_that_claims_grounding_without_evidence_is_not_trusted(cha
     assert "confirm this with the team" in messages[-1].content
 
 
+async def test_the_routers_english_restatement_is_searched_too(
+    chat: Chat, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[tuple[str, str]] = []
+
+    async def spy(repo, embedder, query, max_distance, limit=5, also=""):  # type: ignore[no-untyped-def]
+        seen.append((query, also))
+        return []
+
+    monkeypatch.setattr("app.orchestrator.pipeline.search_knowledge", spy)
+    restated = router("policy", search_query_en="How long does printing take?")
+    await chat.say("छपाई में कितने दिन लगते हैं?", [restated])
+    assert seen == [("छपाई में कितने दिन लगते हैं?", "How long does printing take?")]
+
+
 async def test_a_greeting_gets_a_fixed_welcome_and_leaves_no_gap_or_lead(chat: Chat) -> None:
     llm, messages = await chat.say("namaste", [router("greeting", language="hinglish")])
     assert messages[-1].content == canned("greeting", "hinglish")
