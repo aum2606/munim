@@ -34,7 +34,11 @@ def database_url() -> Iterator[str]:
 @pytest.fixture
 def settings(database_url: str, tmp_path: Path) -> Settings:
     return Settings(
-        app_env="test", secret_key="t" * 40, database_url=database_url, storage_dir=str(tmp_path)
+        app_env="test",
+        secret_key="t" * 40,
+        database_url=database_url,
+        storage_dir=str(tmp_path),
+        rate_limit_enabled=False,  # tests hammer one address; the limiter has its own tests
     )
 
 

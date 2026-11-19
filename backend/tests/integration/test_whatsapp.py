@@ -60,6 +60,7 @@ def settings(settings: Settings) -> Settings:
             "whatsapp_verify_token": VERIFY,
             "whatsapp_app_secret": SECRET,
             "debounce_seconds": 0.0,
+            "customer_messages_per_10_min": 4,
         }
     )
 
@@ -411,6 +412,28 @@ async def test_a_complaint_hands_over_and_the_ai_stays_silent_afterwards(env: En
     assert len(env.meta.sent()) == 1  # only the handoff notice ever went out
     human = await env.client.get("/api/v1/conversations?mode=human", headers=bearer(env.token))
     assert len(human.json()) == 1
+
+
+async def test_one_chat_flooding_the_bot_is_stored_but_not_answered(env: Env) -> None:
+    number = await _number(env)
+    for n in range(1, 5):  # within the allowance: answered like any other batch
+        await deliver(env.client, event(number, messages=[text_in(f"wamid.FL{n}", f"q{n}")]))
+    await env.jobs(CONFIRM_REPLIES)
+    answered = len(env.meta.sent())
+    for n in range(5, 12):  # past it
+        await deliver(env.client, event(number, messages=[text_in(f"wamid.FL{n}", f"q{n}")]))
+    llm = await env.jobs([])
+
+    assert llm.calls == [] and len(env.meta.sent()) == answered  # no model call, nothing sent
+    messages = await env.messages()
+    flooded = [
+        m
+        for m in messages
+        if m.direction == Direction.IN and int((m.external_id or "").removeprefix("wamid.FL")) >= 5
+    ]
+    assert len(flooded) == 7 and all(
+        m.handled_at is not None for m in flooded
+    )  # kept for the owner
 
 
 # --- delivery edge cases -----------------------------------------------------------------------
