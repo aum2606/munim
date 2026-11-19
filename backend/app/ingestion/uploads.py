@@ -72,6 +72,14 @@ def read_upload(storage_dir: str, relative: str) -> bytes:
     return path.read_bytes()
 
 
+def delete_upload(storage_dir: str, relative: str) -> None:
+    """Remove a stored file (a missing one is fine). Same path check as reading."""
+    root = Path(storage_dir).resolve()
+    path = (root / relative).resolve()
+    if path.is_relative_to(root):
+        path.unlink(missing_ok=True)
+
+
 async def read_limited(file: UploadFile, max_mb: int) -> bytes:
     """Read an upload, refusing anything over the size limit without loading all of it."""
     limit = max_mb * 1024 * 1024

@@ -145,9 +145,10 @@ pnpm typecheck && pnpm test` (39 passed) `&& pnpm build`; the Docker run above.
 
 ## Phase 5 — Pilot + release
 
-- [ ] Metrics page; rate limits; upload size/type validation
+- [x] Rate limits (`app/core/ratelimit.py`, in-process sliding window, no Redis): login 10/min and registration 5/hour per address, refresh 30/min, 300 calls/min per business, 30 playground messages/min, bad webhook signatures shut an address out after 20/min, and one customer chat past 30 messages in 10 minutes is stored but not answered (protects the shared model quota). Upload size and type checks already existed (content sniffing, size cap). Proxy header only trusted when configured.
+- [ ] Metrics page (the queries exist in `app/tools/metrics.py`; no dashboard page yet)
 - [ ] Self-host guide (Compose + Cloudflare Tunnel), nightly `pg_dump`
-- [ ] Privacy notice + customer data deletion endpoint (cascades `agent_runs`)
+- [x] Privacy notice template (`docs/PRIVACY.md`) + owner-only customer search, export and permanent erasure (`/customers`): removes the customer, chats, leads, quotes and PDFs, follow-ups, the `agent_runs` that hold their words and the knowledge gap that quotes them; keeps other customers; tested. Not legal advice; needs a lawyer's review.
 - [ ] Pilot with 2–3 real businesses; owner guide
 - [ ] README with architecture diagram, demo, leaderboard and reliability numbers
 

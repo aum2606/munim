@@ -243,6 +243,19 @@ class ChatRepository:
         )
         return int(count or 0)
 
+    async def count_inbound_since(self, conversation_id: uuid.UUID, since: datetime) -> int:
+        count = await self._session.scalar(
+            select(func.count())
+            .select_from(Message)
+            .where(
+                self._mine(Message),
+                Message.conversation_id == conversation_id,
+                Message.direction == Direction.IN,
+                Message.created_at >= since,
+            )
+        )
+        return int(count or 0)
+
     async def last_language(self, conversation_id: uuid.UUID) -> str | None:
         """The language the assistant last replied in, i.e. what the customer writes in."""
         return await self._session.scalar(

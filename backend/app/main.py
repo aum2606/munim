@@ -15,6 +15,7 @@ from app.api.v1 import router as v1_router
 from app.core.config import Settings, get_settings
 from app.core.errors import DomainError
 from app.core.logging import configure_logging
+from app.core.ratelimit import SlidingWindowLimiter
 from app.db.session import make_engine, make_sessionmaker
 from app.llm.openai_compat import ChainLLMClient
 
@@ -51,6 +52,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_url=None if prod else "/openapi.json",
     )
     app.state.settings = settings
+    app.state.limiter = SlidingWindowLimiter()
 
     if settings.cors_origin_list:
         app.add_middleware(
@@ -84,8 +86,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.exception_handler(DomainError)
     async def domain_error(_: Request, exc: DomainError) -> JSONResponse:
+        retry_after = getattr(exc, "retry_after", None)
         return JSONResponse(
-            {"error": {"code": exc.code, "message": exc.message}}, status_code=exc.status_code
+            {"error": {"code": exc.code, "message": exc.message}},
+            status_code=exc.status_code,
+            headers={"Retry-After": str(retry_after)} if retry_after else None,
         )
 
     @app.exception_handler(RequestValidationError)

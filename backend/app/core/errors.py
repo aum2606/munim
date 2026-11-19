@@ -49,3 +49,12 @@ class FileRejectedError(DomainError):
 
     status_code = 422
     code = "file_rejected"
+
+
+class RateLimitedError(DomainError):
+    status_code = 429
+    code = "rate_limited"
+
+    def __init__(self, retry_after: int) -> None:
+        super().__init__("Too many requests. Please wait a moment and try again.")
+        self.retry_after = retry_after

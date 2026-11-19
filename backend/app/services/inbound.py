@@ -63,6 +63,15 @@ class InboundService:
         )
         if stored is None:
             return  # already seen: Meta retries webhooks
+        since = datetime.now(UTC) - timedelta(minutes=10)
+        if await chat.count_inbound_since(conversation.id, since) > (
+            self._settings.customer_messages_per_10_min
+        ):
+            # Kept for the owner to read, but no model call and no reply: one chat must not use
+            # up the model quota that every other customer shares.
+            log.warning("customer_message_flood")
+            await chat.mark_handled([stored.id])
+            return
 
         if is_voice:
             await enqueue(self._session, ctx, "transcribe_message", {"message_id": str(stored.id)})

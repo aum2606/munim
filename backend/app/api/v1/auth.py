@@ -1,9 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Response, status
+from fastapi import APIRouter, Cookie, Depends, Response, status
 
 from app.core.deps import SessionDep, SettingsDep
 from app.core.errors import UnauthorizedError
+from app.core.ratelimit import rate_limit
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 from app.services.auth import AuthService, IssuedTokens
 
@@ -28,14 +29,21 @@ def _respond(response: Response, tokens: IssuedTokens, settings: SettingsDep) ->
     return TokenResponse(access_token=tokens.access_token, expires_in=tokens.expires_in)
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=TokenResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit("register", 5, 3600))],
+)
 async def register(
     body: RegisterRequest, response: Response, session: SessionDep, settings: SettingsDep
 ) -> TokenResponse:
     return _respond(response, await AuthService(session, settings).register(body), settings)
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login", response_model=TokenResponse, dependencies=[Depends(rate_limit("login", 10, 60))]
+)
 async def login(
     body: LoginRequest, response: Response, session: SessionDep, settings: SettingsDep
 ) -> TokenResponse:
@@ -43,7 +51,9 @@ async def login(
     return _respond(response, tokens, settings)
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post(
+    "/refresh", response_model=TokenResponse, dependencies=[Depends(rate_limit("refresh", 30, 60))]
+)
 async def refresh(
     response: Response,
     session: SessionDep,

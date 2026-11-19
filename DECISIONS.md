@@ -272,3 +272,27 @@ Format: **date — decision.** Reason.
 - **2026-11-17 — Benchmark wording is drafted by an AI.** The 267 items added in v0.2 are written in
   `benchmark/generate_items.py`; Hindi, Gujarati and romanised text need a native speaker's review before the
   per-language numbers are quoted. Labels come from the seed data, so they cannot disagree with the shop.
+
+## Phase 5 - Pilot hardening
+
+- **2026-11-19 - Rate limits live in the API process, not a database or Redis.** A sliding window per
+  address (login, registration, refresh, webhook probes) or per business (all `/api/v1`, playground). With
+  more than one API replica each enforces its own limit. Chosen because the plan has no Redis and a pilot
+  runs one container; the module says what to change if that stops being true. `RATE_LIMIT_ENABLED=false`
+  turns it off (tests do).
+- **2026-11-19 - The client address comes from a proxy header only if one is configured.** Behind a
+  Cloudflare Tunnel every request has the proxy's address, so `TRUSTED_PROXY_HEADER=CF-Connecting-IP` is
+  needed for per-user limits; by default it is empty because a client can forge any header, and a test proves
+  a forged one is ignored.
+- **2026-11-19 - One customer cannot use up the shared model quota.** More than 30 messages in 10 minutes
+  from one conversation are stored (the owner can read them) but get no model call and no reply. A real
+  customer rarely sends that many; a script does. Free-tier models allow only a few thousand tokens a minute.
+- **2026-11-19 - Erasure is a hard delete, and owner-only.** `DELETE /customers/{id}` removes the customer
+  and, by cascade, conversations, messages, leads, quotes and follow-ups; it explicitly removes `agent_runs`
+  (the foreign key only nulls the message link, leaving the customer's words behind) and the knowledge gap
+  that quotes them, and deletes stored quote PDFs. A gap shared with other customers loses its repeat count.
+  Quotations are deleted too: if the owner must keep records for tax law, a quotation is not a tax invoice,
+  but check with an accountant. Backups taken earlier still hold the data until they expire (documented in
+  `docs/PRIVACY.md`).
+- **2026-11-19 - NEEDS REVIEW: `docs/` is a new top-level folder** (privacy notice now, self-host guide and
+  owner guide next), as the spec has no home for them.

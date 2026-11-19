@@ -21,6 +21,14 @@ class Settings(BaseSettings):
     access_token_minutes: int = 15
     refresh_token_days: int = 7
 
+    rate_limit_enabled: bool = True
+    # Header that carries the real client address behind a proxy, e.g. CF-Connecting-IP for a
+    # Cloudflare Tunnel. Empty = use the socket address. Only set it if the proxy always sets it.
+    trusted_proxy_header: str = ""
+    # More than this many messages from one customer in 10 minutes are stored but not answered, so
+    # one chat cannot burn the free-tier model quota.
+    customer_messages_per_10_min: int = 30
+
     llm_small_chain: str = ""
     llm_large_chain: str = ""
     # One key per provider; the name in a chain entry picks the key (groq -> GROQ_API_KEY).
