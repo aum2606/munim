@@ -8,6 +8,7 @@ from app.api.v1 import (
     customers,
     followups,
     knowledge,
+    metrics,
     quotes,
     settings,
     users,
@@ -24,5 +25,6 @@ router.include_router(channels.router)
 router.include_router(chat.router)
 router.include_router(customers.router)
 router.include_router(followups.router)
+router.include_router(metrics.router)
 router.include_router(quotes.router)
 router.include_router(settings.router)

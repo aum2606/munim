@@ -5,13 +5,27 @@ Cost and latency come from `agent_runs`; first-response time from the messages t
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import Integer, and_, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from app.core.context import TenantContext
-from app.db.models import AgentRun, AgentRunStatus, Direction, Message, SenderType
+from app.db.models import (
+    AgentRun,
+    AgentRunStatus,
+    Conversation,
+    ConversationMode,
+    Direction,
+    GapStatus,
+    KnowledgeGap,
+    Lead,
+    Message,
+    Quote,
+    QuoteStatus,
+    SenderType,
+)
 from app.llm.costs import LIST_PRICES
 
 
@@ -118,4 +132,62 @@ async def usage_report(
         cost_per_turn_micros=total_cost // turns if turns else 0,
         first_response_p50_ms=round(p50) if p50 is not None else None,
         first_response_p95_ms=round(p95) if p95 is not None else None,
+    )
+
+
+@dataclass(frozen=True)
+class Overview:
+    customer_messages: int  # received in the window
+    ai_replies: int
+    staff_replies: int
+    conversations_needing_a_person: int  # right now, whatever the window
+    open_knowledge_gaps: int
+    leads_by_stage: dict[str, int]  # created in the window
+    quotes_by_status: dict[str, int]  # created in the window
+    accepted_value_paise: int  # total of quotations the customer accepted, from the quotes table
+    usage: UsageReport
+
+
+async def overview(session: AsyncSession, ctx: TenantContext, *, since: datetime) -> Overview:
+    """The owner's numbers for the period. Every figure is a fixed query on this business's rows."""
+
+    async def counted(key: Any, *where: Any) -> dict[str, int]:
+        rows = await session.execute(select(key, func.count()).where(*where).group_by(key))
+        return {str(getattr(k, "value", k)): n for k, n in rows}
+
+    by_sender = await counted(
+        Message.sender_type, Message.tenant_id == ctx.tenant_id, Message.created_at >= since
+    )
+    quote_rows = await counted(
+        Quote.status, Quote.tenant_id == ctx.tenant_id, Quote.created_at >= since
+    )
+    accepted = await session.scalar(
+        select(func.coalesce(func.sum(Quote.total_paise), 0)).where(
+            Quote.tenant_id == ctx.tenant_id,
+            Quote.status == QuoteStatus.ACCEPTED,
+            Quote.created_at >= since,
+        )
+    )
+    needing = await session.scalar(
+        select(func.count()).where(
+            Conversation.tenant_id == ctx.tenant_id, Conversation.mode == ConversationMode.HUMAN
+        )
+    )
+    gaps = await session.scalar(
+        select(func.count()).where(
+            KnowledgeGap.tenant_id == ctx.tenant_id, KnowledgeGap.status == GapStatus.OPEN
+        )
+    )
+    return Overview(
+        customer_messages=by_sender.get(SenderType.CUSTOMER.value, 0),
+        ai_replies=by_sender.get(SenderType.AI.value, 0),
+        staff_replies=by_sender.get(SenderType.STAFF.value, 0),
+        conversations_needing_a_person=int(needing or 0),
+        open_knowledge_gaps=int(gaps or 0),
+        leads_by_stage=await counted(
+            Lead.stage, Lead.tenant_id == ctx.tenant_id, Lead.created_at >= since
+        ),
+        quotes_by_status=quote_rows,
+        accepted_value_paise=int(accepted or 0),
+        usage=await usage_report(session, ctx, since=since),
     )
