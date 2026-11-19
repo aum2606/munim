@@ -1,0 +1,142 @@
+# Production stack for one small server. See docs/SELF_HOST.md.
+#
+#   cp .env.example .env     # then fill in the secrets listed in the guide
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.prod.yml --profile tunnel up -d   # add the Cloudflare Tunnel
+#
+# Only `web` listens on the host, on 127.0.0.1: put the Cloudflare Tunnel (or another TLS reverse
+# proxy) in front of it. Postgres and the API are never published.
+
+x-backend-env: &backend-env
+  APP_ENV: prod # refuses to start without a strong SECRET_KEY and a CREDENTIALS_ENCRYPTION_KEY
+  SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY to a random string of at least 32 characters}
+  CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:?set it, see .env.example}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-munim}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-munim}
+  ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-false} # true only while you create your own account
+  RATE_LIMIT_ENABLED: "true"
+  TRUSTED_PROXY_HEADER: ${TRUSTED_PROXY_HEADER:-CF-Connecting-IP} # set by Cloudflare; see the guide
+  CUSTOMER_MESSAGES_PER_10_MIN: ${CUSTOMER_MESSAGES_PER_10_MIN:-30}
+  LLM_SMALL_CHAIN: ${LLM_SMALL_CHAIN:-}
+  LLM_LARGE_CHAIN: ${LLM_LARGE_CHAIN:-}
+  GROQ_API_KEY: ${GROQ_API_KEY:-}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-${OPEN_ROUTER_API_KEY:-}}
+  LLM_API_KEYS: ${LLM_API_KEYS:-}
+  LLM_TIMEOUT_S: ${LLM_TIMEOUT_S:-30}
+  WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+  WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+  WHATSAPP_API_VERSION: ${WHATSAPP_API_VERSION:-v24.0}
+  EMBEDDING_CACHE_DIR: /data/models
+  STT_MODEL: ${STT_MODEL:-small}
+  STT_DEVICE: ${STT_DEVICE:-cpu}
+  STT_CACHE_DIR: /data/models
+  STT_CONFIDENCE_THRESHOLD: ${STT_CONFIDENCE_THRESHOLD:-0.6}
+  STORAGE_DIR: /data/uploads
+  MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+  FOLLOWUP_AFTER_DAYS: ${FOLLOWUP_AFTER_DAYS:-2}
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-munim}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-munim}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-munim} -d ${POSTGRES_DB:-munim}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    command: sh -c "alembic upgrade head && uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000 --no-access-log"
+    environment: *backend-env
+    volumes:
+      - app_files:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/ready')"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+
+  worker:
+    build: ./backend
+    restart: unless-stopped
+    command: python -m app.jobs.worker
+    environment: *backend-env
+    volumes:
+      - app_files:/data/uploads
+      - models:/data/models # speech and embedding model weights, downloaded once
+    depends_on:
+      api:
+        condition: service_healthy # the api runs the migrations first
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:80"
+    security_opt:
+      - no-new-privileges:true
+
+  backup:
+    image: pgvector/pgvector:pg16 # for pg_dump and pg_restore
+    restart: unless-stopped
+    entrypoint: ["/bin/bash", "/backup.sh"]
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-munim}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-munim}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      BACKUP_TIME_UTC: ${BACKUP_TIME_UTC:-20:30}
+    volumes:
+      - ./deploy/backup.sh:/backup.sh:ro
+      - ./backups:/backups
+      - app_files:/data/uploads:ro
+    depends_on:
+      api:
+        condition: service_healthy # the api runs the migrations: dump a database that has tables
+    healthcheck: # unhealthy if no backup was made in the last 26 hours
+      test: ["CMD-SHELL", "find /backups -name 'munim-*.dump' -mmin -1560 | grep -q ."]
+      interval: 1h
+      timeout: 10s
+      retries: 1
+      start_period: 10m
+
+  tunnel:
+    image: cloudflare/cloudflared:2026.11.1
+    restart: unless-stopped
+    profiles: ["tunnel"]
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-} # from Cloudflare Zero Trust > Networks > Tunnels
+    depends_on:
+      - web
+
+volumes:
+  pgdata:
+  app_files:
+  models:

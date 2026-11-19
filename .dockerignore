@@ -1,0 +1,17 @@
+# The web image is built from the repo root: send only what it needs.
+.git
+.env
+.env.*
+**/node_modules
+**/dist
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+backend
+benchmark
+backups
+uploads
+docs
+*.md

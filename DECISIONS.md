@@ -296,3 +296,20 @@ Format: **date — decision.** Reason.
   `docs/PRIVACY.md`).
 - **2026-11-19 - NEEDS REVIEW: `docs/` is a new top-level folder** (privacy notice now, self-host guide and
   owner guide next), as the spec has no home for them.
+- **2026-11-19 - NEEDS REVIEW: `deploy/` is a new top-level folder** (production nginx, web image, backup and
+  restore scripts). One production compose file (`docker-compose.prod.yml`) beside the dev one, so a self-hoster
+  never has to read dev settings. A root `.dockerignore` exists because the web image is built from the repo
+  root and the first build died copying `node_modules` symlinks.
+- **2026-11-19 - Backups are a container with a shell loop, not host cron.** It dumps in custom format, checks the
+  dump can be listed, copies uploads, prunes after `BACKUP_KEEP_DAYS` (14), and its Docker health check
+  fails after 26 hours without a backup. It waits for the API (which runs the migrations): the first version
+  started with Postgres and took a dump of an empty database, which the restore drill exposed. Backups sit on
+  the host, unencrypted: the guide tells the owner to keep them private, copy them offsite encrypted, and
+  that erasing a customer does not erase them from existing backups.
+- **2026-11-19 - nginx headers live in one included file.** nginx drops server-level `add_header` in any block
+  that sets its own, so the first config silently lost HSTS and the referrer policy on most routes; a header check
+  on four routes found it.
+- **2026-11-19 - NEEDS REVIEW: no code licence is chosen.** The README says so. Pick one (MIT or Apache-2.0 are the
+  usual choices for an open-source tool) before the repository is made public; the benchmark is CC BY 4.0.
+- **2026-11-19 - The README publishes only numbers that can be reproduced** and says for each what it proves. It
+  has no cost or latency figures, no leaderboard and no field results, because none exist yet.

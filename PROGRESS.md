@@ -146,11 +146,12 @@ pnpm typecheck && pnpm test` (39 passed) `&& pnpm build`; the Docker run above.
 ## Phase 5 — Pilot + release
 
 - [x] Rate limits (`app/core/ratelimit.py`, in-process sliding window, no Redis): login 10/min and registration 5/hour per address, refresh 30/min, 300 calls/min per business, 30 playground messages/min, bad webhook signatures shut an address out after 20/min, and one customer chat past 30 messages in 10 minutes is stored but not answered (protects the shared model quota). Upload size and type checks already existed (content sniffing, size cap). Proxy header only trusted when configured.
-- [ ] Metrics page (the queries exist in `app/tools/metrics.py`; no dashboard page yet)
-- [ ] Self-host guide (Compose + Cloudflare Tunnel), nightly `pg_dump`
+- [x] Metrics page: `GET /metrics/overview?days=` (owner-only, fixed queries) and a dashboard page: messages, AI and staff replies, who is waiting for a person, unanswered questions, leads by stage, quotations by status, accepted value, model cost per message at list price, reply-time p50/p95, per-model table. Tested (API, isolation, dashboard) and opened in a browser against the production stack.
+- [x] Self-host (`docker-compose.prod.yml`, `deploy/`, `docs/SELF_HOST.md`): nginx serving the built dashboard and proxying the API and webhook with security headers and a CSP, only 127.0.0.1:8080 published, API and Postgres never published, containers without extra privileges, optional Cloudflare Tunnel profile (pinned image), nightly `pg_dump` + uploads backup with 14-day retention and a health check. **Run for real** (built from scratch, registered an owner through nginx, 13 MB upload refused with 413, webhook refused unsigned, dashboard signed in and Metrics opened in a browser with no CSP errors) and a **restore drill passed** (dump restored into a scratch database: tenant, owner and the vector extension came back). Not run: the Cloudflare Tunnel itself (needs your account) and a restore onto a different machine
 - [x] Privacy notice template (`docs/PRIVACY.md`) + owner-only customer search, export and permanent erasure (`/customers`): removes the customer, chats, leads, quotes and PDFs, follow-ups, the `agent_runs` that hold their words and the knowledge gap that quotes them; keeps other customers; tested. Not legal advice; needs a lawyer's review.
-- [ ] Pilot with 2–3 real businesses; owner guide
-- [ ] README with architecture diagram, demo, leaderboard and reliability numbers
+- [x] Owner guide (`docs/OWNER_GUIDE.md`, one page)
+- [ ] Pilot with 2–3 real businesses (needs you)
+- [x] README with architecture diagram and the numbers that can be reproduced today, each with what it does and does not prove. Missing: demo video, multi-model leaderboard, cost and latency numbers, and any pilot result
 
 ## Log
 

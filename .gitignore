@@ -34,3 +34,4 @@ uploads/
 # pnpm package cache (created by the dashboard container inside the mounted folder)
 .pnpm-store/
 benchmark/reports/replay.md
+backups/
