@@ -10,6 +10,7 @@ const LINKS: { to: string; label: MessageKey }[] = [
   { to: '/playground', label: 'nav.playground' },
   { to: '/inbox', label: 'nav.inbox' },
   { to: '/follow-ups', label: 'nav.followUps' },
+  { to: '/metrics', label: 'nav.metrics' },
   { to: '/settings', label: 'nav.settings' },
 ]
 
