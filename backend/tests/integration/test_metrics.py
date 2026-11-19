@@ -2,8 +2,10 @@
 
 from datetime import UTC, datetime, timedelta
 
+import httpx
 from sqlalchemy import update
 
+from app.core.config import Settings
 from app.core.context import TenantContext
 from app.db.models import AgentRunStatus, Channel, Direction, Message, SenderType
 from app.db.session import SessionMaker
@@ -147,3 +149,58 @@ async def test_the_report_only_counts_the_since_window_and_one_tenant(
         assert (await usage_report(session, mine)).cost_micros == 300  # not other's 900
         future = datetime.now(UTC) + timedelta(hours=1)
         assert (await usage_report(session, mine, since=future)).rows == []
+
+
+# --- the owner's overview --------------------------------------------------------------------
+
+
+async def test_overview_counts_the_period_and_keeps_businesses_apart(
+    client: httpx.AsyncClient, sessionmaker: SessionMaker, settings: Settings
+) -> None:
+    from app.services.quotes import QuoteService
+    from tests.conftest import bearer, register
+    from tests.integration.test_inbox import login, sent_quote
+
+    ctx, _, quote_id, email = await sent_quote(sessionmaker, settings, days_ago=0.1)
+    token = await login(client, email)
+    _, stranger = await register(client)
+
+    data = (await client.get("/api/v1/metrics/overview?days=7", headers=bearer(token))).json()
+    assert data["days"] == 7 and data["customer_messages"] == 2 and data["ai_replies"] >= 1
+    assert data["quotes_by_status"] == {"sent": 1}
+    assert sum(data["leads_by_stage"].values()) == 1
+    assert data["accepted_value_paise"] == 0 and data["open_knowledge_gaps"] == 0
+    assert data["usage"], "the model calls of the conversation are listed"
+    assert data["turns"] >= 1 and data["unpriced_calls"] >= 1  # the fake model has no list price
+
+    async with sessionmaker() as session:  # the customer accepts: the value counts
+        await QuoteService(session, ctx, settings).mark_accepted(quote_id)
+        await session.commit()
+    data = (await client.get("/api/v1/metrics/overview", headers=bearer(token))).json()
+    assert data["quotes_by_status"] == {"accepted": 1} and data["accepted_value_paise"] == 165200
+
+    nothing = (await client.get("/api/v1/metrics/overview", headers=bearer(stranger))).json()
+    assert nothing["customer_messages"] == 0 and nothing["quotes_by_status"] == {}
+    assert nothing["accepted_value_paise"] == 0 and nothing["usage"] == []
+
+
+async def test_overview_is_owner_only_and_validates_the_window(
+    client: httpx.AsyncClient,
+) -> None:
+    from tests.conftest import PASSWORD, bearer, register, unique_email
+
+    _, owner = await register(client)
+    assert (await client.get("/api/v1/metrics/overview")).status_code == 401
+    for bad in ("0", "366", "abc"):
+        assert (
+            await client.get(f"/api/v1/metrics/overview?days={bad}", headers=bearer(owner))
+        ).status_code == 422
+    email = unique_email()
+    await client.post(
+        "/api/v1/users",
+        json={"email": email, "name": "Staff", "password": PASSWORD, "role": "staff"},
+        headers=bearer(owner),
+    )
+    login = await client.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
+    staff = login.json()["access_token"]
+    assert (await client.get("/api/v1/metrics/overview", headers=bearer(staff))).status_code == 403
