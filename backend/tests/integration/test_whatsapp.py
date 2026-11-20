@@ -80,10 +80,10 @@ class FakeMeta:
             return httpx.Response(self.fail_status, json={"error": {"type": "X", "code": 1}})
         self.requests.append(request)
         path = request.url.path
-        if request.url.host == "media.example":
+        if request.url.host == "lookaside.fbsbx.com":
             return httpx.Response(200, content=self.audio)
         if request.method == "GET":  # media metadata
-            url = "https://media.example/audio"
+            url = "https://lookaside.fbsbx.com/audio"
             return httpx.Response(
                 200, json={"url": url, "mime_type": "audio/ogg", "file_size": len(self.audio)}
             )
@@ -575,7 +575,7 @@ async def test_a_clear_voice_note_is_transcribed_and_answered_like_text(env: Env
     assert voice.handled_at is not None
     assert reply.content == canned("confirm", "en")
     # The audio was fetched with the business's own token.
-    assert any(r.url.host == "media.example" for r in env.meta.requests)
+    assert any(r.url.host == "lookaside.fbsbx.com" for r in env.meta.requests)
 
 
 async def test_a_doubtful_voice_note_asks_the_customer_to_confirm(env: Env) -> None:

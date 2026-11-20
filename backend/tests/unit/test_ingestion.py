@@ -1,4 +1,5 @@
 import io
+import os
 import zipfile
 from pathlib import Path
 
@@ -123,3 +124,45 @@ def test_storage_uses_random_names_and_blocks_traversal(tmp_path: Path) -> None:
     assert read_upload(str(tmp_path), relative) == b"data"
     with pytest.raises(FileRejectedError):
         read_upload(str(tmp_path), "../../etc/passwd")
+
+
+# --- zip bombs --------------------------------------------------------------------------------
+
+
+def _zip_with(entries: dict[str, bytes]) -> bytes:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, data in entries.items():
+            archive.writestr(name, data)
+    return buffer.getvalue()
+
+
+def test_an_office_file_that_unpacks_to_far_more_than_it_weighs_is_refused() -> None:
+    bomb = _zip_with({"word/document.xml": b"0" * (8 * 1024 * 1024)})  # 8 MB of zeros: a few KB
+    assert len(bomb) < 20_000
+    with pytest.raises(FileRejectedError, match="once unpacked"):
+        sniff_document(bomb)
+    sheet = _zip_with({"xl/workbook.xml": b"0" * (8 * 1024 * 1024)})
+    with pytest.raises(FileRejectedError, match="once unpacked"):
+        sniff_spreadsheet(sheet)
+
+
+def test_a_total_unpacked_size_or_entry_count_over_the_limit_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.ingestion import uploads  # noqa: PLC0415
+
+    monkeypatch.setattr(uploads, "MAX_UNPACKED_BYTES", 1000)
+    with pytest.raises(FileRejectedError):
+        sniff_document(_zip_with({"word/document.xml": b"<w/>", "word/big.bin": os.urandom(2000)}))
+    monkeypatch.setattr(uploads, "MAX_UNPACKED_BYTES", 10**9)
+    monkeypatch.setattr(uploads, "MAX_ZIP_ENTRIES", 3)
+    many = {"word/document.xml": b"<w/>", **{f"word/p{i}.xml": b"x" for i in range(5)}}
+    with pytest.raises(FileRejectedError):
+        sniff_document(_zip_with(many))
+
+
+def test_ordinary_office_files_still_pass_the_bomb_check() -> None:
+    assert sniff_document(_docx_bytes()) == DocumentSource.DOCX
+    big_but_real = _zip_with({"word/document.xml": os.urandom(900_000)})  # incompressible, 0.9 MB
+    assert sniff_document(big_but_real) == DocumentSource.DOCX

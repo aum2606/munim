@@ -7,7 +7,7 @@ from sqlalchemy import update
 
 from app.core.config import Settings
 from app.core.context import TenantContext
-from app.db.models import AgentRunStatus, Channel, Direction, Message, SenderType
+from app.db.models import AgentRun, AgentRunStatus, Channel, Direction, Message, SenderType
 from app.db.session import SessionMaker
 from app.llm.base import ChatMessage
 from app.llm.costs import estimate_cost_micros
@@ -171,6 +171,7 @@ async def test_overview_counts_the_period_and_keeps_businesses_apart(
     assert sum(data["leads_by_stage"].values()) == 1
     assert data["accepted_value_paise"] == 0 and data["open_knowledge_gaps"] == 0
     assert data["usage"], "the model calls of the conversation are listed"
+    assert data["model_calls_24h"] >= 1 and data["model_call_budget"] == 600
     assert data["turns"] >= 1 and data["unpriced_calls"] >= 1  # the fake model has no list price
 
     async with sessionmaker() as session:  # the customer accepts: the value counts
@@ -204,3 +205,23 @@ async def test_overview_is_owner_only_and_validates_the_window(
     login = await client.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
     staff = login.json()["access_token"]
     assert (await client.get("/api/v1/metrics/overview", headers=bearer(staff))).status_code == 403
+
+
+async def test_the_budget_counts_only_the_last_24_hours_and_only_this_business(
+    sessionmaker: SessionMaker,
+) -> None:
+    mine, other = await make_tenant(sessionmaker), await make_tenant(sessionmaker)
+    await add_run(sessionmaker, mine, "router", M20, ms=10)
+    await add_run(sessionmaker, mine, "router", M20, ms=10)
+    await add_run(sessionmaker, other, "router", M20, ms=10)
+    async with sessionmaker() as session:
+        oldest = (await AgentRunRepository(session, mine).list_recent())[-1]
+        await session.execute(
+            update(AgentRun)
+            .where(AgentRun.id == oldest.id)
+            .values(created_at=datetime.now(UTC) - timedelta(hours=30))
+        )
+        await session.commit()
+        since = datetime.now(UTC) - timedelta(hours=24)
+        assert await AgentRunRepository(session, mine).count_since(since) == 1
+        assert await AgentRunRepository(session, other).count_since(since) == 1

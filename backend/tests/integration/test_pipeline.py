@@ -260,6 +260,30 @@ async def test_the_routers_english_restatement_is_searched_too(
     assert seen == [("छपाई में कितने दिन लगते हैं?", "How long does printing take?")]
 
 
+async def test_a_business_over_its_daily_model_budget_gets_a_person_not_a_model(
+    chat: Chat,
+) -> None:
+    chat.settings = chat.settings.model_copy(update={"daily_model_calls_per_business": 3})
+    first_turn = [
+        router(mentioned_catalog_terms=["visiting card"]),
+        knowledge(chat.item_id),
+        responder("Visiting cards: ₹250.00 per 100 + 18% GST"),
+    ]
+    _, messages = await chat.say("price of visiting card?", first_turn)
+    assert "₹250.00" in messages[-1].content
+
+    await chat.queue("and delivery?")
+    llm, messages = await chat.run([])  # nothing scripted: any model call would fail the test
+    assert llm.calls == []
+    assert messages[-1].content == canned("handoff", "en")
+    assert await chat.mode() == ConversationMode.HUMAN
+
+    chat.settings = chat.settings.model_copy(update={"daily_model_calls_per_business": 0})
+    other = Chat(chat.sm, chat.settings, await make_tenant(chat.sm))  # a business with no limit
+    llm, messages = await other.say("hello", [router("off_topic")])
+    assert len(llm.calls) == 1  # 0 means no limit: the model is used again
+
+
 async def test_a_greeting_gets_a_fixed_welcome_and_leaves_no_gap_or_lead(chat: Chat) -> None:
     llm, messages = await chat.say("namaste", [router("greeting", language="hinglish")])
     assert messages[-1].content == canned("greeting", "hinglish")

@@ -33,3 +33,10 @@ def test_cors_origins_parsing() -> None:
         "http://b.com",
     ]
     assert Settings(cors_origins="").cors_origin_list == []
+
+
+def test_open_registration_in_production_has_to_be_asked_for() -> None:
+    kwargs = {"_env_file": None, "secret_key": "k" * 40, "credentials_encryption_key": "k"}
+    assert Settings(app_env="prod", **kwargs).allow_registration is False  # type: ignore[arg-type]
+    assert Settings(app_env="prod", allow_registration=True, **kwargs).allow_registration is True  # type: ignore[arg-type]
+    assert Settings(_env_file=None, app_env="dev").allow_registration is True  # dev stays easy

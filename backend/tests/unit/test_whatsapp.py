@@ -265,7 +265,11 @@ async def test_download_media_follows_the_url_with_the_token() -> None:
         if request.url.host == "graph.facebook.com":
             return httpx.Response(
                 200,
-                json={"url": "https://cdn.example/a.ogg", "mime_type": "audio/ogg", "file_size": 5},
+                json={
+                    "url": "https://lookaside.fbsbx.com/a.ogg",
+                    "mime_type": "audio/ogg",
+                    "file_size": 5,
+                },
             )
         return httpx.Response(200, content=b"OggS1")
 
@@ -276,10 +280,10 @@ async def test_download_media_follows_the_url_with_the_token() -> None:
 
 async def test_download_media_refuses_large_files_and_non_https_urls() -> None:
     def too_big(_: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"url": "https://cdn.example/a", "file_size": 5000})
+        return httpx.Response(200, json={"url": "https://lookaside.fbsbx.com/a", "file_size": 5000})
 
     def insecure(_: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"url": "http://cdn.example/a", "file_size": 5})
+        return httpx.Response(200, json={"url": "http://lookaside.fbsbx.com/a", "file_size": 5})
 
     for handler in (too_big, insecure):
         with pytest.raises(WhatsAppError) as caught:
@@ -290,7 +294,9 @@ async def test_download_media_refuses_large_files_and_non_https_urls() -> None:
 async def test_download_media_enforces_the_size_cap_on_the_actual_bytes() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.host == "graph.facebook.com":
-            return httpx.Response(200, json={"url": "https://cdn.example/a", "file_size": 5})
+            return httpx.Response(
+                200, json={"url": "https://lookaside.fbsbx.com/a", "file_size": 5}
+            )
         return httpx.Response(200, content=b"x" * 2000)  # the metadata lied
 
     with pytest.raises(WhatsAppError):
@@ -355,3 +361,51 @@ async def test_whisper_transcriber_reports_silence_as_empty_with_zero_confidence
     transcriber._model = _FakeWhisper([])  # noqa: SLF001
     result = await transcriber.transcribe(b"audio", "audio/ogg")
     assert (result.text, result.confidence) == ("", 0.0)
+
+
+# --- where a voice note may be downloaded from ------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("url", "allowed"),
+    [
+        ("https://lookaside.fbsbx.com/whatsapp_business/attachments/?mid=1", True),
+        ("https://mmg.whatsapp.net/v/t62/x.enc", True),
+        ("https://scontent.xx.fbcdn.net/x", True),
+        ("https://FBSBX.com/x", True),  # case does not matter
+        ("http://lookaside.fbsbx.com/x", False),  # plain http
+        ("https://evilfbsbx.com/x", False),  # a look-alike
+        ("https://fbsbx.com.evil.io/x", False),  # allowed name used as a prefix
+        ("https://evil.io/fbsbx.com", False),  # allowed name in the path
+        ("https://lookaside.fbsbx.com@evil.io/x", False),  # allowed name as user info
+        ("https://169.254.169.254/latest/meta-data", False),  # a cloud metadata address
+        ("https://localhost/x", False),
+        ("https://cdn.example/x", False),
+        ("not a url", False),
+    ],
+)
+async def test_the_business_token_is_only_sent_to_metas_own_media_hosts(
+    url: str, allowed: bool
+) -> None:
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.host)
+        if request.url.host == "graph.facebook.com":
+            return httpx.Response(200, json={"url": url, "mime_type": "audio/ogg", "file_size": 3})
+        return httpx.Response(200, content=b"abc")
+
+    client = client_with(httpx.MockTransport(handler))
+    if allowed:
+        assert (await client.download_media("M1", 1000))[0] == b"abc"
+    else:
+        with pytest.raises(WhatsAppError) as refused:
+            await client.download_media("M1", 1000)
+        assert refused.value.permanent
+        assert calls == ["graph.facebook.com"]  # the URL was never requested, so no token left
+
+
+def test_the_allowed_hosts_come_from_a_setting_the_owner_can_widen() -> None:
+    assert "fbsbx.com" in Settings(_env_file=None).media_host_list
+    custom = Settings(_env_file=None, whatsapp_media_hosts=" Meta.example , other.example ,")
+    assert custom.media_host_list == ("meta.example", "other.example")
