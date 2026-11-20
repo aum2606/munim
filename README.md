@@ -105,4 +105,4 @@ Decisions and their reasons are in [DECISIONS.md](DECISIONS.md); where we are is
 
 ## Licence
 
-Code: not chosen yet. Benchmark items and datasheet: CC BY 4.0.
+Code: [MIT](LICENSE). Benchmark items and datasheet: CC BY 4.0.

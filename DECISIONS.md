@@ -313,3 +313,7 @@ Format: **date — decision.** Reason.
   usual choices for an open-source tool) before the repository is made public; the benchmark is CC BY 4.0.
 - **2026-11-19 - The README publishes only numbers that can be reproduced** and says for each what it proves. It
   has no cost or latency figures, no leaderboard and no field results, because none exist yet.
+- **2026-11-20 - The code is MIT licensed** (owner's decision), copyright "Munim contributors" so no one person
+  is named; the benchmark stays CC BY 4.0. This closes the NEEDS REVIEW on the licence above. Dependencies keep their
+  own licences: check them (`faster-whisper`, `fastembed` and others are permissive, but verify before shipping a
+  bundled binary or model weights).
