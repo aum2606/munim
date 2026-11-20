@@ -163,5 +163,5 @@ pnpm typecheck && pnpm test` (39 passed) `&& pnpm build`; the Docker run above.
 - [x] Review of every route, auth, tenancy, uploads, the LLM pipeline, deployment, dependencies and code principles; 11 security findings, 7 code notes, phased plan
 - [x] Phase A: contact and payment guardrail, canary and prompt-overlap leak checks, cleaning of all prompt-bound text, guardrails as a list, adversarial suite grown to contacts and leaks (0 missed, 0 honest blocked)
 - [x] Phase B: zip-bomb limit, registration off by default in production, per-business daily model budget, Meta media host allow-list, append-only audit log with an owner-only Activity log in Settings (S7 skipped, see the review)
-- [ ] Phase C: move delivery out of the repository, split the long functions, shared test helpers
-- [ ] Phase D: password reset and email verification, limits shared across servers
+- [x] Phase C: one outbound path (`send_to_customer`) with a guard test, handler groups without asserts, long functions split, shared test helpers, one table of rate limits
+- [x] Phase D (partly): password reset by emailed link or operator command; email verification, second factor and shared rate limits deliberately not built (see the review)

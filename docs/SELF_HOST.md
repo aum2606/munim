@@ -27,6 +27,7 @@ Edit `.env`. These are required in production (the stack refuses to start withou
 | `POSTGRES_PASSWORD` | a random password |
 | `ALLOW_REGISTRATION` | closed by default in production: set `true` only until you have created your own account, then remove it or set `false` |
 | `LLM_SMALL_CHAIN`, `LLM_LARGE_CHAIN`, `GROQ_API_KEY` (or `GEMINI_API_KEY` / `OPENROUTER_API_KEY`) | see `.env.example`. Without a model key the app works but hands every chat to a person |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `PUBLIC_URL` | optional: lets "Forgot your password?" email a one-hour link. Any SMTP server works. Without it the owner cannot reset a password by email: see section 7 |
 | `WHATSAPP_VERIFY_TOKEN` | any random string; you will type the same one into Meta |
 | `WHATSAPP_APP_SECRET` | from your Meta app (App settings, Basic) |
 
@@ -99,6 +100,18 @@ docker compose -f docker-compose.prod.yml up -d --build   # migrations run on st
 ```
 
 Take a backup first: `docker compose -f docker-compose.prod.yml exec backup bash /backup.sh once`.
+
+## 7. Someone forgot their password
+
+With SMTP set (section 1), "Forgot your password?" on the sign-in page emails a link that works once, for an
+hour (`PASSWORD_RESET_MINUTES`); using it signs the person out everywhere. The page answers the same whether
+or not the address has an account, so it cannot be used to find out who is registered.
+
+Without SMTP, you set it from the server. It asks for the password on the terminal, not on the command line:
+
+```bash
+docker compose -f docker-compose.prod.yml exec api python -m app.services.set_password owner@example.com
+```
 
 ## What is and is not protected
 

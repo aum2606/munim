@@ -104,17 +104,30 @@ and is logged in `DECISIONS.md`.
     create/switch off/switch on; owner-only `GET /audit` and an "Activity log" in Settings. It stores references
     (quote number, id), never customer text. Not tamper-proof: someone with database access can still change rows.
 
-### Phase C: code quality (no behaviour change)
+### Phase C: code quality (done, no behaviour change)
 
-11. Move delivery out of the repository into a `MessageService.send_to_customer()` used by every path (C1),
-    with a test that fails if any outbound path bypasses it.
-12. Split the long functions (C2) and replace the optional-dependency `assert`s with explicit handler groups (C3).
-13. Shared test helpers module and one table of rate limits (C4).
+11. **Delivery out of the repository (C1):** `ChatRepository.add_message` only stores. Every message to a
+    customer goes through `services/outbound.send_to_customer()`, which stores and queues the WhatsApp job; a test
+    reads the source and fails if any other module stores an outbound message.
+12. **Long functions (C2, C3):** `build_handlers` is three small groups (knowledge, chat, WhatsApp) plus mail,
+    registered by what is passed in, with no `assert`s; `create_app`, `render_quote_pdf` and `usage_report` are split.
+    `process_message` and the quote proposal are about 70 lines each and read top to bottom, so they stay.
+13. **Shared helpers and limits (C4):** `tests/helpers.py` holds the scripted replies and `login`; every rate
+    limit is one row of `LIMITS` in `core/ratelimit.py`. The environment list is still repeated in the two compose
+    files and `.env.example` (YAML anchors cannot cross files; left as is).
 
-### Phase D: later (needs product decisions)
+### Phase D (partly done)
 
-14. Password reset and email verification (needs an email provider with a free tier), optional second factor.
-15. Rate limits shared across API replicas (Postgres counter) if more than one replica is ever run.
+14. **Password reset (S11, done):** `POST /auth/forgot-password` queues an email through any SMTP server (no paid
+    service; off without `SMTP_HOST`), `POST /auth/reset-password` takes the one-time, one-hour link, sets the
+    password, lifts a lockout and ends every session. Same answer for every address, one error for a bad link,
+    only the link's hash stored (migration 0006). Without SMTP the operator runs
+    `python -m app.services.set_password EMAIL`.
+    **Not done, on purpose:** email verification and a second factor. Verification changes sign-up for everyone
+    and only pays off with open registration, which production keeps closed; a second factor needs a product
+    decision (app or SMS). S7 stays skipped for the same reason.
+15. **Shared rate limits: not done.** The compose files run one API process, so the in-process limiter is
+    exact; the limit is only wrong with several replicas, and the code comment says when to switch.
 
 Order of value: 1 and 3 close the only finding that could cost a customer money; 2, 4 and 6 to 8 close the
 remaining medium findings; Phase C makes the next changes cheaper.

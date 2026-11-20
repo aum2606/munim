@@ -354,3 +354,23 @@ Format: **date — decision.** Reason.
   tamper evidence: a trigger or a separate write-only role). Targets are references, never customer text.
   Customer erasure keeps its own audit row (the id only) on purpose: it is the proof the request was honoured.
 - **2026-11-20 - S7 skipped** (see `docs/SECURITY_REVIEW.md`).
+
+## Security Phases C and D
+
+- **2026-11-20 - Delivery is a service, not a repository side effect.** `ChatRepository.add_message` now only stores
+  (this replaces the 2026-11-16 decision that it enqueues delivery). `send_to_customer` stores an outbound message
+  and queues its WhatsApp job; the guard test `test_outbound_path.py` parses the source and fails if any other module
+  passes `direction=Direction.OUT` to `add_message`, so a new path cannot forget delivery.
+- **2026-11-20 - `build_handlers` registers WhatsApp delivery with just an HTTP client** and transcription only with
+  a speech model too. Before, both needed both, so a worker without a speech model silently could not deliver.
+- **2026-11-20 - Password reset uses SMTP from the standard library.** No provider SDK, no paid service; any SMTP
+  server works, several have free tiers (check the provider's current limits and terms yourself). The email is sent by
+  the worker, so the request returns at the same speed for known and unknown addresses. The job carries only the user
+  id; the token is made in the worker, so no secret sits in the jobs table.
+- **2026-11-20 - Email verification, a second factor and shared rate limits are not built.** Verification only pays
+  off with open sign-up, which production keeps closed; a second factor needs a product choice (authenticator app or
+  SMS, the latter paid); the shared limiter matters only with several API replicas and the compose files run one.
+  Each is a NEEDS REVIEW if the deployment changes. S7 stays skipped with verification.
+- **2026-11-20 - A forgotten password without SMTP is solved by an operator command** (`app.services.set_password`),
+  not by a database edit. It reads the password from the terminal, never from arguments.
+
