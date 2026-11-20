@@ -63,6 +63,7 @@ known-first-party = ["app", "seeds", "benchmark"]
 "app/orchestrator/messages.py" = ["E501"]  # translated sentences, kept on one line each
 "seeds/data.py" = ["E501"]  # demo text
 "**/generate_items.py" = ["E501"]  # wording tables, one phrase per entry
+"**/adversarial.py" = ["E501"]  # attack tables, one case per entry
 "app/agents/amounts.py" = ["SIM905"]  # word lists read better as one string each
 
 [tool.mypy]

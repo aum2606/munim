@@ -11,8 +11,10 @@ import structlog
 from app.core.config import get_settings
 from app.core.context import TenantContext
 from app.core.logging import configure_logging
+from app.core.security import prompt_canary
 from app.db.session import SessionMaker, make_engine, make_sessionmaker
 from app.jobs.queue import ClaimedJob, claim_batch, mark_done, mark_failed
+from app.llm.prompting import set_canary
 
 log = structlog.get_logger()
 
@@ -96,6 +98,7 @@ async def main() -> None:
 
     settings = get_settings()
     configure_logging(settings.log_level)
+    set_canary(prompt_canary(settings))
     engine = make_engine(settings.database_url)
     embedder = LocalEmbedder(settings.embedding_model, settings.embedding_cache_dir)
     http = httpx.AsyncClient()

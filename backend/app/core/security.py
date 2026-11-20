@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import secrets
 import uuid
 from dataclasses import dataclass
@@ -74,3 +75,9 @@ def new_refresh_token() -> tuple[str, str]:
 
 def hash_refresh_token(raw: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def prompt_canary(settings: Settings) -> str:
+    """A per-deployment marker, derived from the secret key, put in every system prompt."""
+    digest = hmac.new(settings.secret_key.encode(), b"munim-prompt-canary", hashlib.sha256)
+    return "MNM-" + digest.hexdigest()[:12].upper()
