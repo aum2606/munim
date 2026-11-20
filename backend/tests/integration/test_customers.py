@@ -26,7 +26,8 @@ from app.repositories.agent_runs import AgentRunRepository
 from app.repositories.chat import ChatRepository
 from app.repositories.gaps import KnowledgeGapRepository
 from tests.conftest import PASSWORD, bearer, register, unique_email
-from tests.integration.test_inbox import login, sent_quote
+from tests.helpers import login
+from tests.integration.test_inbox import sent_quote
 
 
 async def count(sm: SessionMaker, model: type, ctx: TenantContext, *where: object) -> int:

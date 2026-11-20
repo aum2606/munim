@@ -44,6 +44,7 @@ from app.services.quotes import LineEdit, ProposedLine, QuoteService
 from seeds.data import PHOTOGRAPHER, PRINTING, DemoBusiness
 from seeds.load import load_business
 from tests.conftest import PASSWORD, make_tenant, unique_email
+from tests.helpers import quote_router, router
 
 EMBEDDER = FakeEmbedder()
 
@@ -106,12 +107,6 @@ class Talk:
         return QuoteService(session, self.ctx, self.settings)
 
 
-def router(intent: str = "quote_request", confidence: float = 0.9, **extra: object) -> str:
-    return json.dumps(
-        {"intent": intent, "language": "en", "script": "latin", "confidence": confidence, **extra}
-    )
-
-
 def collect(
     category: str | None,
     filled: dict[str, object],
@@ -149,7 +144,7 @@ async def test_printing_conversation_ends_in_the_hand_calculated_quote(printing:
     llm, messages = await printing.say(
         "I need some printing done",
         [
-            router(),
+            quote_router(),
             collect("printing", {}, ["What would you like to print, and how many?"]),
             json.dumps({"reply": "Happy to help! What would you like to print, and how many?"}),
         ],
@@ -258,7 +253,7 @@ async def test_photography_conversation_ends_in_the_hand_calculated_quote(
     _, messages = await talk.say(
         "Wedding on 12 Dec in Surat, 2 days, we need photos and video",
         [
-            router(),
+            quote_router(),
             collect(
                 "photography",
                 {
@@ -300,7 +295,7 @@ async def test_made_up_items_bad_addons_and_prices_from_the_model_are_ignored(
     await printing.say(
         "100 visiting cards and a unicorn statue",
         [
-            router(),
+            quote_router(),
             collect("printing", {"item_type": "visiting card", "quantity": 100}),
             mapping(
                 {"sku": "MADE-UP-1", "description": "Unicorn statue", "quantity": 1, "price": 1},
@@ -484,7 +479,7 @@ async def test_a_question_that_mentions_money_is_blocked(printing: Talk) -> None
     _, messages = await printing.say(
         "I need a quote",
         [
-            router(),
+            quote_router(),
             collect("printing", {}, ["What do you need? Cards start at just ₹5!"]),
             json.dumps({"reply": "Cards start at just ₹5! What do you need?"}),
             json.dumps({"reply": "Special offer: only ₹99!"}),
@@ -501,7 +496,7 @@ async def test_without_requirement_schemas_the_team_follows_up_by_hand(
     sessionmaker: SessionMaker, settings: Settings
 ) -> None:
     talk = Talk(sessionmaker, settings, await make_tenant(sessionmaker))
-    _, messages = await talk.say("quote please", [router()])
+    _, messages = await talk.say("quote please", [quote_router()])
     assert messages[-1].content == canned("quote_pending", "en")
 
 
@@ -509,7 +504,7 @@ async def test_dont_know_answers_use_defaults_and_do_not_block_the_quote(printin
     await printing.say(
         "500 visiting cards, no idea about size or finish",
         [
-            router(),
+            quote_router(),
             collect(
                 "printing",
                 {"item_type": "visiting card", "quantity": 500},

@@ -35,11 +35,12 @@ from app.orchestrator.messages import canned, voice_confirm_message
 from app.repositories.channels import ChannelAccountRepository
 from app.repositories.chat import ChatRepository
 from app.repositories.quotes import QuoteRepository
+from app.services.outbound import send_to_customer
 from app.services.quotes import QuoteService
 from seeds.data import PRINTING
 from tests.conftest import PASSWORD, bearer, register, unique_email
+from tests.helpers import not_grounded, quote_router, router
 from tests.integration.test_quotes import collect, make_shop, mapping
-from tests.integration.test_quotes import router as quote_router
 
 SECRET = "meta-app-secret"
 VERIFY = "verify-me"
@@ -239,24 +240,6 @@ async def deliver(client: httpx.AsyncClient, payload: dict[str, object]) -> http
     )
 
 
-def router(intent: str = "pricing", **extra: object) -> str:
-    return json.dumps(
-        {"intent": intent, "language": "en", "script": "latin", "confidence": 0.9, **extra}
-    )
-
-
-def not_grounded() -> str:
-    return json.dumps(
-        {
-            "answer_points": [],
-            "cited_item_ids": [],
-            "price_item_ids": [],
-            "grounded": False,
-            "gap_question": "rate?",
-        }
-    )
-
-
 CONFIRM_REPLIES = [router(), not_grounded()]  # a turn that ends in the fixed "I'll confirm" reply
 
 
@@ -453,8 +436,8 @@ async def test_nothing_is_sent_after_the_24_hour_window(env: Env) -> None:
         repo = ChatRepository(session, env.ctx)
         fresh = await repo.get_conversation(conversation.id)
         assert fresh is not None
-        late = await repo.add_message(
-            fresh, direction=Direction.OUT, sender_type=SenderType.STAFF, content="Late reply"
+        late = await send_to_customer(
+            repo, fresh, sender_type=SenderType.STAFF, content="Late reply"
         )
         await session.commit()
     env.meta.requests.clear()

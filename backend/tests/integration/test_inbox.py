@@ -33,27 +33,11 @@ from app.repositories.quotes import QuoteRepository
 from app.services.followups import FollowUpService
 from app.services.quotes import QuoteService
 from seeds.data import PRINTING
-from tests.conftest import PASSWORD, bearer, register
+from tests.conftest import bearer, register
+from tests.helpers import login, not_grounded, quote_router, router
 from tests.integration.test_quotes import Talk, collect, make_shop, mapping
-from tests.integration.test_quotes import router as quote_router
 
 EMBEDDER = FakeEmbedder()
-
-
-def router(intent: str = "pricing") -> str:
-    return json.dumps({"intent": intent, "language": "en", "script": "latin", "confidence": 0.9})
-
-
-def not_grounded() -> str:
-    return json.dumps(
-        {
-            "answer_points": [],
-            "cited_item_ids": [],
-            "price_item_ids": [],
-            "grounded": False,
-            "gap_question": "rate?",
-        }
-    )
 
 
 async def ask(
@@ -227,11 +211,6 @@ async def sent_quote(
         )
         await session.commit()
     return ctx, talk.cid, quote.id, owner_email
-
-
-async def login(client: httpx.AsyncClient, email: str) -> str:
-    response = await client.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
-    return str(response.json()["access_token"])
 
 
 async def drafts(sm: SessionMaker, ctx: TenantContext) -> list[FollowUp]:

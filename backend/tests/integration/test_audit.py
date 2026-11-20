@@ -7,9 +7,10 @@ from app.core.config import Settings
 from app.db.models import AuditEvent
 from app.db.session import SessionMaker
 from tests.conftest import PASSWORD, bearer, register, unique_email
+from tests.helpers import login
 from tests.integration.test_api_quotes import _new_quote
 from tests.integration.test_customers import customer_of
-from tests.integration.test_inbox import login, sent_quote
+from tests.integration.test_inbox import sent_quote
 from tests.integration.test_whatsapp import connect
 
 

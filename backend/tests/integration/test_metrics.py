@@ -159,7 +159,8 @@ async def test_overview_counts_the_period_and_keeps_businesses_apart(
 ) -> None:
     from app.services.quotes import QuoteService
     from tests.conftest import bearer, register
-    from tests.integration.test_inbox import login, sent_quote
+    from tests.helpers import login
+    from tests.integration.test_inbox import sent_quote
 
     ctx, _, quote_id, email = await sent_quote(sessionmaker, settings, days_ago=0.1)
     token = await login(client, email)

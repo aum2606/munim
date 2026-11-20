@@ -37,6 +37,7 @@ from app.repositories.gaps import KnowledgeGapRepository
 from app.repositories.leads import LeadRepository
 from app.services.documents import DocumentService
 from tests.conftest import make_tenant
+from tests.helpers import knowledge, responder, router
 
 EMBEDDER = FakeEmbedder()
 CARD = CatalogRow(
@@ -46,26 +47,6 @@ CARD = CatalogRow(
     aliases=["business card"],
     unit="per 100",
 )
-
-
-def router(intent: str = "pricing", **extra: object) -> str:
-    body = {"intent": intent, "language": "en", "script": "latin", "confidence": 0.9, **extra}
-    return json.dumps(body)
-
-
-def knowledge(item_id: uuid.UUID | None = None, **extra: object) -> str:
-    body: dict[str, object] = {
-        "answer_points": ["Visiting cards are available in matt finish."],
-        "cited_item_ids": [str(item_id)] if item_id else [],
-        "price_item_ids": [str(item_id)] if item_id else [],
-        "grounded": True,
-        **extra,
-    }
-    return json.dumps(body)
-
-
-def responder(reply: str) -> str:
-    return json.dumps({"reply": reply})
 
 
 class Chat:
