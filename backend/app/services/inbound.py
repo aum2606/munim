@@ -9,11 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.channels.base import InboundMessage, StatusUpdate
 from app.core.config import Settings
 from app.core.context import TenantContext
-from app.db.models import ConversationMode, Direction, SenderType
+from app.db.models import ConversationMode, SenderType
 from app.jobs.queue import enqueue
 from app.orchestrator.messages import canned
 from app.repositories.channels import tenant_for_phone_number_id
 from app.repositories.chat import ChatRepository
+from app.services.outbound import send_to_customer
 
 log = structlog.get_logger()
 
@@ -88,9 +89,9 @@ class InboundService:
             await chat.mark_handled([stored.id])
             if conversation.mode == ConversationMode.AI:
                 language = await chat.last_language(conversation.id) or "en"
-                await chat.add_message(
+                await send_to_customer(
+                    chat,
                     conversation,
-                    direction=Direction.OUT,
                     sender_type=SenderType.AI,
                     content=canned("unsupported", language),
                     language=language,

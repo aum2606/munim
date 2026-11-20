@@ -17,7 +17,6 @@ from app.db.models import (
     Message,
     SenderType,
 )
-from app.jobs.queue import enqueue
 
 _RANK = {"failed": 1, "sent": 1, "delivered": 2, "read": 3}
 
@@ -28,6 +27,14 @@ class ChatRepository:
     def __init__(self, session: AsyncSession, ctx: TenantContext) -> None:
         self._session = session
         self._ctx = ctx
+
+    @property
+    def session(self) -> AsyncSession:
+        return self._session
+
+    @property
+    def ctx(self) -> TenantContext:
+        return self._ctx
 
     def _mine(
         self, model: type[Conversation] | type[Message] | type[Customer]
@@ -179,11 +186,6 @@ class ChatRepository:
         else:
             conversation.last_business_msg_at = now
         await self._session.flush()
-        if direction == Direction.OUT and conversation.channel == Channel.WHATSAPP:
-            # Every path that speaks to a customer ends here, so none can forget to deliver.
-            await enqueue(
-                self._session, self._ctx, "deliver_message", {"message_id": str(message.id)}
-            )
         return message
 
     async def messages(self, conversation_id: uuid.UUID, *, limit: int = 200) -> list[Message]:

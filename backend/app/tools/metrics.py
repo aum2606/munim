@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import Integer, and_, case, func, select
+from sqlalchemy import ColumnElement, Integer, and_, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -54,13 +54,7 @@ class UsageReport:
     first_response_p95_ms: int | None
 
 
-async def usage_report(
-    session: AsyncSession, ctx: TenantContext, *, since: datetime | None = None
-) -> UsageReport:
-    runs = AgentRun.tenant_id == ctx.tenant_id
-    if since is not None:
-        runs = and_(runs, AgentRun.created_at >= since)
-
+async def _usage_rows(session: AsyncSession, runs: ColumnElement[bool]) -> list[UsageRow]:
     grouped = await session.execute(
         select(
             AgentRun.agent,
@@ -77,7 +71,7 @@ async def usage_report(
         .group_by(AgentRun.agent, AgentRun.model)
         .order_by(AgentRun.agent, AgentRun.model)
     )
-    rows = [
+    return [
         UsageRow(
             agent,
             model,
@@ -91,18 +85,12 @@ async def usage_report(
         )  # fmt: skip
         for agent, model, calls, errors, prompt, completion, cost, p50, p95 in grouped
     ]
-    total_cost = sum(r.cost_micros for r in rows)
-    unpriced = sum(r.calls for r in rows if r.model not in LIST_PRICES and r.model is not None)
 
-    turns = (
-        await session.scalar(
-            select(func.count(func.distinct(AgentRun.message_id))).where(
-                runs, AgentRun.message_id.is_not(None)
-            )
-        )
-        or 0
-    )
 
+async def _first_response_ms(
+    session: AsyncSession, ctx: TenantContext, since: datetime | None
+) -> tuple[int | None, int | None]:
+    """Typical and slowest-5% time from a customer message to the AI's answer to it."""
     inbound = aliased(Message)
     gap_ms = func.extract("epoch", Message.created_at - inbound.created_at) * 1000
     answered = [
@@ -125,14 +113,36 @@ async def usage_report(
             )
         )
     ).one()
+    return (round(p50) if p50 is not None else None, round(p95) if p95 is not None else None)
+
+
+async def usage_report(
+    session: AsyncSession, ctx: TenantContext, *, since: datetime | None = None
+) -> UsageReport:
+    runs = AgentRun.tenant_id == ctx.tenant_id
+    if since is not None:
+        runs = and_(runs, AgentRun.created_at >= since)
+
+    rows = await _usage_rows(session, runs)
+    total_cost = sum(r.cost_micros for r in rows)
+    unpriced = sum(r.calls for r in rows if r.model not in LIST_PRICES and r.model is not None)
+    turns = int(
+        await session.scalar(
+            select(func.count(func.distinct(AgentRun.message_id))).where(
+                runs, AgentRun.message_id.is_not(None)
+            )
+        )
+        or 0
+    )
+    p50, p95 = await _first_response_ms(session, ctx, since)
     return UsageReport(
         rows=rows,
-        turns=int(turns),
+        turns=turns,
         cost_micros=total_cost,
         unpriced_calls=unpriced,
         cost_per_turn_micros=total_cost // turns if turns else 0,
-        first_response_p50_ms=round(p50) if p50 is not None else None,
-        first_response_p95_ms=round(p95) if p95 is not None else None,
+        first_response_p50_ms=p50,
+        first_response_p95_ms=p95,
     )
 
 

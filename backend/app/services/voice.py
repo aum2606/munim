@@ -9,12 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.channels.whatsapp import WhatsAppError
 from app.core.config import Settings
 from app.core.context import TenantContext
-from app.db.models import Conversation, Direction, SenderType
+from app.db.models import Conversation, SenderType
 from app.jobs.queue import enqueue
 from app.llm.transcriber import Transcriber
 from app.orchestrator.messages import canned, voice_confirm_message
 from app.repositories.chat import ChatRepository
 from app.services.delivery import whatsapp_client
+from app.services.outbound import send_to_customer
 
 log = structlog.get_logger()
 
@@ -81,9 +82,9 @@ async def _reply(
     content: str,
     language: str,
 ) -> None:
-    await chat.add_message(
+    await send_to_customer(
+        chat,
         conversation,
-        direction=Direction.OUT,
         sender_type=SenderType.AI,
         content=content,
         language=language,

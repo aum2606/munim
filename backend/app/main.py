@@ -66,6 +66,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allow_headers=["Authorization", "Content-Type"],
         )
 
+    _add_request_middleware(app)
+    _add_error_handlers(app)
+
+    app.include_router(health.router)
+    app.include_router(webhooks.router)
+    app.include_router(v1_router, prefix="/api/v1")
+    return app
+
+
+def _add_request_middleware(app: FastAPI) -> None:
+    """Request id, security headers and one access log line per request."""
+
     @app.middleware("http")
     async def request_middleware(
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
@@ -86,6 +98,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             ms=round((time.perf_counter() - started) * 1000),
         )
         return response
+
+
+def _add_error_handlers(app: FastAPI) -> None:
+    """Domain errors map to their HTTP status; nothing else leaks internals."""
 
     @app.exception_handler(DomainError)
     async def domain_error(_: Request, exc: DomainError) -> JSONResponse:
@@ -112,8 +128,3 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             {"error": {"code": "internal_error", "message": "Something went wrong"}},
             status_code=500,
         )
-
-    app.include_router(health.router)
-    app.include_router(webhooks.router)
-    app.include_router(v1_router, prefix="/api/v1")
-    return app

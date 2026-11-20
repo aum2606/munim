@@ -30,6 +30,7 @@ from app.repositories.chat import ChatRepository
 from app.repositories.documents import DocumentRepository
 from app.repositories.gaps import KnowledgeGapRepository
 from app.repositories.tenant import TenantRepository
+from app.services.outbound import send_to_customer
 from app.tools.business_info import get_business_info
 from app.tools.catalog_lookup import lookup_catalog
 from app.tools.search import search_knowledge
@@ -61,9 +62,9 @@ async def process_message(deps: Deps, ctx: TenantContext, payload: dict[str, Any
             spoken = await chat.last_language(conversation_id) or "en"
             log.warning("model_budget_reached", tenant_id=str(ctx.tenant_id))
             conversation.mode = ConversationMode.HUMAN  # a person takes over; the AI stays silent
-            await chat.add_message(
+            await send_to_customer(
+                chat,
                 conversation,
-                direction=Direction.OUT,
                 sender_type=SenderType.AI,
                 content=canned("handoff", spoken),
                 language=spoken,
@@ -113,9 +114,9 @@ async def process_message(deps: Deps, ctx: TenantContext, payload: dict[str, Any
             log.warning("llm_failed_handoff", error=type(exc).__name__)
             conversation.mode = ConversationMode.HUMAN
             reply = canned("handoff", language or "en")
-        await chat.add_message(
+        await send_to_customer(
+            chat,
             conversation,
-            direction=Direction.OUT,
             sender_type=SenderType.AI,
             content=reply,
             language=language,

@@ -8,9 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.channels.whatsapp import window_open
 from app.core.context import TenantContext
 from app.core.errors import ConflictError, NotFoundError
-from app.db.models import Channel, Conversation, ConversationMode, Direction, Message, SenderType
+from app.db.models import Channel, Conversation, ConversationMode, Message, SenderType
 from app.repositories.chat import ChatRepository
 from app.schemas.chat import ConversationOut
+from app.services.outbound import send_to_customer
 
 _PREVIEW_CHARS = 80
 
@@ -60,8 +61,8 @@ class ConversationService:
                 "deliver a free-form reply. Message them from your own phone."
             )
         conversation.mode = ConversationMode.HUMAN
-        return await self._chat.add_message(
-            conversation, direction=Direction.OUT, sender_type=SenderType.STAFF, content=text
+        return await send_to_customer(
+            self._chat, conversation, sender_type=SenderType.STAFF, content=text
         )
 
     async def _get(self, conversation_id: uuid.UUID) -> Conversation:

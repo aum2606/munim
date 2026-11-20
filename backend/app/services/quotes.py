@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings
 from app.core.context import TenantContext
 from app.core.errors import ConflictError, FileRejectedError, NotFoundError
-from app.db.models import AuditAction, Direction, Quote, QuoteItem, QuoteStatus, SenderType
+from app.db.models import AuditAction, Quote, QuoteItem, QuoteStatus, SenderType
 from app.ingestion.uploads import read_upload, save_upload
 from app.orchestrator.leads import sync_lead
 from app.orchestrator.messages import quote_sent_message
@@ -37,6 +37,7 @@ from app.repositories.leads import LeadRepository
 from app.repositories.pricing_rules import PricingRuleRepository
 from app.repositories.quotes import QuoteRepository
 from app.repositories.tenant import TenantRepository
+from app.services.outbound import send_to_customer
 from app.services.pricing_rules import build_rules
 
 IST = ZoneInfo("Asia/Kolkata")
@@ -338,9 +339,9 @@ class QuoteService:
             conversation = await chat.get_conversation(lead.conversation_id)
             if conversation is not None:
                 language = await chat.last_language(conversation.id) or "en"
-                await chat.add_message(
+                await send_to_customer(
+                    chat,
                     conversation,
-                    direction=Direction.OUT,
                     sender_type=SenderType.STAFF,
                     content=quote_sent_message(
                         language,
