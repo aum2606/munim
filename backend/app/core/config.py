@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     whatsapp_verify_token: str = ""
     whatsapp_app_secret: str = ""
     whatsapp_api_version: str = "v24.0"
+    # Media (voice note) URLs come from Meta and the business token is sent to them, so only
+    # these domains (and their subdomains) are fetched. Meta's docs show lookaside.fbsbx.com; add
+    # another here if a download is refused and its host is really Meta's.
+    whatsapp_media_hosts: str = "fbsbx.com,whatsapp.net,fbcdn.net,facebook.com,whatsapp.com"
 
     stt_model: str = "small"  # faster-whisper model name
     stt_device: str = "cpu"
@@ -68,6 +72,11 @@ class Settings(BaseSettings):
     # Below this the bot asks the customer to confirm what it heard instead of acting on it.
     stt_confidence_threshold: float = 0.6
     max_voice_note_mb: int = 16
+
+    # Model calls one business may make in 24 hours (about three per customer message). Past it the
+    # assistant hands chats to a person until the window rolls over, so one shop cannot use up the
+    # free-tier quota every shop shares. 0 turns the limit off.
+    daily_model_calls_per_business: int = 600
 
     # A sent quote with no customer reply for this long gets a follow-up draft for the owner.
     followup_after_days: int = 2
@@ -80,7 +89,15 @@ class Settings(BaseSettings):
             raise ValueError("SECRET_KEY must be a random value of at least 32 characters in prod")
         if self.app_env == "prod" and not self.credentials_encryption_key:
             raise ValueError("CREDENTIALS_ENCRYPTION_KEY is required in prod")
+        if self.app_env == "prod" and "allow_registration" not in self.model_fields_set:
+            self.allow_registration = (
+                False  # open sign-up in production must be a deliberate choice
+            )
         return self
+
+    @property
+    def media_host_list(self) -> tuple[str, ...]:
+        return tuple(h.strip().lower() for h in self.whatsapp_media_hosts.split(",") if h.strip())
 
     @property
     def cors_origin_list(self) -> list[str]:

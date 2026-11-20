@@ -27,7 +27,9 @@ async def whatsapp_client(
     if account is None or not account.is_active:
         return None
     token = str(decrypt_credentials(settings, account.credentials_encrypted).get("access_token"))
-    return WhatsAppClient(http, settings.whatsapp_api_version, account.external_id, token)
+    return WhatsAppClient(
+        http, settings.whatsapp_api_version, account.external_id, token, settings.media_host_list
+    )
 
 
 async def deliver_message(

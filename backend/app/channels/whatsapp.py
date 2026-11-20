@@ -13,6 +13,7 @@ import hmac
 import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 import structlog
@@ -120,6 +121,17 @@ def _message(number_id: str, raw: dict[str, Any], names: dict[str, Any]) -> Inbo
     )
 
 
+def _is_meta_host(url: str, allowed: tuple[str, ...]) -> bool:
+    """https only, and the host is an allowed domain or a subdomain of one. A look-alike such as
+    `evilfbsbx.com` or `fbsbx.com.evil.io` does not match."""
+    parts = urlsplit(url)
+    host = (parts.hostname or "").lower()
+    ok = parts.scheme == "https" and any(host == d or host.endswith("." + d) for d in allowed)
+    if not ok:
+        log.warning("whatsapp_media_host_refused", host=host[:80])  # a host name is not a secret
+    return ok
+
+
 def _timestamp(value: object) -> datetime | None:
     try:
         return datetime.fromtimestamp(int(str(value)), UTC)
@@ -139,8 +151,14 @@ class WhatsAppClient:
     """Sends messages and fetches media for one business's number."""
 
     def __init__(
-        self, http: httpx.AsyncClient, version: str, phone_number_id: str, token: str
+        self,
+        http: httpx.AsyncClient,
+        version: str,
+        phone_number_id: str,
+        token: str,
+        media_hosts: tuple[str, ...] = ("fbsbx.com", "whatsapp.net", "fbcdn.net"),
     ) -> None:
+        self._media_hosts = media_hosts
         self._http = http
         self._base = f"{GRAPH_URL}/{version}"
         self._number_id = phone_number_id
@@ -158,7 +176,7 @@ class WhatsAppClient:
         """The media URL Meta returns expires in minutes and needs the same bearer token."""
         info = await self._request("GET", f"{self._base}/{media_id}")
         url = str(info.get("url") or "")
-        if not url.startswith("https://") or int(info.get("file_size") or 0) > max_bytes:
+        if not _is_meta_host(url, self._media_hosts) or int(info.get("file_size") or 0) > max_bytes:
             raise WhatsAppError(400, True, "media url or size not acceptable")
         response = await self._http.get(url, headers=self._headers, timeout=30)
         _raise_for_status(response)
