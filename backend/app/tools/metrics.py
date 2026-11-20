@@ -4,7 +4,7 @@ Cost and latency come from `agent_runs`; first-response time from the messages t
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import Integer, and_, case, func, select
@@ -27,6 +27,7 @@ from app.db.models import (
     SenderType,
 )
 from app.llm.costs import LIST_PRICES
+from app.repositories.agent_runs import AgentRunRepository
 
 
 @dataclass(frozen=True)
@@ -145,6 +146,7 @@ class Overview:
     leads_by_stage: dict[str, int]  # created in the window
     quotes_by_status: dict[str, int]  # created in the window
     accepted_value_paise: int  # total of quotations the customer accepted, from the quotes table
+    model_calls_24h: int  # what the daily budget is counted in, whatever period the page shows
     usage: UsageReport
 
 
@@ -189,5 +191,8 @@ async def overview(session: AsyncSession, ctx: TenantContext, *, since: datetime
         ),
         quotes_by_status=quote_rows,
         accepted_value_paise=int(accepted or 0),
+        model_calls_24h=await AgentRunRepository(session, ctx).count_since(
+            datetime.now(UTC) - timedelta(hours=24)
+        ),
         usage=await usage_report(session, ctx, since=since),
     )

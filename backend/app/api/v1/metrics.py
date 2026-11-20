@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query
 
-from app.core.deps import OwnerDep, SessionDep
+from app.core.deps import OwnerDep, SessionDep, SettingsDep
 from app.schemas.metrics import OverviewOut, UsageRowOut
 from app.tools.metrics import overview
 
@@ -12,7 +12,10 @@ router = APIRouter(tags=["metrics"])
 
 @router.get("/metrics/overview", response_model=OverviewOut)
 async def metrics_overview(
-    ctx: OwnerDep, session: SessionDep, days: Annotated[int, Query(ge=1, le=365)] = 7
+    ctx: OwnerDep,
+    session: SessionDep,
+    settings: SettingsDep,
+    days: Annotated[int, Query(ge=1, le=365)] = 7,
 ) -> OverviewOut:
     """Messages, leads, quotations, who needs a person and what the model cost, last N days."""
     data = await overview(session, ctx, since=datetime.now(UTC) - timedelta(days=days))
@@ -27,6 +30,8 @@ async def metrics_overview(
         leads_by_stage=data.leads_by_stage,
         quotes_by_status=data.quotes_by_status,
         accepted_value_paise=data.accepted_value_paise,
+        model_calls_24h=data.model_calls_24h,
+        model_call_budget=settings.daily_model_calls_per_business,
         turns=u.turns,
         cost_micros=u.cost_micros,
         cost_per_turn_micros=u.cost_per_turn_micros,

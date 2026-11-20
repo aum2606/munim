@@ -241,7 +241,9 @@ async def evaluate(
 ) -> list[Outcome]:
     contexts = await prepare(sessionmaker, settings, embedder, llm)
     oracle = llm if isinstance(llm, OracleLLM) else None
-    deps = Deps(llm, embedder, settings, sessionmaker)
+    # One benchmark tenant answers every item, so a per-shop daily budget would cut the run short.
+    unlimited = settings.model_copy(update={"daily_model_calls_per_business": 0})
+    deps = Deps(llm, embedder, unlimited, sessionmaker)
     return [
         await run_item(deps, contexts[item.vertical], item, oracle)
         for item in items

@@ -23,6 +23,8 @@ class OverviewOut(BaseModel):
     leads_by_stage: dict[str, int]
     quotes_by_status: dict[str, int]
     accepted_value_paise: int
+    model_calls_24h: int
+    model_call_budget: int  # 0 means no limit
     turns: int
     cost_micros: int
     cost_per_turn_micros: int

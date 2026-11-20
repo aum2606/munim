@@ -1,7 +1,8 @@
 import uuid
+from datetime import datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import TenantContext
@@ -59,6 +60,15 @@ class AgentRunRepository:
             .order_by(AgentRun.created_at)
         )
         return list(result)
+
+    async def count_since(self, since: datetime) -> int:
+        """Model calls this business made since a moment: what the daily budget is counted in."""
+        count = await self._session.scalar(
+            select(func.count())
+            .select_from(AgentRun)
+            .where(AgentRun.tenant_id == self._ctx.tenant_id, AgentRun.created_at >= since)
+        )
+        return int(count or 0)
 
     async def list_recent(self, limit: int = 50) -> list[AgentRun]:
         result = await self._session.scalars(

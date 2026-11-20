@@ -4,6 +4,7 @@ Deterministic Python wires the agents together (AGENTS.md: agents never call age
 """
 
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import structlog
@@ -13,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.agents.knowledge import KnowledgeAgent
 from app.agents.models import Intent, RouterInput, RouterOutput, Turn
 from app.agents.router import RouterAgent
+from app.core.config import Settings
 from app.core.context import TenantContext
 from app.core.errors import LLMOutputError, LLMUnavailableError
 from app.db.models import Conversation, ConversationMode, Direction, Message, SenderType
@@ -22,6 +24,7 @@ from app.orchestrator.leads import sync_lead
 from app.orchestrator.messages import canned
 from app.orchestrator.pipeline_types import Deps
 from app.orchestrator.quote_flow import flow_is_active, quote_reply
+from app.repositories.agent_runs import AgentRunRepository
 from app.repositories.catalog import CatalogRepository
 from app.repositories.chat import ChatRepository
 from app.repositories.documents import DocumentRepository
@@ -50,6 +53,22 @@ async def process_message(deps: Deps, ctx: TenantContext, payload: dict[str, Any
         if conversation is None or not pending:
             return
         if conversation.mode == ConversationMode.HUMAN:  # a person owns this chat: stay silent
+            await chat.mark_handled([m.id for m in pending])
+            await session.commit()
+            return
+
+        if await _over_budget(session, ctx, deps.settings):
+            spoken = await chat.last_language(conversation_id) or "en"
+            log.warning("model_budget_reached", tenant_id=str(ctx.tenant_id))
+            conversation.mode = ConversationMode.HUMAN  # a person takes over; the AI stays silent
+            await chat.add_message(
+                conversation,
+                direction=Direction.OUT,
+                sender_type=SenderType.AI,
+                content=canned("handoff", spoken),
+                language=spoken,
+                reply_to_id=pending[-1].id,
+            )
             await chat.mark_handled([m.id for m in pending])
             await session.commit()
             return
@@ -105,6 +124,14 @@ async def process_message(deps: Deps, ctx: TenantContext, payload: dict[str, Any
         )
         await chat.mark_handled([m.id for m in pending])
         await session.commit()
+
+
+async def _over_budget(session: AsyncSession, ctx: TenantContext, settings: Settings) -> bool:
+    limit = settings.daily_model_calls_per_business
+    if limit <= 0:
+        return False
+    since = datetime.now(UTC) - timedelta(hours=24)
+    return await AgentRunRepository(session, ctx).count_since(since) >= limit
 
 
 async def _reply_for(
