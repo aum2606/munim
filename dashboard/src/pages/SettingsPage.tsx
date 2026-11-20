@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 
 import { useProfile, useSaveProfile, type Profile } from '../api/profile'
+import { AuditLog } from '../components/AuditLog'
 import { Field } from '../components/Form'
 import { WhatsAppSettings } from '../components/WhatsAppSettings'
 import { t } from '../i18n/en'
@@ -32,6 +33,7 @@ export function SettingsPage() {
     <>
       <ProfileForm profile={profile.data} />
       <WhatsAppSettings />
+      <AuditLog />
     </>
   )
 }

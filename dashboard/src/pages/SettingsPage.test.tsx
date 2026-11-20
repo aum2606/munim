@@ -112,3 +112,47 @@ it('warns when the server cannot yet accept messages from Meta', async () => {
   renderAt(<SettingsPage />)
   expect(await screen.findByText(/no WHATSAPP_VERIFY_TOKEN/)).toBeInTheDocument()
 })
+
+it('lists the activity log, newest first, with readable labels', async () => {
+  mockApi((url) => {
+    if (url === '/api/v1/tenant') return { status: 200, body: PROFILE }
+    if (url === '/api/v1/channels/whatsapp') return { status: 200, body: NOT_CONNECTED }
+    if (url === '/api/v1/audit') {
+      return {
+        status: 200,
+        body: [
+          {
+            id: 'a2',
+            created_at: '2026-11-20T10:00:00Z',
+            action: 'quote_approved',
+            target: 'Q/2026-27/0001',
+            actor: 'Asha',
+          },
+          {
+            id: 'a1',
+            created_at: '2026-11-19T10:00:00Z',
+            action: 'something_new',
+            target: null,
+            actor: null,
+          },
+        ],
+      }
+    }
+  })
+  renderAt(<SettingsPage />)
+  expect(await screen.findByText('Quotation approved and sent')).toBeInTheDocument()
+  expect(screen.getByText(/Q\/2026-27\/0001/)).toBeInTheDocument()
+  expect(screen.getByText('something_new')).toBeInTheDocument() // an unknown action still shows
+  expect(screen.getByText(/System ·/)).toBeInTheDocument()
+})
+
+it('shows no activity log to someone who is not allowed to read it', async () => {
+  mockApi((url) => {
+    if (url === '/api/v1/tenant') return { status: 200, body: PROFILE }
+    if (url === '/api/v1/channels/whatsapp') return { status: 200, body: NOT_CONNECTED }
+    if (url === '/api/v1/audit') return { status: 403, body: { detail: 'Owner access required' } }
+  })
+  renderAt(<SettingsPage />)
+  await screen.findByLabelText('GSTIN')
+  expect(screen.queryByText('Activity log')).not.toBeInTheDocument()
+})

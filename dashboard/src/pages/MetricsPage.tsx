@@ -81,6 +81,15 @@ export function MetricsPage() {
             />
             <Card label={t('metrics.gaps')} value={data.open_knowledge_gaps} />
             <Card label={t('metrics.accepted')} value={formatInr(data.accepted_value_paise)} />
+            <Card
+              label={t('metrics.modelCalls')}
+              value={data.model_calls_24h}
+              hint={
+                data.model_call_budget > 0
+                  ? t('metrics.modelCallsOf', { limit: String(data.model_call_budget) })
+                  : t('metrics.modelCallsNoLimit')
+              }
+            />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Counts title={t('metrics.leads')} counts={data.leads_by_stage} />

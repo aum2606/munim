@@ -16,6 +16,8 @@ const OVERVIEW: Overview = {
   leads_by_stage: { new: 4, quoted: 2 },
   quotes_by_status: { accepted: 1 },
   accepted_value_paise: 12345678,
+  model_calls_24h: 120,
+  model_call_budget: 600,
   turns: 40,
   cost_micros: 8000,
   cost_per_turn_micros: 200,
@@ -47,6 +49,8 @@ it('shows the numbers, with money in rupees and cost in dollars, and says what i
   expect(screen.getByText('$0.0002')).toBeInTheDocument() // cost per message
   expect(screen.getByText('2.5 s')).toBeInTheDocument()
   expect(screen.getByText('6.1 s')).toBeInTheDocument()
+  expect(screen.getByText('120')).toBeInTheDocument() // model calls in the last day
+  expect(screen.getByText(/of 600 a day/)).toBeInTheDocument()
   expect(screen.getByText('openai/gpt-oss-120b')).toBeInTheDocument()
   expect(screen.getByRole('note')).toHaveTextContent('3 model calls')
 })

@@ -24,6 +24,8 @@ export interface Overview {
   leads_by_stage: Record<string, number>
   quotes_by_status: Record<string, number>
   accepted_value_paise: number
+  model_calls_24h: number
+  model_call_budget: number // 0 means no limit
   turns: number
   cost_micros: number
   cost_per_turn_micros: number
