@@ -23,6 +23,7 @@ from app.agents.guardrails import extract_amounts
 from app.agents.models import Intent, RouterOutput
 from app.core.config import Settings, get_settings
 from app.core.context import TenantContext
+from app.core.security import prompt_canary
 from app.db.models import (
     AgentRunStatus,
     CatalogItem,
@@ -37,6 +38,7 @@ from app.jobs.handlers import build_handlers
 from app.llm.base import LLMClient
 from app.llm.embedder import Embedder, FakeEmbedder, LocalEmbedder
 from app.llm.openai_compat import ChainLLMClient
+from app.llm.prompting import set_canary
 from app.orchestrator.dispatch import Route, route_for
 from app.orchestrator.messages import canned
 from app.orchestrator.pipeline import process_message
@@ -262,6 +264,7 @@ async def runtime(
     if llm_mode == "real" and os.environ.get("EVAL_USE_REAL_LLM") != "1":
         raise SystemExit("Refusing to call a real model: set EVAL_USE_REAL_LLM=1 to allow it.")
     settings = get_settings()
+    set_canary(prompt_canary(settings))
     engine = make_engine(settings.database_url)
     embedder: Embedder = (
         LocalEmbedder(settings.embedding_model, settings.embedding_cache_dir)

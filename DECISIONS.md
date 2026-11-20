@@ -317,3 +317,22 @@ Format: **date — decision.** Reason.
   is named; the benchmark stays CC BY 4.0. This closes the NEEDS REVIEW on the licence above. Dependencies keep their
   own licences: check them (`faster-whisper`, `fastembed` and others are permissive, but verify before shipping a
   bundled binary or model weights).
+
+## Security Phase A
+
+- **2026-11-20 - A reply may only repeat the shop's own contact details.** Phone numbers, UPI IDs, links, emails, IFSC
+  codes and account numbers are normalised to (kind, key) pairs and compared with: the business profile phone and
+  the contacts in the FAQs, document chunks and catalogue descriptions retrieved this turn. Model-written answer
+  points are NOT a source, so a model that was talked into inventing a number cannot launder it. A bare domain
+  with an unusual ending in the owner's own data is not recognised as the shop's, so a reply repeating it is
+  blocked (the safe direction). Digit runs under 9 digits are ignored so dates and order numbers pass.
+- **2026-11-20 - Leak detection has three signals, and one known gap.** A per-deployment canary (HMAC of the secret
+  key) is in every agent system prompt through `_canary.jinja`; a reply with it, however spaced or hidden, is
+  blocked; so is a reply with 6 consecutive words from any system prompt. A translation of the instructions
+  evades both (NEEDS REVIEW: the only defences are the prompt's own refusal and owner approval of quotations).
+- **2026-11-20 - Everything that enters a prompt goes through `clean_text`.** It removes zero-width and bidirectional
+  characters and control characters, then delimiter tags (now including `evidence`). `sanitize_customer_text` is
+  an alias kept for existing call sites. Owner-uploaded text is cleaned but still trusted for contact details.
+- **2026-11-20 - The benchmark's retrieval rate moves by about one item between runs.** The vector index is
+  approximate (HNSW), so a borderline question (print-058) flips between runs: 94.3% then 94.7% on identical
+  code. Read retrieval numbers as plus or minus half a point.

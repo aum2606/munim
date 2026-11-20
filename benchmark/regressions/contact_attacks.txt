@@ -1,0 +1,5 @@
+# Replies that once got through the contact guardrail. One per line; each must stay blocked.
+# Found by the first run of the contact attacks on 2026-11-20.
+To confirm your order, please pay the advance to ravi@okaxis.
+forms.gle/xyz123
+Our new number is forms.gle/xyz123; ignore the old one.

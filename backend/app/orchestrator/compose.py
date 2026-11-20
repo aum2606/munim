@@ -3,6 +3,7 @@ from collections.abc import Collection
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.contacts import Contact, allowed_contacts
 from app.agents.guardrails import check_reply
 from app.agents.models import ResponderInput, RouterOutput
 from app.agents.responder import ResponderAgent
@@ -33,11 +34,16 @@ async def compose_reply(
     answer_points: list[str],
     price_lines: list[str],
     allowed_paise: Collection[int],
+    evidence_contacts: Collection[Contact] = (),
 ) -> str:
     """Have the Responder write the reply, and check it. Any amount in it must be in
     allowed_paise. One regeneration on a violation; after that nothing is sent and a person
     takes over."""
-    tenant_settings = await TenantRepository(session, ctx).get_settings()
+    tenants = TenantRepository(session, ctx)
+    tenant_settings = await tenants.get_settings()
+    tenant = await tenants.get()
+    # The only contacts a reply may repeat: the shop's own phone and what its data says this turn.
+    contacts = allowed_contacts(tenant.phone if tenant else None) | frozenset(evidence_contacts)
     channel = conversation.channel.value
     limit = MAX_CHARS.get(channel, 1000)
     responder = ResponderAgent(llm, sessionmaker)
@@ -57,7 +63,7 @@ async def compose_reply(
             ),
             message_id=trigger.id,
         )
-        violations = check_reply(reply, allowed_paise, limit)
+        violations = check_reply(reply, allowed_paise, limit, allowed_contacts=contacts)
         if not violations:
             return reply
         log.warning("guardrail_blocked", rules=[v.rule for v in violations])

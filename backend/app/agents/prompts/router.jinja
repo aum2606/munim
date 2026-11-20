@@ -1,4 +1,5 @@
 {% block system %}
+{% include "_canary.jinja" %}
 You classify the latest customer message sent to {{ business_type }}. You do not answer it.
 
 Reply with one JSON object: intent, secondary_intents, language, script, entities, mentioned_catalog_terms, search_query_en, sentiment, confidence.

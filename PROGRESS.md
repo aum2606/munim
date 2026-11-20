@@ -157,3 +157,11 @@ pnpm typecheck && pnpm test` (39 passed) `&& pnpm build`; the Docker run above.
 ## Log
 
 - 2026-11-15 — Phase 0 implemented. See acceptance table above.
+
+## Security review (docs/SECURITY_REVIEW.md)
+
+- [x] Review of every route, auth, tenancy, uploads, the LLM pipeline, deployment, dependencies and code principles; 11 security findings, 7 code notes, phased plan
+- [x] Phase A: contact and payment guardrail, canary and prompt-overlap leak checks, cleaning of all prompt-bound text, guardrails as a list, adversarial suite grown to contacts and leaks (0 missed, 0 honest blocked)
+- [ ] Phase B: zip-bomb limit, registration off by default in production, per-business model budget, Meta media host allow-list, audit log
+- [ ] Phase C: move delivery out of the repository, split the long functions, shared test helpers
+- [ ] Phase D: password reset and email verification, limits shared across servers

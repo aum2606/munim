@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.agents.base import BaseAgent, ToolBox
+from app.agents.contacts import Contact, allowed_contacts
 from app.agents.guardrails import extract_amounts
 from app.agents.models import (
     ChunkEvidence,
@@ -14,7 +15,7 @@ from app.agents.models import (
     Turn,
 )
 from app.core.context import TenantContext
-from app.llm.prompting import sanitize_customer_text
+from app.llm.prompting import clean_text, sanitize_customer_text
 from app.pricing.inr import format_inr
 from app.repositories.documents import ChunkHit
 from app.tools.business_info import BusinessInfo
@@ -28,6 +29,7 @@ class KnowledgeResult:
     answer: KnowledgeAnswer
     price_lines: list[str]  # built here from catalogue paise, never by the model
     allowed_paise: frozenset[int]  # every price a tool returned this turn
+    contacts: frozenset[Contact] = frozenset()  # contact details present in the shop's own evidence
 
 
 def price_line(hit: CatalogHit) -> str:
@@ -65,10 +67,12 @@ class KnowledgeAgent(BaseAgent):
         # policies (a delivery threshold, an advance) may be repeated exactly as written.
         policy_amounts = {a for c in chunks for a in extract_amounts(c.content) if a >= 0}
         allowed = frozenset({i.base_price_paise for i in items} | policy_amounts)
+        # Contacts the shop itself wrote down (an FAQ with its phone number) may be repeated.
+        contacts = allowed_contacts(*(c.content for c in chunks), *(i.description for i in items))
 
         if not items and not chunks:  # nothing retrieved: do not even ask the model
             return KnowledgeResult(
-                KnowledgeAnswer(grounded=False, gap_question=question), [], allowed
+                KnowledgeAnswer(grounded=False, gap_question=question), [], allowed, contacts
             )
 
         data = KnowledgeInput(
@@ -78,7 +82,9 @@ class KnowledgeAgent(BaseAgent):
             business=business,
             chunks=[
                 ChunkEvidence(
-                    chunk_id=c.chunk_id, title=c.title, content=c.content[:_MAX_CHUNK_CHARS]
+                    chunk_id=c.chunk_id,
+                    title=clean_text(c.title),
+                    content=clean_text(c.content[:_MAX_CHUNK_CHARS]),
                 )
                 for c in chunks
             ],
@@ -86,12 +92,12 @@ class KnowledgeAgent(BaseAgent):
                 ItemEvidence(
                     item_id=i.item_id,
                     sku=i.sku,
-                    name=i.name,
+                    name=clean_text(i.name),
                     unit=i.unit,
                     price=format_inr(i.base_price_paise),
                     gst_rate=i.gst_rate,
                     stock_status=i.stock_status,
-                    description=i.description,
+                    description=clean_text(i.description) if i.description else None,
                 )
                 for i in items
             ],
@@ -107,7 +113,7 @@ class KnowledgeAgent(BaseAgent):
             chunks=data.chunks,
             items=data.items,
         )
-        return self._verified(answer, items, chunks, allowed, question)
+        return self._verified(answer, items, chunks, allowed, question, contacts)
 
     @staticmethod
     def _verified(
@@ -116,6 +122,7 @@ class KnowledgeAgent(BaseAgent):
         chunks: list[ChunkHit],
         allowed: frozenset[int],
         question: str,
+        contacts: frozenset[Contact],
     ) -> KnowledgeResult:
         """Do not trust the model's own claims: keep only ids we really retrieved, and treat an
         answer that cites nothing real as ungrounded."""
@@ -134,6 +141,9 @@ class KnowledgeAgent(BaseAgent):
                 KnowledgeAnswer(grounded=False, gap_question=answer.gap_question or question),
                 [],
                 allowed,
+                contacts,
             )
+        # The model's own words go on to the responder as data: clean them like any other text.
+        answer.answer_points = [clean_text(point) for point in answer.answer_points]
         lines = [price_line(by_item[i]) for i in dict.fromkeys(answer.price_item_ids)]
-        return KnowledgeResult(answer, lines, allowed)
+        return KnowledgeResult(answer, lines, allowed, contacts)

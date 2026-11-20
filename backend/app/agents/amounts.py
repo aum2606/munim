@@ -206,3 +206,9 @@ def extract_amounts(text: str) -> list[int]:
     text = _BARE_MAGNITUDE.sub(" ", text)
 
     return amounts + _cue_amounts(text)
+
+
+def strip_amounts(text: str) -> str:
+    """The text with every rupee amount and foreign-currency amount blanked out, so a long amount
+    ("Rs 12,00,00,000") is never mistaken for a phone or account number."""
+    return _FOREIGN.sub(" ", _AMOUNT.sub(" ", normalise(text)))

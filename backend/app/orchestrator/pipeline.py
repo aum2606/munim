@@ -166,4 +166,5 @@ async def _reply_for(
         answer_points=result.answer.answer_points,
         price_lines=result.price_lines,
         allowed_paise=result.allowed_paise,
+        evidence_contacts=result.contacts,
     )

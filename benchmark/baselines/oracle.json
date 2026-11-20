@@ -1,12 +1,12 @@
 {
   "name": "oracle",
   "prompts": {
-    "column_mapper": "column_mapper@43b50b3357d0",
-    "knowledge": "knowledge@9fabcb52d919",
-    "quote_mapping": "quote_mapping@bc0ec0321e26",
-    "quote_requirements": "quote_requirements@0ed0c71ff1b6",
-    "responder": "responder@3e6676667220",
-    "router": "router@a56d51dccc17"
+    "column_mapper": "column_mapper@4f57633355bf",
+    "knowledge": "knowledge@3ec6a4576006",
+    "quote_mapping": "quote_mapping@427ce2ac389d",
+    "quote_requirements": "quote_requirements@7d7a599d970a",
+    "responder": "responder@518883f4eb32",
+    "router": "router@8969c6c2d66c"
   },
   "summary": {
     "items": 279,
