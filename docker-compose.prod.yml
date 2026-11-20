@@ -27,6 +27,7 @@ x-backend-env: &backend-env
   WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
   WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
   WHATSAPP_API_VERSION: ${WHATSAPP_API_VERSION:-v24.0}
+  WHATSAPP_MEDIA_HOSTS: ${WHATSAPP_MEDIA_HOSTS:-fbsbx.com,whatsapp.net,fbcdn.net,facebook.com,whatsapp.com}
   EMBEDDING_CACHE_DIR: /data/models
   STT_MODEL: ${STT_MODEL:-small}
   STT_DEVICE: ${STT_DEVICE:-cpu}
@@ -35,6 +36,7 @@ x-backend-env: &backend-env
   STORAGE_DIR: /data/uploads
   MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
   FOLLOWUP_AFTER_DAYS: ${FOLLOWUP_AFTER_DAYS:-2}
+  DAILY_MODEL_CALLS_PER_BUSINESS: ${DAILY_MODEL_CALLS_PER_BUSINESS:-600}
 
 services:
   postgres:
