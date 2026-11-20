@@ -336,3 +336,21 @@ Format: **date — decision.** Reason.
 - **2026-11-20 - The benchmark's retrieval rate moves by about one item between runs.** The vector index is
   approximate (HNSW), so a borderline question (print-058) flips between runs: 94.3% then 94.7% on identical
   code. Read retrieval numbers as plus or minus half a point.
+
+## Security Phase B
+
+- **2026-11-20 - The daily model budget is counted from `agent_runs`, not a new counter.** Every model call already
+  writes a row, so the count cannot drift from reality and survives restarts and several API processes (unlike the
+  in-memory rate limiter). The check costs one indexed count per customer message. Past the limit the
+  conversation goes to HUMAN with the normal hand-off text; it stays there until a person returns it to the AI.
+  600 calls is about 200 messages a day at roughly three calls each; it is a setting because free-tier quotas change.
+- **2026-11-20 - The media host allow-list is a setting.** Meta's docs show `lookaside.fbsbx.com` but the host
+  varies, so a hard-coded list would break voice notes silently. Domains are matched exactly or as a parent of a
+  subdomain, https only, so `fbsbx.com.evil.example` and plain `http` are refused.
+- **2026-11-20 - Registration defaults to closed when `APP_ENV=prod`.** An explicitly set `ALLOW_REGISTRATION` still
+  wins, so the first-account step in the self-host guide is unchanged.
+- **2026-11-20 - The audit log is append-only in the application, not in the database.** The repository has no
+  update or delete, but a database role with write access could still edit it (NEEDS REVIEW if a pilot needs
+  tamper evidence: a trigger or a separate write-only role). Targets are references, never customer text.
+  Customer erasure keeps its own audit row (the id only) on purpose: it is the proof the request was honoured.
+- **2026-11-20 - S7 skipped** (see `docs/SECURITY_REVIEW.md`).

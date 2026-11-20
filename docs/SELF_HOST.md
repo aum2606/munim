@@ -25,7 +25,7 @@ Edit `.env`. These are required in production (the stack refuses to start withou
 | `SECRET_KEY` | 32+ random characters: `openssl rand -hex 32` |
 | `CREDENTIALS_ENCRYPTION_KEY` | `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. **Back this up with your other secrets**: without it saved WhatsApp tokens cannot be read |
 | `POSTGRES_PASSWORD` | a random password |
-| `ALLOW_REGISTRATION` | `true` only until you have created your own account, then `false` |
+| `ALLOW_REGISTRATION` | closed by default in production: set `true` only until you have created your own account, then remove it or set `false` |
 | `LLM_SMALL_CHAIN`, `LLM_LARGE_CHAIN`, `GROQ_API_KEY` (or `GEMINI_API_KEY` / `OPENROUTER_API_KEY`) | see `.env.example`. Without a model key the app works but hands every chat to a person |
 | `WHATSAPP_VERIFY_TOKEN` | any random string; you will type the same one into Meta |
 | `WHATSAPP_APP_SECRET` | from your Meta app (App settings, Basic) |

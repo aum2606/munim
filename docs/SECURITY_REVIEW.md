@@ -86,16 +86,23 @@ and is logged in `DECISIONS.md`.
    0 honest replies blocked. Add injection items to MunimBench (documents carrying instructions).
 5. **Make guardrails a list (C5)** so the new checks are added, not edited in.
 
-### Phase B: hardening
+### Phase B: hardening (done)
 
-6. **Zip-bomb limit (S4):** refuse an Office file whose entries expand past 50 MB in total or 100x the upload.
-7. **Registration off by default in production (S5):** `ALLOW_REGISTRATION` defaults to false when
-   `APP_ENV=prod`, whatever starts the app; a generic "check your details" reply on duplicate email (S7).
-8. **Per-business daily model budget (S6):** a counter in Postgres; past it the assistant hands chats to a person
-   and the dashboard says why.
-9. **Meta media host allow-list (S9).**
-10. **Audit log (S8):** an append-only `audit_events` table (who, what, when, no customer text) for the owner
-    actions listed above, shown in Settings.
+6. **Zip-bomb limit (S4):** an Office file is refused when it holds more than 2,000 entries, unpacks past 100 MB,
+   or has one entry over 1 MB that expands more than 200 times its packed size.
+7. **Registration off by default in production (S5):** `ALLOW_REGISTRATION` is false when `APP_ENV=prod` unless
+   it is set explicitly, whatever starts the app. **S7 (generic reply on a duplicate email) was skipped:** without
+   email verification a generic reply only hides a fact the login screen and the 5-an-hour limit already protect;
+   it comes back with email verification in Phase D.
+8. **Per-business daily model budget (S6):** `DAILY_MODEL_CALLS_PER_BUSINESS` (default 600, about 200 messages;
+   0 = off), counted from `agent_runs` over a rolling 24 hours. Past it the conversation goes to a person with the
+   usual hand-off message; the Metrics page shows calls used and the limit.
+9. **Meta media host allow-list (S9):** the token is only sent to https hosts under `WHATSAPP_MEDIA_HOSTS`
+   (default `fbsbx.com, whatsapp.net, fbcdn.net, facebook.com, whatsapp.com`); a refusal is logged with the host.
+10. **Audit log (S8):** an `audit_events` table (migration 0005) the application only appends to and reads;
+    records WhatsApp connect/disconnect, customer erasure, quote edit/approve/reject, and team member
+    create/switch off/switch on; owner-only `GET /audit` and an "Activity log" in Settings. It stores references
+    (quote number, id), never customer text. Not tamper-proof: someone with database access can still change rows.
 
 ### Phase C: code quality (no behaviour change)
 
