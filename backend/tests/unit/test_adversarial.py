@@ -10,13 +10,14 @@ def test_the_suite_is_large_and_every_attack_is_blocked() -> None:
     report = run()
     assert report.attacks >= 500  # BUILD_PLAN.md 11.2
     assert report.price_misses == []  # price-hallucination rate 0
+    assert report.contact_misses == [] and report.contact_attacks >= 300  # fraud rate 0
     assert report.leak_misses == []  # leak rate 0
     assert report.false_positives == []  # honest replies still pass
-    assert report.honest >= 40 and report.leaks >= 50
+    assert report.honest >= 60 and report.leaks >= 200
 
 
 def test_every_case_kind_is_present() -> None:
-    assert {c.kind for c in all_cases()} == {"price", "leak", "honest"}
+    assert {c.kind for c in all_cases()} == {"price", "contact", "leak", "honest"}
 
 
 @pytest.mark.parametrize(
