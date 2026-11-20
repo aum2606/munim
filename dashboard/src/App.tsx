@@ -8,6 +8,7 @@ import { InboxPage } from './pages/InboxPage'
 import { KnowledgePage } from './pages/KnowledgePage'
 import { LoginPage } from './pages/LoginPage'
 import { MetricsPage } from './pages/MetricsPage'
+import { ForgotPasswordPage, ResetPasswordPage } from './pages/PasswordResetPages'
 import { PlaygroundPage } from './pages/PlaygroundPage'
 import { QuotesPage } from './pages/QuotesPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -18,6 +19,8 @@ export function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
           <Route path="/" element={<HomePage />} />

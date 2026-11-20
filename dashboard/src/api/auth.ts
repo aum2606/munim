@@ -47,6 +47,20 @@ export function useRegister() {
   })
 }
 
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (email: string) =>
+      api<{ detail: string }>('/auth/forgot-password', { method: 'POST', body: { email } }),
+  })
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: (input: { token: string; password: string }) =>
+      api<void>('/auth/reset-password', { method: 'POST', body: input }),
+  })
+}
+
 export function useLogout() {
   const queryClient = useQueryClient()
   return useMutation({

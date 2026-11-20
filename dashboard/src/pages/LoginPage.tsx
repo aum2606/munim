@@ -56,6 +56,11 @@ export function LoginPage() {
         )}
         <SubmitButton busy={login.isPending}>{t('login.submit')}</SubmitButton>
       </form>
+      <p className="text-sm">
+        <Link to="/forgot-password" className="text-indigo-600 underline">
+          {t('login.forgot')}
+        </Link>
+      </p>
       <p className="text-sm text-slate-600">
         {t('login.noAccount')}{' '}
         <Link to="/register" className="text-indigo-600 underline">
