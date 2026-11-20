@@ -35,6 +35,15 @@ class LoginRequest(_EmailMixin):
     password: str = Field(min_length=1, max_length=128)
 
 
+class ForgotPasswordRequest(_EmailMixin):
+    pass
+
+
+class ResetPasswordRequest(StrictRequest):
+    token: str = Field(min_length=20, max_length=200)
+    password: Password
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"  # noqa: S105 (a label, not a secret)

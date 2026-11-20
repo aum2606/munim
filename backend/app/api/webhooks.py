@@ -11,7 +11,7 @@ from fastapi.responses import PlainTextResponse
 from app.channels.whatsapp import parse_webhook, verify_challenge, verify_signature
 from app.core.deps import SessionDep, SettingsDep
 from app.core.errors import FileRejectedError, ForbiddenError, RateLimitedError
-from app.core.ratelimit import client_ip, rate_limit
+from app.core.ratelimit import client_ip, limited
 from app.services.inbound import InboundService
 
 log = structlog.get_logger()
@@ -19,7 +19,7 @@ router = APIRouter(
     prefix="/webhooks",
     tags=["webhooks"],
     include_in_schema=False,
-    dependencies=[Depends(rate_limit("webhook", 1200, 60))],  # generous: Meta sends in bursts
+    dependencies=[Depends(limited("webhook"))],  # generous: Meta sends in bursts
 )
 
 MAX_BODY_BYTES = 3 * 1024 * 1024  # Meta documents payloads of up to 3 MB

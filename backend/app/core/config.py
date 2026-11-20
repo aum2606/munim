@@ -55,6 +55,18 @@ class Settings(BaseSettings):
     # Channel credentials are encrypted at rest with this Fernet key. Outside prod an empty value
     # derives a key from SECRET_KEY so local setups work without extra steps.
     credentials_encryption_key: str = ""
+    # Password-reset email goes through any SMTP server (several have free
+    # tiers). Without SMTP_HOST and SMTP_FROM the reset form still answers the same, but no mail is
+    # sent: an owner who forgets the password then needs the operator (see docs/SELF_HOST.md).
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_starttls: bool = True
+    # Where the dashboard is reached from outside: the reset link in the email starts with it.
+    public_url: str = "http://localhost:8080"
+    password_reset_minutes: int = 60
     # One Meta app serves every business: its verify token and app secret live here, while each
     # business stores only its own phone number id and access token (encrypted, in the database).
     # With either empty the WhatsApp webhook refuses everything.
@@ -94,6 +106,10 @@ class Settings(BaseSettings):
                 False  # open sign-up in production must be a deliberate choice
             )
         return self
+
+    @property
+    def mail_ready(self) -> bool:
+        return bool(self.smtp_host and self.smtp_from)
 
     @property
     def media_host_list(self) -> tuple[str, ...]:

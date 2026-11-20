@@ -7,7 +7,7 @@ limit (the real ceiling is limit x replicas). Upgrade to a Postgres counter if t
 import time
 from collections import deque
 from collections.abc import Awaitable, Callable
-from typing import Literal
+from typing import Literal, NamedTuple
 
 from fastapi import Request
 
@@ -58,6 +58,31 @@ def _tenant_key(request: Request, settings: Settings) -> str | None:
         return str(decode_access_token(settings, header[7:]).tenant_id)
     except DomainError:
         return None  # a bad token is refused by authentication; limit it by address meanwhile
+
+
+class Limit(NamedTuple):
+    requests: int
+    window_s: int
+
+
+# Every limit in one place. "api" and "playground" count per business; the rest per address.
+LIMITS: dict[str, Limit] = {
+    "register": Limit(5, 3600),
+    "login": Limit(10, 60),
+    "refresh": Limit(30, 60),
+    "forgot_password": Limit(5, 3600),  # each one can send an email
+    "reset_password": Limit(10, 3600),
+    "playground": Limit(30, 60),  # per business
+    "api": Limit(300, 60),  # per business
+    "webhook": Limit(1200, 60),  # generous: Meta sends in bursts
+}
+
+
+def limited(
+    name: str, *, by: Literal["ip", "tenant"] = "ip"
+) -> Callable[[Request], Awaitable[None]]:
+    """The named limit from `LIMITS` as a FastAPI dependency."""
+    return rate_limit(name, *LIMITS[name], by=by)
 
 
 def rate_limit(

@@ -38,7 +38,7 @@ from app.db.models.quote import (
     RuleType,
 )
 from app.db.models.tenant import Tenant, TenantSettings
-from app.db.models.user import RefreshToken, User
+from app.db.models.user import PasswordResetToken, RefreshToken, User
 
 __all__ = [
     "AgentRun",
@@ -74,6 +74,7 @@ __all__ = [
     "QuoteItem",
     "QuoteSequence",
     "QuoteStatus",
+    "PasswordResetToken",
     "RefreshToken",
     "RequirementSchema",
     "RuleType",

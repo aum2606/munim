@@ -22,6 +22,18 @@ class User(IdentityMixin, TenantMixin, Base):
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class PasswordResetToken(IdentityMixin, TenantMixin, Base):
+    """A one-time link emailed to a user who forgot their password. Only its hash is stored."""
+
+    __tablename__ = "password_reset_tokens"
+    __table_args__ = (Index("ix_password_reset_tokens_tenant_id_user_id", "tenant_id", "user_id"),)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class RefreshToken(IdentityMixin, TenantMixin, Base):
     __tablename__ = "refresh_tokens"
     __table_args__ = (Index("ix_refresh_tokens_tenant_id_user_id", "tenant_id", "user_id"),)

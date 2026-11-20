@@ -24,19 +24,17 @@ from app.repositories.catalog import CatalogRepository
 from app.repositories.documents import DocumentRepository
 from app.services.delivery import deliver_message as send_message
 from app.services.followups import FollowUpService
+from app.services.mailer import Mailer
+from app.services.password_reset import send_reset_email
 from app.services.voice import transcribe_message as run_transcription
 
 log = structlog.get_logger()
 _BATCH = 32
 
 
-def build_handlers(
-    embedder: Embedder,
-    settings: Settings,
-    llm: LLMClient,
-    http: httpx.AsyncClient | None = None,
-    transcriber: Transcriber | None = None,
-) -> dict[str, Handler]:
+def _knowledge_handlers(embedder: Embedder, settings: Settings) -> dict[str, Handler]:
+    """Turn uploads and catalogue rows into searchable vectors."""
+
     async def embed_catalog_items(
         sm: SessionMaker, ctx: TenantContext, payload: dict[str, Any]
     ) -> None:
@@ -98,28 +96,20 @@ def build_handlers(
                 return
         await embed_document(sm, ctx, payload)
 
+    return {
+        "embed_catalog_items": embed_catalog_items,
+        "embed_document": embed_document,
+        "ingest_document": ingest_document,
+    }
+
+
+def _chat_handlers(embedder: Embedder, settings: Settings, llm: LLMClient) -> dict[str, Handler]:
+    """Answer customers and draft follow-ups."""
+
     async def process_message(
         sm: SessionMaker, ctx: TenantContext, payload: dict[str, Any]
     ) -> None:
         await run_pipeline(Deps(llm, embedder, settings, sm), ctx, payload)
-
-    async def deliver_message(
-        sm: SessionMaker, ctx: TenantContext, payload: dict[str, Any]
-    ) -> None:
-        assert http is not None  # noqa: S101 (registered only when http is given)
-        async with sm() as session:
-            await send_message(session, ctx, settings, http, payload["message_id"])
-            await session.commit()
-
-    async def transcribe_message(
-        sm: SessionMaker, ctx: TenantContext, payload: dict[str, Any]
-    ) -> None:
-        assert http is not None and transcriber is not None  # noqa: S101
-        async with sm() as session:
-            await run_transcription(
-                session, ctx, settings, http, transcriber, payload["message_id"]
-            )
-            await session.commit()
 
     async def create_follow_ups(
         sm: SessionMaker, ctx: TenantContext, payload: dict[str, Any]
@@ -128,16 +118,64 @@ def build_handlers(
             await FollowUpService(session, ctx, settings).generate()
             await session.commit()
 
-    return {
-        "create_follow_ups": create_follow_ups,
-        "process_message": process_message,
-        "embed_catalog_items": embed_catalog_items,
-        "embed_document": embed_document,
-        "ingest_document": ingest_document,
-        # WhatsApp jobs need an HTTP client and a speech model; callers without them skip these.
-        **(
-            {"deliver_message": deliver_message, "transcribe_message": transcribe_message}
-            if http is not None and transcriber is not None
-            else {}
-        ),
+    return {"process_message": process_message, "create_follow_ups": create_follow_ups}
+
+
+def _whatsapp_handlers(
+    settings: Settings, http: httpx.AsyncClient, transcriber: Transcriber | None
+) -> dict[str, Handler]:
+    """Send messages to WhatsApp; transcribe voice notes when a speech model is given."""
+
+    async def deliver_message(
+        sm: SessionMaker, ctx: TenantContext, payload: dict[str, Any]
+    ) -> None:
+        async with sm() as session:
+            await send_message(session, ctx, settings, http, payload["message_id"])
+            await session.commit()
+
+    handlers: dict[str, Handler] = {"deliver_message": deliver_message}
+    if transcriber is None:
+        return handlers
+
+    async def transcribe_message(
+        sm: SessionMaker, ctx: TenantContext, payload: dict[str, Any]
+    ) -> None:
+        async with sm() as session:
+            await run_transcription(
+                session, ctx, settings, http, transcriber, payload["message_id"]
+            )
+            await session.commit()
+
+    return {**handlers, "transcribe_message": transcribe_message}
+
+
+def _mail_handlers(settings: Settings, mailer: Mailer) -> dict[str, Handler]:
+    async def send_password_reset(
+        sm: SessionMaker, ctx: TenantContext, payload: dict[str, Any]
+    ) -> None:
+        async with sm() as session:
+            await send_reset_email(session, settings, mailer, uuid.UUID(payload["user_id"]))
+            await session.commit()
+
+    return {"send_password_reset": send_password_reset}
+
+
+def build_handlers(
+    embedder: Embedder,
+    settings: Settings,
+    llm: LLMClient,
+    http: httpx.AsyncClient | None = None,
+    transcriber: Transcriber | None = None,
+    mailer: Mailer | None = None,
+) -> dict[str, Handler]:
+    """Every job the worker can run. WhatsApp delivery needs an HTTP client and voice-note
+    transcription also a speech model: without them those jobs are not registered."""
+    handlers = {
+        **_knowledge_handlers(embedder, settings),
+        **_chat_handlers(embedder, settings, llm),
     }
+    if http is not None:
+        handlers.update(_whatsapp_handlers(settings, http, transcriber))
+    if mailer is not None:
+        handlers.update(_mail_handlers(settings, mailer))
+    return handlers

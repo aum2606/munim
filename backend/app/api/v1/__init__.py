@@ -14,10 +14,10 @@ from app.api.v1 import (
     settings,
     users,
 )
-from app.core.ratelimit import rate_limit
+from app.core.ratelimit import limited
 
 # Every signed-in call counts against its business: a runaway script cannot starve the others.
-router = APIRouter(dependencies=[Depends(rate_limit("api", 300, 60, by="tenant"))])
+router = APIRouter(dependencies=[Depends(limited("api", by="tenant"))])
 router.include_router(auth.router)
 router.include_router(audit.router)
 router.include_router(users.router)

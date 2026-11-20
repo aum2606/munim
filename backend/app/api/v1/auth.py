@@ -4,9 +4,16 @@ from fastapi import APIRouter, Cookie, Depends, Response, status
 
 from app.core.deps import SessionDep, SettingsDep
 from app.core.errors import UnauthorizedError
-from app.core.ratelimit import rate_limit
-from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
+from app.core.ratelimit import limited
+from app.schemas.auth import (
+    ForgotPasswordRequest,
+    LoginRequest,
+    RegisterRequest,
+    ResetPasswordRequest,
+    TokenResponse,
+)
 from app.services.auth import AuthService, IssuedTokens
+from app.services.password_reset import request_reset, reset_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -33,7 +40,7 @@ def _respond(response: Response, tokens: IssuedTokens, settings: SettingsDep) ->
     "/register",
     response_model=TokenResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(rate_limit("register", 5, 3600))],
+    dependencies=[Depends(limited("register"))],
 )
 async def register(
     body: RegisterRequest, response: Response, session: SessionDep, settings: SettingsDep
@@ -41,9 +48,7 @@ async def register(
     return _respond(response, await AuthService(session, settings).register(body), settings)
 
 
-@router.post(
-    "/login", response_model=TokenResponse, dependencies=[Depends(rate_limit("login", 10, 60))]
-)
+@router.post("/login", response_model=TokenResponse, dependencies=[Depends(limited("login"))])
 async def login(
     body: LoginRequest, response: Response, session: SessionDep, settings: SettingsDep
 ) -> TokenResponse:
@@ -51,9 +56,7 @@ async def login(
     return _respond(response, tokens, settings)
 
 
-@router.post(
-    "/refresh", response_model=TokenResponse, dependencies=[Depends(rate_limit("refresh", 30, 60))]
-)
+@router.post("/refresh", response_model=TokenResponse, dependencies=[Depends(limited("refresh"))])
 async def refresh(
     response: Response,
     session: SessionDep,
@@ -63,6 +66,27 @@ async def refresh(
     if munim_refresh is None:
         raise UnauthorizedError("Not authenticated")
     return _respond(response, await AuthService(session, settings).refresh(munim_refresh), settings)
+
+
+@router.post(
+    "/forgot-password",
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(limited("forgot_password"))],
+)
+async def forgot_password(
+    body: ForgotPasswordRequest, session: SessionDep, settings: SettingsDep
+) -> dict[str, str]:
+    await request_reset(session, settings, body.email)
+    return {"detail": "If that address has an account, a reset link is on its way."}
+
+
+@router.post(
+    "/reset-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(limited("reset_password"))],
+)
+async def reset_password_with_link(body: ResetPasswordRequest, session: SessionDep) -> None:
+    await reset_password(session, body.token, body.password)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

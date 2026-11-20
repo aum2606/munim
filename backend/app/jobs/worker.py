@@ -95,6 +95,7 @@ async def main() -> None:
     from app.llm.embedder import LocalEmbedder
     from app.llm.openai_compat import ChainLLMClient
     from app.llm.transcriber import WhisperTranscriber
+    from app.services.mailer import SmtpMailer
 
     settings = get_settings()
     configure_logging(settings.log_level)
@@ -118,6 +119,7 @@ async def main() -> None:
                 llm,
                 http,
                 WhisperTranscriber(settings.stt_model, settings.stt_device, settings.stt_cache_dir),
+                SmtpMailer(settings) if settings.mail_ready else None,
             ),
             stop,
             poll_s=settings.job_poll_seconds,

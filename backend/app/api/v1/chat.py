@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.core.deps import CtxDep, SessionDep, SettingsDep
 from app.core.errors import NotFoundError
-from app.core.ratelimit import rate_limit
+from app.core.ratelimit import limited
 from app.db.models import AgentRun, ConversationMode, Message
 from app.repositories.agent_runs import AgentRunRepository
 from app.repositories.chat import ChatRepository
@@ -28,7 +28,7 @@ router = APIRouter(tags=["chat"])
     response_model=PlaygroundSent,
     status_code=status.HTTP_202_ACCEPTED,
     # Each message runs the model: keep a tester from using up the free-tier quota.
-    dependencies=[Depends(rate_limit("playground", 30, 60, by="tenant"))],
+    dependencies=[Depends(limited("playground", by="tenant"))],
 )
 async def playground_send(
     body: PlaygroundSend, ctx: CtxDep, session: SessionDep, settings: SettingsDep
