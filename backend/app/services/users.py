@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import TenantContext
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError
 from app.core.security import hash_password
-from app.db.models import User
+from app.db.models import AuditAction, User
+from app.repositories.audit import AuditRepository
 from app.repositories.auth import AuthRepository
 from app.repositories.users import UserRepository
 from app.schemas.auth import UserCreate, UserUpdate
@@ -17,12 +18,13 @@ class UserService:
         self._ctx = ctx
         self._users = UserRepository(session, ctx)
         self._auth = AuthRepository(session)
+        self._audit = AuditRepository(session, ctx)
 
     async def create(self, data: UserCreate) -> User:
         if await self._auth.get_user_by_email(data.email):
             raise ConflictError("An account with this email already exists")
         try:
-            return await self._users.add(
+            user = await self._users.add(
                 email=data.email,
                 name=data.name,
                 password_hash=hash_password(data.password),
@@ -30,6 +32,8 @@ class UserService:
             )
         except IntegrityError as exc:
             raise ConflictError("An account with this email already exists") from exc
+        await self._audit.record(AuditAction.USER_CREATED, str(user.id))
+        return user
 
     async def update(self, user_id: uuid.UUID, data: UserUpdate) -> User:
         user = await self._users.get(user_id)
@@ -39,8 +43,12 @@ class UserService:
             raise ForbiddenError("You cannot change your own active status")
         if data.name is not None:
             user.name = data.name
-        if data.is_active is not None:
+        if data.is_active is not None and data.is_active != user.is_active:
             user.is_active = data.is_active
             if not data.is_active:
                 await self._auth.revoke_all_refresh_tokens(user.id)
+            await self._audit.record(
+                AuditAction.USER_REACTIVATED if data.is_active else AuditAction.USER_DEACTIVATED,
+                str(user.id),
+            )
         return user

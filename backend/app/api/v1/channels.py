@@ -4,7 +4,8 @@ from app.core.config import Settings
 from app.core.crypto import encrypt_credentials
 from app.core.deps import CtxDep, OwnerDep, SessionDep, SettingsDep
 from app.core.errors import ConflictError
-from app.db.models import ChannelAccount
+from app.db.models import AuditAction, ChannelAccount
+from app.repositories.audit import AuditRepository
 from app.repositories.channels import ChannelAccountRepository, tenant_for_phone_number_id
 from app.schemas.channels import WhatsAppConnect, WhatsAppStatus
 
@@ -41,9 +42,11 @@ async def connect_whatsapp(
         body.display_phone,
         encrypt_credentials(settings, {"access_token": body.access_token}),
     )
+    await AuditRepository(session, ctx).record(AuditAction.WHATSAPP_CONNECTED, body.phone_number_id)
     return _status(settings, account)
 
 
 @router.delete("/channels/whatsapp", status_code=status.HTTP_204_NO_CONTENT)
 async def disconnect_whatsapp(ctx: OwnerDep, session: SessionDep) -> None:
     await ChannelAccountRepository(session, ctx).delete()
+    await AuditRepository(session, ctx).record(AuditAction.WHATSAPP_DISCONNECTED)

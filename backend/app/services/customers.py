@@ -8,7 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings
 from app.core.context import TenantContext
 from app.core.errors import NotFoundError
+from app.db.models import AuditAction
 from app.ingestion.uploads import delete_upload
+from app.repositories.audit import AuditRepository
 from app.repositories.customers import CustomerRepository
 from app.repositories.quotes import QuoteRepository
 from app.schemas.customers import (
@@ -29,6 +31,7 @@ class CustomerService:
         self._settings = settings
         self._customers = CustomerRepository(session, ctx)
         self._quotes = QuoteRepository(session, ctx)
+        self._audit = AuditRepository(session, ctx)
 
     async def export(self, customer_id: uuid.UUID) -> CustomerExport:
         customer = await self._customers.get(customer_id)
@@ -78,6 +81,7 @@ class CustomerService:
         if await self._customers.get(customer_id) is None:
             raise NotFoundError("Customer not found")
         erased = await self._customers.erase(customer_id)
+        await self._audit.record(AuditAction.CUSTOMER_ERASED, str(customer_id))
         for path in erased.pdf_paths:
             delete_upload(self._settings.storage_dir, path)
         # Counts only: the log must not become a second copy of what was just deleted.

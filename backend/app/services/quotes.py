@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings
 from app.core.context import TenantContext
 from app.core.errors import ConflictError, FileRejectedError, NotFoundError
-from app.db.models import Direction, Quote, QuoteItem, QuoteStatus, SenderType
+from app.db.models import AuditAction, Direction, Quote, QuoteItem, QuoteStatus, SenderType
 from app.ingestion.uploads import read_upload, save_upload
 from app.orchestrator.leads import sync_lead
 from app.orchestrator.messages import quote_sent_message
@@ -30,6 +30,7 @@ from app.pricing.engine import (
 )
 from app.pricing.inr import format_inr
 from app.quotes.pdf import PdfLine, QuotePdf, render_quote_pdf
+from app.repositories.audit import AuditRepository
 from app.repositories.catalog import CatalogRepository
 from app.repositories.chat import ChatRepository
 from app.repositories.leads import LeadRepository
@@ -118,6 +119,7 @@ class QuoteService:
         self._settings = settings
         self._quotes = QuoteRepository(session, ctx)
         self._tenant = TenantRepository(session, ctx)
+        self._audit = AuditRepository(session, ctx)
 
     # --- creating -----------------------------------------------------------------------
 
@@ -260,6 +262,7 @@ class QuoteService:
         refreshed = await self.view(quote_id)
         for column, value in QuoteRepository.total_columns(refreshed.totals).items():
             setattr(refreshed.quote, column, value)
+        await self._audit.record(AuditAction.QUOTE_EDITED, refreshed.quote.quote_number)
         return refreshed
 
     # --- approving and delivering ---------------------------------------------------------
@@ -352,6 +355,7 @@ class QuoteService:
                 await leads.add_event(
                     lead, "quote_sent", actor=str(self._ctx.user_id), note=quote.quote_number
                 )
+        await self._audit.record(AuditAction.QUOTE_APPROVED, quote.quote_number)
         return view
 
     async def reject(self, quote_id: uuid.UUID) -> QuoteView:
@@ -360,6 +364,7 @@ class QuoteService:
             raise ConflictError("Only a quote waiting for approval can be rejected")
         view.quote.status = QuoteStatus.REJECTED
         await self._note(view.quote, "quote_rejected")
+        await self._audit.record(AuditAction.QUOTE_REJECTED, view.quote.quote_number)
         return view
 
     async def mark_accepted(self, quote_id: uuid.UUID) -> QuoteView:

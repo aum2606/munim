@@ -1,4 +1,5 @@
 from app.db.models.agent_run import AgentRun, AgentRunStatus
+from app.db.models.audit import AuditAction, AuditEvent
 from app.db.models.channel import ChannelAccount
 from app.db.models.chat import (
     Channel,
@@ -42,6 +43,8 @@ from app.db.models.user import RefreshToken, User
 __all__ = [
     "AgentRun",
     "AgentRunStatus",
+    "AuditAction",
+    "AuditEvent",
     "CatalogItem",
     "Channel",
     "ChannelAccount",
